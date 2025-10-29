@@ -43,11 +43,13 @@ export default function Calculator() {
 
   const calculateMutation = useMutation({
     mutationFn: async (request: FieldCalculationRequest) => {
-      return await apiRequest<FieldCalculationResponse>(
+      const response = await apiRequest(
         "POST",
         "/api/calculate",
         request
       );
+      const data = await response.json() as FieldCalculationResponse;
+      return data;
     },
     onSuccess: (data) => {
       setResults(data);
@@ -68,27 +70,30 @@ export default function Calculator() {
         ? customMagnetization
         : (materialPresets as any)[selectedMaterial];
 
-    const toMeters = (val: number) => convertLength(val, lengthUnit, "m");
+    const toMeters = (val: number | undefined, fallback: number = 0.01) => {
+      const numVal = typeof val === 'number' && !isNaN(val) ? val : fallback;
+      return convertLength(numVal, lengthUnit, "m");
+    };
 
     const request: FieldCalculationRequest = {
       type: magnetType,
       magnetization: magnetizationValue,
-      x: toMeters(calcPoint.x),
-      y: toMeters(calcPoint.y),
-      z: toMeters(calcPoint.z),
+      x: toMeters(calcPoint.x, 0),
+      y: toMeters(calcPoint.y, 0),
+      z: toMeters(calcPoint.z, 0),
     };
 
     if (magnetType === "bar" || magnetType === "rectangular") {
-      request.length = toMeters(dimensions.length);
-      request.width = toMeters(dimensions.width);
-      request.height = toMeters(dimensions.height);
+      request.length = toMeters(dimensions.length, 10);
+      request.width = toMeters(dimensions.width, 5);
+      request.height = toMeters(dimensions.height, 2);
     } else if (magnetType === "cylindrical") {
-      request.diameter = toMeters(dimensions.diameter);
-      request.length = toMeters(dimensions.length);
+      request.diameter = toMeters(dimensions.diameter, 10);
+      request.length = toMeters(dimensions.length, 10);
     } else if (magnetType === "ring") {
-      request.diameter = toMeters(dimensions.diameter);
-      request.innerDiameter = toMeters(dimensions.innerDiameter);
-      request.thickness = toMeters(dimensions.thickness);
+      request.diameter = toMeters(dimensions.diameter, 10);
+      request.innerDiameter = toMeters(dimensions.innerDiameter, 5);
+      request.thickness = toMeters(dimensions.thickness, 5);
     }
 
     calculateMutation.mutate(request);
@@ -191,11 +196,11 @@ export default function Calculator() {
             {results ? (
               <>
                 <FieldResults
-                  Bx={convertField(results.Bx, "T", fieldUnit)}
-                  By={convertField(results.By, "T", fieldUnit)}
-                  Bz={convertField(results.Bz, "T", fieldUnit)}
-                  magnitude={convertField(results.magnitude, "T", fieldUnit)}
-                  distance={convertLength(results.distance, "m", lengthUnit)}
+                  Bx={convertField(Number(results.Bx) || 0, "T", fieldUnit)}
+                  By={convertField(Number(results.By) || 0, "T", fieldUnit)}
+                  Bz={convertField(Number(results.Bz) || 0, "T", fieldUnit)}
+                  magnitude={convertField(Number(results.magnitude) || 0, "T", fieldUnit)}
+                  distance={convertLength(Number(results.distance) || 0, "m", lengthUnit)}
                   fieldUnit={fieldUnit}
                   lengthUnit={lengthUnit}
                 />
@@ -205,9 +210,9 @@ export default function Calculator() {
                   calcX={calcPoint.x}
                   calcY={calcPoint.y}
                   calcZ={calcPoint.z}
-                  Bx={results.Bx}
-                  By={results.By}
-                  Bz={results.Bz}
+                  Bx={Number(results.Bx) || 0}
+                  By={Number(results.By) || 0}
+                  Bz={Number(results.Bz) || 0}
                 />
               </>
             ) : (
