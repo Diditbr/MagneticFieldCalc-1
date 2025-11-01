@@ -50,7 +50,12 @@ export function CalculationPointInputs({
                 type="number"
                 step="0.1"
                 value={axis === "x" ? x : axis === "y" ? y : z}
-                onChange={(e) => onChange(axis, parseFloat(e.target.value) || 0)}
+                onChange={(e) => {
+                  const value = parseFloat(e.target.value);
+                  if (!isNaN(value)) {
+                    onChange(axis, value);
+                  }
+                }}
                 className="font-mono pr-12"
                 data-testid={`input-calc-${axis}`}
               />

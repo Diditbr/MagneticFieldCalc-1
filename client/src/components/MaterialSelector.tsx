@@ -76,12 +76,20 @@ export function MaterialSelector({
             Custom Magnetization (T)
           </Label>
           <Input
+            key={`custom-mag-${customMagnetization}`}
             id="custom-magnetization"
             type="number"
             step="0.01"
             min="0.01"
-            value={customMagnetization}
-            onChange={(e) => onCustomMagnetizationChange(parseFloat(e.target.value) || 0.01)}
+            defaultValue={customMagnetization}
+            onBlur={(e) => {
+              const value = parseFloat(e.target.value);
+              if (!isNaN(value) && value > 0) {
+                onCustomMagnetizationChange(value);
+              } else {
+                e.target.value = String(customMagnetization);
+              }
+            }}
             className="font-mono"
             data-testid="input-custom-magnetization"
           />

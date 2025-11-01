@@ -66,7 +66,18 @@ export const fieldCalculationRequestSchema = z.object({
   x: z.number(),
   y: z.number(),
   z: z.number(),
-});
+}).refine(
+  (data) => {
+    if (data.type === "ring" && data.innerDiameter && data.diameter) {
+      return data.innerDiameter < data.diameter;
+    }
+    return true;
+  },
+  {
+    message: "Inner diameter must be smaller than outer diameter for ring magnets",
+    path: ["innerDiameter"],
+  }
+);
 
 export type FieldCalculationRequest = z.infer<typeof fieldCalculationRequestSchema>;
 

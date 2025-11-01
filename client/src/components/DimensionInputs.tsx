@@ -59,12 +59,20 @@ export function DimensionInputs({
       </div>
       <div className="flex gap-2">
         <Input
+          key={`${key}-${dimensions[key as keyof typeof dimensions]}`}
           id={key}
           type="number"
           step="0.1"
           min="0.1"
-          value={dimensions[key as keyof typeof dimensions] || defaultValue}
-          onChange={(e) => onDimensionChange(key, parseFloat(e.target.value) || 0.1)}
+          defaultValue={dimensions[key as keyof typeof dimensions] || defaultValue}
+          onBlur={(e) => {
+            const value = parseFloat(e.target.value);
+            if (!isNaN(value) && value > 0) {
+              onDimensionChange(key, value);
+            } else {
+              e.target.value = String(dimensions[key as keyof typeof dimensions] || defaultValue);
+            }
+          }}
           className="font-mono"
           data-testid={`input-${key}`}
         />

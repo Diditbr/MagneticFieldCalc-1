@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Calculator as CalcIcon, Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import { MagnetTypeSelector } from "@/components/MagnetTypeSelector";
 import { MaterialSelector } from "@/components/MaterialSelector";
 import { DimensionInputs } from "@/components/DimensionInputs";
@@ -21,8 +22,10 @@ import type {
   FieldCalculationRequest,
   FieldCalculationResponse,
 } from "@shared/schema";
+import { materialPresets } from "@shared/schema";
 
 export default function Calculator() {
+  const { toast } = useToast();
   const [magnetType, setMagnetType] = useState<MagnetType>("bar");
   const [selectedMaterial, setSelectedMaterial] = useState<MaterialPreset>("NdFeB N42");
   const [customMagnetization, setCustomMagnetization] = useState(1.0);
@@ -65,35 +68,48 @@ export default function Calculator() {
   };
 
   const handleCalculate = () => {
+    if (magnetType === "ring" && dimensions.innerDiameter && dimensions.diameter) {
+      if (dimensions.innerDiameter >= dimensions.diameter) {
+        toast({
+          title: "Invalid Ring Dimensions",
+          description: "Inner diameter must be smaller than outer diameter for ring magnets.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     const magnetizationValue =
       selectedMaterial === "Custom"
         ? customMagnetization
-        : (materialPresets as any)[selectedMaterial];
+        : materialPresets[selectedMaterial];
 
-    const toMeters = (val: number | undefined, fallback: number = 0.01) => {
-      const numVal = typeof val === 'number' && !isNaN(val) ? val : fallback;
-      return convertLength(numVal, lengthUnit, "m");
+    const toMeters = (val: number | undefined) => {
+      if (typeof val !== 'number' || isNaN(val) || val <= 0) {
+        return 0.01;
+      }
+      return convertLength(val, lengthUnit, "m");
     };
 
     const request: FieldCalculationRequest = {
       type: magnetType,
       magnetization: magnetizationValue,
-      x: toMeters(calcPoint.x, 0),
-      y: toMeters(calcPoint.y, 0),
-      z: toMeters(calcPoint.z, 0),
+      x: convertLength(calcPoint.x, lengthUnit, "m"),
+      y: convertLength(calcPoint.y, lengthUnit, "m"),
+      z: convertLength(calcPoint.z, lengthUnit, "m"),
     };
 
     if (magnetType === "bar" || magnetType === "rectangular") {
-      request.length = toMeters(dimensions.length, 10);
-      request.width = toMeters(dimensions.width, 5);
-      request.height = toMeters(dimensions.height, 2);
+      request.length = toMeters(dimensions.length);
+      request.width = toMeters(dimensions.width);
+      request.height = toMeters(dimensions.height);
     } else if (magnetType === "cylindrical") {
-      request.diameter = toMeters(dimensions.diameter, 10);
-      request.length = toMeters(dimensions.length, 10);
+      request.diameter = toMeters(dimensions.diameter);
+      request.length = toMeters(dimensions.length);
     } else if (magnetType === "ring") {
-      request.diameter = toMeters(dimensions.diameter, 10);
-      request.innerDiameter = toMeters(dimensions.innerDiameter, 5);
-      request.thickness = toMeters(dimensions.thickness, 5);
+      request.diameter = toMeters(dimensions.diameter);
+      request.innerDiameter = toMeters(dimensions.innerDiameter);
+      request.thickness = toMeters(dimensions.thickness);
     }
 
     calculateMutation.mutate(request);
@@ -110,15 +126,6 @@ export default function Calculator() {
       setDimensions((prev) => ({ ...prev, diameter: 10, innerDiameter: 5, thickness: 5 }));
     }
   }, [magnetType]);
-
-  const materialPresets = {
-    "NdFeB N52": 1.48,
-    "NdFeB N42": 1.32,
-    "SmCo": 1.05,
-    "Ferrite (Ceramic)": 0.39,
-    "AlNiCo 5": 1.28,
-    "Custom": 0,
-  };
 
   return (
     <div className="min-h-screen bg-background">
