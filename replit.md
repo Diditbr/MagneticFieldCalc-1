@@ -47,10 +47,15 @@ Preferred communication style: Simple, everyday language.
 - JSON request/response format with error handling
 
 **Calculation Engine**
-- Physics-based magnetic field calculations using magnetic dipole approximation
-- Supports four magnet geometries with geometry-specific volume calculations
-- Converts magnetization from Tesla (remanent field) to A/m for calculations
-- Uses permeability of free space constant (μ₀ = 4π × 10⁻⁷ T·m/A)
+- **Magpylib Integration**: Uses Magpylib v5.2.1 (Python library) for accurate magnetic field calculations
+- Provides precise results even close to the magnet surface (near-field accuracy)
+- Node.js backend spawns Python child processes to execute calculations
+- Supports four magnet geometries:
+  - Bar/Rectangular: Implemented as Cuboid magnets
+  - Cylindrical: Implemented as Cylinder magnets
+  - Ring: Implemented as CylinderSegment magnets (360° arc)
+- All magnets magnetized along z-axis for consistency
+- Python calculation service (`server/magpylib_calculator.py`) communicates via stdin/stdout JSON
 
 **Data Validation**
 - Shared Zod schemas (`shared/schema.ts`) ensure type safety across frontend and backend
@@ -88,6 +93,12 @@ The calculator performs stateless calculations - each request is independent and
 - Replit-specific plugins: runtime error overlay, cartographer for navigation, dev banner
 - TypeScript for static type checking across the entire codebase
 - ESBuild for production builds with tree-shaking and bundling
+- Python 3.11 for running Magpylib calculations
+
+**Calculation Libraries**
+- Magpylib v5.2.1: Python library for accurate magnetic field calculations
+- NumPy: Scientific computing library for numerical operations in Python
+- SciPy, Matplotlib: Supporting libraries for Magpylib (installed as dependencies)
 
 **Styling & Utilities**
 - Class Variance Authority (CVA): Type-safe variant management for component styles

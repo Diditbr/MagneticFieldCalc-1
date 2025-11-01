@@ -1,5 +1,9 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import { spawn } from "child_process";
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
+import { ZodError } from "zod";
 import { storage } from "./storage";
 import {
   fieldCalculationRequestSchema,
@@ -7,22 +11,106 @@ import {
 } from "@shared/schema";
 import { calculateFieldEnhanced } from "./calculations";
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+/**
+ * Call Python magpylib calculator for accurate magnetic field calculations
+ */
+async function calculateWithMagpylib(request: any): Promise<FieldCalculationResponse> {
+  return new Promise((resolve, reject) => {
+    const pythonScript = join(__dirname, 'magpylib_calculator.py');
+    const python = spawn('python3', [pythonScript]);
+    
+    let stdout = '';
+    let stderr = '';
+    let timedOut = false;
+    
+    // Set timeout to prevent hanging (10 seconds)
+    const timeout = setTimeout(() => {
+      timedOut = true;
+      python.kill();
+      reject(new Error('Python calculation timed out after 10 seconds'));
+    }, 10000);
+    
+    python.stdout.on('data', (data) => {
+      stdout += data.toString();
+    });
+    
+    python.stderr.on('data', (data) => {
+      stderr += data.toString();
+    });
+    
+    python.on('close', (code) => {
+      clearTimeout(timeout);
+      
+      if (timedOut) {
+        return;
+      }
+      
+      if (code !== 0) {
+        reject(new Error(`Python calculation failed: ${stderr || 'Unknown error'}`));
+      } else {
+        try {
+          const result = JSON.parse(stdout);
+          if (result.error) {
+            reject(new Error(result.error));
+          } else {
+            resolve(result as FieldCalculationResponse);
+          }
+        } catch (e) {
+          reject(new Error(`Failed to parse Python output: ${e}`));
+        }
+      }
+    });
+    
+    python.on('error', (err) => {
+      clearTimeout(timeout);
+      reject(new Error(`Failed to start Python process: ${err.message}`));
+    });
+    
+    // Send input data to Python script via stdin
+    python.stdin.write(JSON.stringify(request));
+    python.stdin.end();
+  });
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Magnetic field calculation endpoint
+  // Magnetic field calculation endpoint using Magpylib for accuracy
   app.post("/api/calculate", async (req, res) => {
     try {
       // Validate request body
       const validatedData = fieldCalculationRequestSchema.parse(req.body);
       
-      // Calculate the magnetic field
-      const result: FieldCalculationResponse = calculateFieldEnhanced(validatedData);
-      
-      res.json(result);
+      try {
+        // Try to calculate using Python/Magpylib for accurate near-field results
+        const result: FieldCalculationResponse = await calculateWithMagpylib(validatedData);
+        res.json(result);
+        return;
+      } catch (pythonError) {
+        // If Python calculation fails, fall back to TypeScript implementation
+        console.error('Magpylib calculation failed, falling back to dipole approximation:', pythonError);
+        try {
+          const fallbackResult: FieldCalculationResponse = calculateFieldEnhanced(validatedData);
+          res.json(fallbackResult);
+          return;
+        } catch (fallbackError) {
+          // Both calculation methods failed - this is a server error
+          console.error('Both Magpylib and fallback calculation failed:', fallbackError);
+          res.status(500).json({ error: 'Internal calculation error' });
+          return;
+        }
+      }
     } catch (error) {
-      if (error instanceof Error) {
+      // Validation errors are client errors (400)
+      if (error instanceof ZodError) {
         res.status(400).json({ error: error.message });
+      } else if (error instanceof Error) {
+        // Other errors are server errors (500)
+        console.error('Unexpected server error:', error);
+        res.status(500).json({ error: 'Internal server error' });
       } else {
-        res.status(400).json({ error: "Invalid request" });
+        res.status(500).json({ error: 'Unknown server error' });
       }
     }
   });
