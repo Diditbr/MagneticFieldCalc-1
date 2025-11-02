@@ -436,7 +436,7 @@ export function FieldVisualization({
       return points;
     }
 
-    // Helper function to draw a field line path with different styles for inside/outside
+    // Helper function to draw a field line path (only outside the magnet)
     const drawFieldLinePath = (
       points: { x: number; z: number; inside: boolean }[]
     ) => {
@@ -448,25 +448,27 @@ export function FieldVisualization({
         
         // If transition between inside/outside, finish current path and start new one
         if (point.inside !== wasInside && currentPath.length > 0) {
-          // Draw the accumulated path
-          ctx.strokeStyle = wasInside ? "#1e40af" : "#3b82f6"; // Darker blue inside
-          ctx.lineWidth = wasInside ? 2 : 1.5;
-          
-          ctx.beginPath();
-          for (let k = 0; k < currentPath.length; k++) {
-            const screenX = centerX + currentPath[k].x * scale;
-            const screenY = centerY - currentPath[k].z * scale;
-            if (k === 0) {
-              ctx.moveTo(screenX, screenY);
-            } else {
-              ctx.lineTo(screenX, screenY);
+          // Only draw if the segment was OUTSIDE the magnet
+          if (!wasInside) {
+            ctx.strokeStyle = "#3b82f6"; // Blue for outside
+            ctx.lineWidth = 1.5;
+            
+            ctx.beginPath();
+            for (let k = 0; k < currentPath.length; k++) {
+              const screenX = centerX + currentPath[k].x * scale;
+              const screenY = centerY - currentPath[k].z * scale;
+              if (k === 0) {
+                ctx.moveTo(screenX, screenY);
+              } else {
+                ctx.lineTo(screenX, screenY);
+              }
             }
+            // Add the current point to reach the boundary
+            const screenX = centerX + point.x * scale;
+            const screenY = centerY - point.z * scale;
+            ctx.lineTo(screenX, screenY);
+            ctx.stroke();
           }
-          // Add the current point to bridge the gap
-          const screenX = centerX + point.x * scale;
-          const screenY = centerY - point.z * scale;
-          ctx.lineTo(screenX, screenY);
-          ctx.stroke();
           
           // Start new path
           currentPath = [point];
@@ -476,10 +478,10 @@ export function FieldVisualization({
         }
       }
       
-      // Draw the final path segment
-      if (currentPath.length > 0) {
-        ctx.strokeStyle = wasInside ? "#1e40af" : "#3b82f6";
-        ctx.lineWidth = wasInside ? 2 : 1.5;
+      // Draw the final path segment (only if outside)
+      if (currentPath.length > 0 && !wasInside) {
+        ctx.strokeStyle = "#3b82f6";
+        ctx.lineWidth = 1.5;
         
         ctx.beginPath();
         for (let k = 0; k < currentPath.length; k++) {
