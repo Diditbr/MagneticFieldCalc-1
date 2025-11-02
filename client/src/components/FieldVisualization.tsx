@@ -363,7 +363,16 @@ export function FieldVisualization({
         // Check if point is inside the magnet
         const insideMagnetZ = Math.abs(z) < magnetHeight / 2;
         const insideMagnetX = Math.abs(x) < magnetWidth / 2;
-        const isInside = insideMagnetZ && insideMagnetX;
+        
+        // For ring magnets, exclude the hollow center
+        let isInside = insideMagnetZ && insideMagnetX;
+        if (magnetType === "ring" && dimensions.innerDiameter) {
+          const innerWidth = dimensions.innerDiameter;
+          const insideHollowX = Math.abs(x) < innerWidth / 2;
+          const insideHollowZ = Math.abs(z) < magnetHeight / 2;
+          const isInHollow = insideHollowX && insideHollowZ;
+          isInside = isInside && !isInHollow; // Inside outer but NOT inside hollow
+        }
         
         points.push({ x, z, inside: isInside });
 
