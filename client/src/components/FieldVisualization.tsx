@@ -420,12 +420,14 @@ export function FieldVisualization({
     const poleWidth = magnetWidth / 2;
     
     // Calculate even spacing across the full magnet width
-    const totalLines = numFluxLines; // Total lines including both sides
-    const spacing = magnetWidth / totalLines;
+    const totalLines = numFluxLines;
+    const spacing = magnetWidth / (totalLines + 1); // Add 1 to avoid edges
     
     for (let i = 0; i < totalLines; i++) {
-      // Start from left edge and space evenly: for 10mm magnet with 8 lines: -4.375, -3.125, -1.875, -0.625, 0.625, 1.875, 3.125, 4.375
-      const startX = -poleWidth + spacing * (i + 0.5);
+      // Start from left side and space evenly across the magnet
+      // For 10mm magnet with 8 lines: spacing = 10/9 = 1.11mm
+      // Positions: -5 + 1.11, -5 + 2.22, ..., -5 + 8.88
+      const startX = -poleWidth + spacing * (i + 1);
       
       // Start just outside the north pole to trace complete closed loop
       const startZ = poleZ + characteristicLength * 0.03;

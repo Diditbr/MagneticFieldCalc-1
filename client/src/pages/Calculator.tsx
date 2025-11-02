@@ -42,7 +42,7 @@ export default function Calculator() {
   });
 
   const [calcPoint, setCalcPoint] = useState({ x: 1, y: 0, z: 1 });
-  const [numFluxLines, setNumFluxLines] = useState(12);
+  const [numFluxLines, setNumFluxLines] = useState(8);
   const [results, setResults] = useState<FieldCalculationResponse | null>(null);
 
   const calculateMutation = useMutation({
