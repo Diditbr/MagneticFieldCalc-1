@@ -40,13 +40,14 @@ export function FieldVisualization({
   useEffect(() => {
     const fetchFieldGrid = async () => {
       // Determine grid bounds based on magnet dimensions
+      // Use larger area to show complete flux loops
       let maxDim = 10;
       if (magnetType === "bar" || magnetType === "rectangular") {
-        maxDim = Math.max(dimensions.length || 10, dimensions.height || 2) * 2;
+        maxDim = Math.max(dimensions.length || 10, dimensions.height || 2) * 3.5;
       } else if (magnetType === "cylindrical") {
-        maxDim = Math.max(dimensions.diameter || 10, dimensions.length || 10) * 2;
+        maxDim = Math.max(dimensions.diameter || 10, dimensions.length || 10) * 3.5;
       } else if (magnetType === "ring") {
-        maxDim = Math.max(dimensions.diameter || 10, dimensions.thickness || 5) * 2;
+        maxDim = Math.max(dimensions.diameter || 10, dimensions.thickness || 5) * 3.5;
       }
       
       try {
@@ -118,10 +119,10 @@ export function FieldVisualization({
     }
     
     // Add some padding and ensure calculation point is visible
-    maxDimension = Math.max(maxDimension * 1.5, Math.abs(calcX) * 1.2, Math.abs(calcZ) * 1.2);
+    maxDimension = Math.max(maxDimension * 2.5, Math.abs(calcX) * 1.2, Math.abs(calcZ) * 1.2);
     
-    // Scale to fit in canvas with margin
-    const scale = Math.min(width, height) / (maxDimension * 2.5);
+    // Scale to fit in canvas with margin - more room for flux loops
+    const scale = Math.min(width, height) / (maxDimension * 2.8);
 
     ctx.clearRect(0, 0, width, height);
 
@@ -347,8 +348,8 @@ export function FieldVisualization({
       const points: { x: number; z: number; inside: boolean }[] = [];
       let x = startX;
       let z = startZ;
-      const maxSteps = 5000;
-      const maxDistance = characteristicLength * 25;
+      const maxSteps = 8000; // More steps to complete loops
+      const maxDistance = characteristicLength * 50; // Much larger area for complete loops
       
       // Track loop completion
       let wasOutside = false;
@@ -390,7 +391,8 @@ export function FieldVisualization({
         x += dx * adaptiveDt;
         z += dz * adaptiveDt;
 
-        // Track loop completion
+        // Track loop completion: field line exits from top (north), curves around, 
+        // enters from bottom (south), and travels back up inside to complete the loop
         if (!isInside) {
           wasOutside = true;
           consecutiveInsideSteps = 0;
@@ -406,8 +408,15 @@ export function FieldVisualization({
           consecutiveInsideSteps++;
         }
         
-        // Loop is complete when we've traveled through the magnet and back to north side
-        if (hasReenteredFromBelow && isInside && z > magnetHeight * 0.3 && consecutiveInsideSteps > 20) {
+        // Loop is complete when we've traveled through the magnet back near the start
+        // Check if we're near the top (north) side after completing the external loop
+        if (hasReenteredFromBelow && isInside && z > magnetHeight * 0.25 && consecutiveInsideSteps > 15) {
+          // Close to starting height - loop complete
+          break;
+        }
+        
+        // Safety: also stop if we've gone outside the grid bounds
+        if (field.Bx === 0 && field.Bz === 0 && !isInside) {
           break;
         }
       }
