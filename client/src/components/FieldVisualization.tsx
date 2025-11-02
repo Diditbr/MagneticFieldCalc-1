@@ -38,16 +38,12 @@ export function FieldVisualization({
 
     ctx.clearRect(0, 0, width, height);
 
-    ctx.fillStyle = getComputedStyle(document.documentElement)
-      .getPropertyValue("--background")
-      .trim();
+    // White background for better visibility
+    ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, width, height);
 
-    const borderColor = getComputedStyle(document.documentElement)
-      .getPropertyValue("--border")
-      .trim();
-    
-    ctx.strokeStyle = `hsl(${borderColor})`;
+    // Light border
+    ctx.strokeStyle = "#e5e5e5";
     ctx.lineWidth = 1;
     ctx.strokeRect(0, 0, width, height);
 
@@ -69,11 +65,7 @@ export function FieldVisualization({
     width: number,
     height: number
   ) {
-    const foregroundColor = getComputedStyle(document.documentElement)
-      .getPropertyValue("--muted-foreground")
-      .trim();
-    
-    ctx.strokeStyle = `hsl(${foregroundColor} / 0.2)`;
+    ctx.strokeStyle = "#d1d5db";
     ctx.lineWidth = 1;
     ctx.setLineDash([5, 5]);
 
@@ -89,7 +81,7 @@ export function FieldVisualization({
 
     ctx.setLineDash([]);
 
-    ctx.fillStyle = `hsl(${foregroundColor} / 0.6)`;
+    ctx.fillStyle = "#6b7280";
     ctx.font = "12px Inter, sans-serif";
     ctx.fillText("X", width - 20, centerY - 8);
     ctx.fillText("Z", centerX + 8, 20);
@@ -102,12 +94,8 @@ export function FieldVisualization({
     type: MagnetType,
     scale: number
   ) {
-    const primaryColor = getComputedStyle(document.documentElement)
-      .getPropertyValue("--primary")
-      .trim();
-    
-    ctx.fillStyle = `hsl(${primaryColor} / 0.15)`;
-    ctx.strokeStyle = `hsl(${primaryColor})`;
+    ctx.fillStyle = "#ef444415";
+    ctx.strokeStyle = "#ef4444";
     ctx.lineWidth = 2;
 
     const size = scale * 2;
@@ -134,7 +122,7 @@ export function FieldVisualization({
         break;
     }
 
-    ctx.fillStyle = `hsl(${primaryColor})`;
+    ctx.fillStyle = "#ef4444";
     ctx.font = "bold 14px Inter, sans-serif";
     ctx.textAlign = "center";
     ctx.fillText("N", centerX, centerY - size / 6);
@@ -147,34 +135,47 @@ export function FieldVisualization({
     centerY: number,
     scale: number
   ) {
-    const chart1Color = getComputedStyle(document.documentElement)
-      .getPropertyValue("--chart-1")
-      .trim();
-    
-    ctx.strokeStyle = `hsl(${chart1Color} / 0.4)`;
+    ctx.strokeStyle = "#3b82f6";
     ctx.lineWidth = 1.5;
 
-    const northPoleY = centerY - scale * 0.5;
-    const southPoleY = centerY + scale * 0.5;
-
-    for (let i = 0; i < 6; i++) {
-      const offsetX = (i - 2.5) * scale * 0.3;
-      
+    const fieldLineConstants = [0.3, 0.5, 0.7, 0.9, 1.1, 1.3, 1.5, 1.7];
+    
+    for (const r0 of fieldLineConstants) {
       ctx.beginPath();
       
-      for (let t = 0; t <= 1; t += 0.02) {
-        const angle = t * Math.PI;
+      const startTheta = Math.PI * 0.05;
+      const endTheta = Math.PI * 0.95;
+      const steps = 100;
+      
+      for (let i = 0; i <= steps; i++) {
+        const theta = startTheta + (endTheta - startTheta) * (i / steps);
+        const sinTheta = Math.sin(theta);
+        const r = r0 * scale * sinTheta * sinTheta;
         
-        const radiusX = Math.abs(offsetX) + scale * 1.5 * Math.sin(angle);
-        const radiusY = scale * 2 * Math.sin(angle);
+        const x = centerX + r * Math.sin(theta);
+        const z = centerY - r * Math.cos(theta);
         
-        const x = centerX + offsetX * (1 - Math.sin(angle)) + radiusX * Math.sign(offsetX || 1);
-        const y = northPoleY + (southPoleY - northPoleY) * t + radiusY * 0.5;
-        
-        if (t === 0) {
-          ctx.moveTo(x, y);
+        if (i === 0) {
+          ctx.moveTo(x, z);
         } else {
-          ctx.lineTo(x, y);
+          ctx.lineTo(x, z);
+        }
+      }
+      ctx.stroke();
+      
+      ctx.beginPath();
+      for (let i = 0; i <= steps; i++) {
+        const theta = startTheta + (endTheta - startTheta) * (i / steps);
+        const sinTheta = Math.sin(theta);
+        const r = r0 * scale * sinTheta * sinTheta;
+        
+        const x = centerX - r * Math.sin(theta);
+        const z = centerY - r * Math.cos(theta);
+        
+        if (i === 0) {
+          ctx.moveTo(x, z);
+        } else {
+          ctx.lineTo(x, z);
         }
       }
       ctx.stroke();
@@ -190,11 +191,7 @@ export function FieldVisualization({
     Bz: number,
     scale: number
   ) {
-    const destructiveColor = getComputedStyle(document.documentElement)
-      .getPropertyValue("--destructive")
-      .trim();
-    
-    ctx.fillStyle = `hsl(${destructiveColor})`;
+    ctx.fillStyle = "#10b981";
     ctx.beginPath();
     ctx.arc(x, y, 5, 0, Math.PI * 2);
     ctx.fill();
@@ -204,7 +201,7 @@ export function FieldVisualization({
       const arrowLength = Math.min(magnitude * 20, scale * 1.5);
       const angle = Math.atan2(-Bz, Bx);
 
-      ctx.strokeStyle = `hsl(${destructiveColor})`;
+      ctx.strokeStyle = "#10b981";
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.moveTo(x, y);
