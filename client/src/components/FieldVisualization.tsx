@@ -147,7 +147,7 @@ export function FieldVisualization({
     },
     scale: number
   ) {
-    ctx.fillStyle = "#ef444415";
+    ctx.fillStyle = "#ef444425"; // More transparent to see flux lines inside
     ctx.strokeStyle = "#ef4444";
     ctx.lineWidth = 2;
 
@@ -283,18 +283,29 @@ export function FieldVisualization({
     }
 
     // Function to trace a field line using adaptive integration to form closed loops
-    function traceFieldLine(startX: number, startZ: number): { x: number; z: number }[] {
-      const points: { x: number; z: number }[] = [];
+    function traceFieldLine(startX: number, startZ: number): { x: number; z: number; inside: boolean }[] {
+      const points: { x: number; z: number; inside: boolean }[] = [];
       let x = startX;
       let z = startZ;
-      const maxSteps = 2000;
+      const maxSteps = 3000;
       const maxDistance = characteristicLength * 20;
-      let wasInside = true; // Start just outside north pole
-      let crossedToOutside = false;
-      let crossedBackInside = false;
+      
+      // Track loop completion
+      let hasLeftMagnet = false;
+      let hasReenteredMagnet = false;
+      let startedInside = false;
 
       for (let step = 0; step < maxSteps; step++) {
-        points.push({ x, z });
+        // Check if point is inside the magnet
+        const insideMagnetZ = Math.abs(z) < magnetHeight / 2;
+        const insideMagnetX = Math.abs(x) < magnetWidth / 2;
+        const isInside = insideMagnetZ && insideMagnetX;
+        
+        if (step === 0) {
+          startedInside = isInside;
+        }
+        
+        points.push({ x, z, inside: isInside });
 
         // Check if we've gone too far
         const distFromOrigin = Math.sqrt(x * x + z * z);
@@ -304,83 +315,97 @@ export function FieldVisualization({
         const field = getBField(x, z);
         const magnitude = Math.sqrt(field.Bx * field.Bx + field.Bz * field.Bz);
         
-        if (magnitude < 0.00001 * m) break; // Field too weak
+        if (magnitude < 0.00001 * m) break;
 
         // Normalize direction
         const dx = field.Bx / magnitude;
         const dz = field.Bz / magnitude;
 
-        // Adaptive step size: smaller steps near boundaries
+        // Adaptive step size: smaller steps near boundaries and inside magnet
         const distanceFromOrigin = Math.sqrt(x * x + z * z);
-        const adaptiveDt = baseStepSize * Math.min(3, 0.5 + distanceFromOrigin / characteristicLength);
+        let adaptiveDt = baseStepSize * Math.min(3, 0.5 + distanceFromOrigin / characteristicLength);
+        
+        // Use smaller steps inside the magnet for better visualization
+        if (isInside) {
+          adaptiveDt *= 0.3;
+        }
 
         // Euler integration
         x += dx * adaptiveDt;
         z += dz * adaptiveDt;
 
-        // Track if we've completed a closed loop
-        const insideMagnetZ = Math.abs(z) < magnetHeight / 2;
-        const insideMagnetX = Math.abs(x) < magnetWidth / 2;
-        const isInside = insideMagnetZ && insideMagnetX;
-        
-        if (!wasInside && !isInside) {
-          crossedToOutside = true;
+        // Track loop completion: outside → inside → back to starting region
+        if (!isInside && !startedInside) {
+          hasLeftMagnet = true;
         }
         
-        if (crossedToOutside && isInside) {
-          crossedBackInside = true;
+        if (hasLeftMagnet && isInside) {
+          hasReenteredMagnet = true;
         }
         
-        // Complete the loop when we've gone: inside → outside → inside and back near start
-        if (crossedBackInside && isInside && z > 0 && Math.abs(z - startZ) < magnetHeight * 0.3) {
-          // Close to starting height, complete the loop
-          break;
+        // Check if we've completed a full loop
+        if (hasReenteredMagnet && isInside) {
+          // If we're back in the upper half of magnet, close the loop
+          if (z > magnetHeight * 0.2) {
+            break;
+          }
         }
-        
-        wasInside = isInside;
       }
 
       return points;
     }
 
-    // Start flux lines from the north pole (top of magnet)
-    // Distribute starting points across the pole surface for equal flux
-    const poleZ = magnetHeight / 2;
-    const poleWidth = magnetWidth / 2; // Half width at the pole surface
-    
-    for (let i = 0; i < numFluxLines / 2; i++) {
-      // Distribute starting points for approximately equal flux
-      // Using angular distribution: more points near edges where flux density is lower
-      const fraction = (i + 0.5) / (numFluxLines / 2);
-      const angle = Math.asin(Math.sqrt(fraction));
-      const startX = Math.sin(angle) * poleWidth * 0.95; // 95% of pole width to stay on surface
+    // Helper function to draw a field line path with different styles for inside/outside
+    const drawFieldLinePath = (
+      points: { x: number; z: number; inside: boolean }[],
+      xMultiplier: number
+    ) => {
+      let currentPath: { x: number; z: number }[] = [];
+      let wasInside = points[0]?.inside || false;
       
-      // Start just outside the north pole to trace complete closed loop
-      const startZ = poleZ + characteristicLength * 0.05;
-      
-      // Trace complete closed field line loop
-      const points = traceFieldLine(startX, startZ);
-      
-      // Draw the complete field line
-      ctx.beginPath();
       for (let j = 0; j < points.length; j++) {
-        const screenX = centerX + points[j].x * scale;
-        const screenY = centerY - points[j].z * scale;
-        if (j === 0) {
-          ctx.moveTo(screenX, screenY);
-        } else {
+        const point = points[j];
+        
+        // If transition between inside/outside, finish current path and start new one
+        if (point.inside !== wasInside && currentPath.length > 0) {
+          // Draw the accumulated path
+          ctx.strokeStyle = wasInside ? "#1e40af" : "#3b82f6"; // Darker blue inside
+          ctx.lineWidth = wasInside ? 2 : 1.5;
+          
+          ctx.beginPath();
+          for (let k = 0; k < currentPath.length; k++) {
+            const screenX = centerX + currentPath[k].x * scale * xMultiplier;
+            const screenY = centerY - currentPath[k].z * scale;
+            if (k === 0) {
+              ctx.moveTo(screenX, screenY);
+            } else {
+              ctx.lineTo(screenX, screenY);
+            }
+          }
+          // Add the current point to bridge the gap
+          const screenX = centerX + point.x * scale * xMultiplier;
+          const screenY = centerY - point.z * scale;
           ctx.lineTo(screenX, screenY);
+          ctx.stroke();
+          
+          // Start new path
+          currentPath = [point];
+          wasInside = point.inside;
+        } else {
+          currentPath.push(point);
         }
       }
-      ctx.stroke();
       
-      // Draw symmetric field line on the other side
-      if (startX !== 0) {
+      // Draw the final path segment
+      if (currentPath.length > 0) {
+        ctx.strokeStyle = wasInside ? "#1e40af" : "#3b82f6";
+        ctx.lineWidth = wasInside ? 2 : 1.5;
+        
         ctx.beginPath();
-        for (let j = 0; j < points.length; j++) {
-          const screenX = centerX - points[j].x * scale;
-          const screenY = centerY - points[j].z * scale;
-          if (j === 0) {
+        for (let k = 0; k < currentPath.length; k++) {
+          const screenX = centerX + currentPath[k].x * scale * xMultiplier;
+          const screenY = centerY - currentPath[k].z * scale;
+          if (k === 0) {
             ctx.moveTo(screenX, screenY);
           } else {
             ctx.lineTo(screenX, screenY);
@@ -388,7 +413,36 @@ export function FieldVisualization({
         }
         ctx.stroke();
       }
+    };
+    
+    // Start flux lines from the north pole (top of magnet)
+    // Distribute starting points across the entire pole surface for equal flux
+    const poleZ = magnetHeight / 2;
+    const poleWidth = magnetWidth / 2;
+    
+    for (let i = 0; i < numFluxLines / 2; i++) {
+      // Distribute starting points evenly across the full width
+      const fraction = (i + 0.5) / (numFluxLines / 2);
+      const startX = fraction * poleWidth * 0.98; // Cover almost full width
+      
+      // Start just outside the north pole to trace complete closed loop
+      const startZ = poleZ + characteristicLength * 0.03;
+      
+      // Trace complete closed field line loop
+      const points = traceFieldLine(startX, startZ);
+      
+      // Draw the field line on the right side
+      drawFieldLinePath(points, 1);
+      
+      // Draw symmetric field line on the left side
+      if (startX !== 0) {
+        drawFieldLinePath(points, -1);
+      }
     }
+    
+    // Reset stroke style
+    ctx.strokeStyle = "#3b82f6";
+    ctx.lineWidth = 1.5;
   }
 
   function drawMagnetizationArrow(
