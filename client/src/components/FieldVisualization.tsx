@@ -267,38 +267,45 @@ export function FieldVisualization({
         // Inside the magnet: uniform field from South to North (upward, +z direction)
         return { Bx: 0, Bz: m / volume };
       } else {
-        // Outside: field from uniformly magnetized rectangular source
-        // This creates properly distributed field lines that don't converge to a point
-        
+        // Outside the magnet: use hybrid field model
         const eps = characteristicLength * 0.01;
         
-        // Distance from center
+        // Calculate dipole field components
         const r2 = x * x + z * z + eps * eps;
         const r = Math.sqrt(r2);
-        
-        // Use dipole field as base
         const r5 = r2 * r2 * r;
-        let Bx = (3 * m * x * z) / r5;
-        let Bz = (m * (3 * z * z - r2)) / r5;
+        const dipoleBx = (3 * m * x * z) / r5;
+        const dipoleBz = (m * (3 * z * z - r2)) / r5;
         
-        // Near the poles, adjust field to exit/enter more perpendicular to surface
-        // This prevents convergence and maintains flux line distribution
+        // Distance from top and bottom pole surfaces
         const distFromTopPole = Math.abs(z - magnetHeight / 2);
         const distFromBottomPole = Math.abs(z + magnetHeight / 2);
-        const nearPole = Math.min(distFromTopPole, distFromBottomPole);
         
-        if (nearPole < characteristicLength * 0.8 && Math.abs(x) < magnetWidth * 0.8) {
-          // Near pole: make field more perpendicular to pole surface
-          // Reduce horizontal component based on proximity to pole
-          const poleProximity = 1 - (nearPole / (characteristicLength * 0.8));
-          Bx *= (1 - poleProximity * 0.85); // Reduce Bx near poles
+        // Determine which pole we're near
+        const nearTopPole = z > 0 && distFromTopPole < distFromBottomPole;
+        const distFromNearestPole = nearTopPole ? distFromTopPole : distFromBottomPole;
+        
+        // Create a region near poles where field exits/enters perpendicular to surface
+        // This prevents convergence and maintains flux line X-position distribution
+        const poleRegionHeight = characteristicLength * 0.3;
+        
+        if (distFromNearestPole < poleRegionHeight && Math.abs(x) < magnetWidth * 1.2) {
+          // In pole region: field should be purely vertical to maintain X-distribution
+          const poleProximity = 1 - (distFromNearestPole / poleRegionHeight);
           
-          // Enhance vertical component near poles
-          const sign = z > 0 ? 1 : -1;
-          Bz += sign * m / volume * poleProximity * 0.5;
+          // Pure vertical field near pole
+          const verticalFieldStrength = m / volume;
+          const verticalBz = nearTopPole ? verticalFieldStrength : -verticalFieldStrength;
+          
+          // Blend between vertical field (at pole) and dipole field (away from pole)
+          const Bx = dipoleBx * (1 - poleProximity);
+          const Bz = dipoleBz * (1 - poleProximity) + verticalBz * poleProximity;
+          
+          return { Bx, Bz };
+        } else {
+          // Far from poles: use dipole field for nice curves
+          return { Bx: dipoleBx, Bz: dipoleBz };
         }
-
-        return { Bx, Bz };
       }
     }
 
