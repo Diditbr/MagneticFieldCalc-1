@@ -373,13 +373,22 @@ export function FieldVisualization({
 
         // Get field direction at current point
         const field = getBField(x, z);
-        const magnitude = Math.sqrt(field.Bx * field.Bx + field.Bz * field.Bz);
+        let magnitude = Math.sqrt(field.Bx * field.Bx + field.Bz * field.Bz);
         
         if (magnitude < 0.00001) break; // Stop if field is too weak
 
-        // Normalize direction
-        const dx = field.Bx / magnitude;
-        const dz = field.Bz / magnitude;
+        // Inside the magnet, force field to be vertical (uniform field assumption)
+        // This prevents numerical artifacts from causing lines to converge
+        let dx, dz;
+        if (isInside) {
+          // Inside: go straight up (from S to N), ignore horizontal components
+          dx = 0;
+          dz = 1;
+        } else {
+          // Outside: follow the actual field direction
+          dx = field.Bx / magnitude;
+          dz = field.Bz / magnitude;
+        }
 
         // Adaptive step size: smaller steps near boundaries and inside magnet
         const distanceFromOrigin = Math.sqrt(x * x + z * z);
