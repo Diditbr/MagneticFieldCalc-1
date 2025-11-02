@@ -29,7 +29,7 @@ export default function Calculator() {
   const [magnetType, setMagnetType] = useState<MagnetType>("bar");
   const [selectedMaterial, setSelectedMaterial] = useState<MaterialPreset>("NdFeB N42");
   const [customMagnetization, setCustomMagnetization] = useState(1.0);
-  const [lengthUnit, setLengthUnit] = useState<LengthUnit>("cm");
+  const [lengthUnit, setLengthUnit] = useState<LengthUnit>("mm");
   const [fieldUnit, setFieldUnit] = useState<FieldUnit>("mT");
 
   const [dimensions, setDimensions] = useState({
@@ -41,7 +41,7 @@ export default function Calculator() {
     thickness: 5,
   });
 
-  const [calcPoint, setCalcPoint] = useState({ x: 0, y: 0, z: 15 });
+  const [calcPoint, setCalcPoint] = useState({ x: 1, y: 0, z: 1 });
   const [results, setResults] = useState<FieldCalculationResponse | null>(null);
 
   const calculateMutation = useMutation({
