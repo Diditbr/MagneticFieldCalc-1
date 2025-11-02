@@ -165,12 +165,11 @@ export function FieldVisualization({
         break;
       }
       case "cylindrical": {
-        const radius = ((dimensions.diameter || 10) / 2) * scale;
+        // For X-Z plane view, cylinder appears as a rectangle (side view)
+        const width = (dimensions.diameter || 10) * scale;
         const height = (dimensions.length || 10) * scale;
-        ctx.beginPath();
-        ctx.ellipse(centerX, centerY, radius, height / 2, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.stroke();
+        ctx.fillRect(centerX - width / 2, centerY - height / 2, width, height);
+        ctx.strokeRect(centerX - width / 2, centerY - height / 2, width, height);
         
         ctx.fillStyle = "#ef4444";
         ctx.font = "bold 14px Inter, sans-serif";
@@ -180,22 +179,26 @@ export function FieldVisualization({
         break;
       }
       case "ring": {
-        const outerRadius = ((dimensions.diameter || 10) / 2) * scale;
-        const innerRadius = ((dimensions.innerDiameter || 5) / 2) * scale;
+        // For X-Z plane view, ring appears as two rectangles (side view)
+        const outerWidth = (dimensions.diameter || 10) * scale;
+        const innerWidth = (dimensions.innerDiameter || 5) * scale;
         const height = (dimensions.thickness || 5) * scale;
         
-        ctx.beginPath();
-        ctx.ellipse(centerX, centerY, outerRadius, height / 2, 0, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.ellipse(centerX, centerY, innerRadius, (height / 2) * (innerRadius / outerRadius), 0, 0, Math.PI * 2);
-        ctx.stroke();
+        // Draw outer rectangle
+        ctx.fillRect(centerX - outerWidth / 2, centerY - height / 2, outerWidth, height);
+        ctx.strokeRect(centerX - outerWidth / 2, centerY - height / 2, outerWidth, height);
+        
+        // Draw inner hollow area (clear it)
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(centerX - innerWidth / 2, centerY - height / 2, innerWidth, height);
+        ctx.strokeStyle = "#ef4444";
+        ctx.strokeRect(centerX - innerWidth / 2, centerY - height / 2, innerWidth, height);
         
         ctx.fillStyle = "#ef4444";
         ctx.font = "bold 14px Inter, sans-serif";
         ctx.textAlign = "center";
-        ctx.fillText("N", centerX, centerY - height / 4);
-        ctx.fillText("S", centerX, centerY + height / 4 + 4);
+        ctx.fillText("N", centerX - (outerWidth + innerWidth) / 4, centerY - height / 4);
+        ctx.fillText("S", centerX - (outerWidth + innerWidth) / 4, centerY + height / 4 + 4);
         break;
       }
     }
