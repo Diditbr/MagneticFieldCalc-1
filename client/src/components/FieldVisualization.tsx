@@ -357,8 +357,7 @@ export function FieldVisualization({
 
     // Helper function to draw a field line path with different styles for inside/outside
     const drawFieldLinePath = (
-      points: { x: number; z: number; inside: boolean }[],
-      xMultiplier: number
+      points: { x: number; z: number; inside: boolean }[]
     ) => {
       let currentPath: { x: number; z: number }[] = [];
       let wasInside = points[0]?.inside || false;
@@ -374,7 +373,7 @@ export function FieldVisualization({
           
           ctx.beginPath();
           for (let k = 0; k < currentPath.length; k++) {
-            const screenX = centerX + currentPath[k].x * scale * xMultiplier;
+            const screenX = centerX + currentPath[k].x * scale;
             const screenY = centerY - currentPath[k].z * scale;
             if (k === 0) {
               ctx.moveTo(screenX, screenY);
@@ -383,7 +382,7 @@ export function FieldVisualization({
             }
           }
           // Add the current point to bridge the gap
-          const screenX = centerX + point.x * scale * xMultiplier;
+          const screenX = centerX + point.x * scale;
           const screenY = centerY - point.z * scale;
           ctx.lineTo(screenX, screenY);
           ctx.stroke();
@@ -403,7 +402,7 @@ export function FieldVisualization({
         
         ctx.beginPath();
         for (let k = 0; k < currentPath.length; k++) {
-          const screenX = centerX + currentPath[k].x * scale * xMultiplier;
+          const screenX = centerX + currentPath[k].x * scale;
           const screenY = centerY - currentPath[k].z * scale;
           if (k === 0) {
             ctx.moveTo(screenX, screenY);
@@ -416,14 +415,17 @@ export function FieldVisualization({
     };
     
     // Start flux lines from the north pole (top of magnet)
-    // Distribute starting points evenly across the entire magnet width
+    // Distribute starting points evenly across the entire magnet width (edge to edge)
     const poleZ = magnetHeight / 2;
     const poleWidth = magnetWidth / 2;
     
-    for (let i = 0; i < numFluxLines / 2; i++) {
-      // Uniform spacing: for 10mm magnet with 8 lines (4 per side): 1mm, 2mm, 3mm, 4mm from center
-      const spacing = poleWidth / (numFluxLines / 2);
-      const startX = (i + 1) * spacing - spacing / 2; // Center each line in its segment
+    // Calculate even spacing across the full magnet width
+    const totalLines = numFluxLines; // Total lines including both sides
+    const spacing = magnetWidth / totalLines;
+    
+    for (let i = 0; i < totalLines; i++) {
+      // Start from left edge and space evenly: for 10mm magnet with 8 lines: -4.375, -3.125, -1.875, -0.625, 0.625, 1.875, 3.125, 4.375
+      const startX = -poleWidth + spacing * (i + 0.5);
       
       // Start just outside the north pole to trace complete closed loop
       const startZ = poleZ + characteristicLength * 0.03;
@@ -431,11 +433,8 @@ export function FieldVisualization({
       // Trace complete closed field line loop
       const points = traceFieldLine(startX, startZ);
       
-      // Draw the field line on the right side
-      drawFieldLinePath(points, 1);
-      
-      // Draw symmetric field line on the left side
-      drawFieldLinePath(points, -1);
+      // Draw the field line
+      drawFieldLinePath(points);
     }
     
     // Reset stroke style
