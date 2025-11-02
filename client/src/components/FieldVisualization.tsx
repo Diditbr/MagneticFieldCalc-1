@@ -346,21 +346,18 @@ export function FieldVisualization({
       return { Bx, Bz };
     }
 
-    // Function to trace a field line using adaptive integration to form closed loops
+    // Function to trace a field line from north pole (top) to south pole (bottom)
     function traceFieldLine(startX: number, startZ: number): { x: number; z: number; inside: boolean }[] {
       const points: { x: number; z: number; inside: boolean }[] = [];
       let x = startX;
       let z = startZ;
-      const maxSteps = 8000; // More steps to complete loops
-      const maxDistance = characteristicLength * 50; // Much larger area for complete loops
+      const maxSteps = 5000;
+      const maxDistance = characteristicLength * 20;
       
-      // Track loop completion
-      let wasOutside = false;
-      let hasReenteredFromBelow = false;
-      let consecutiveInsideSteps = 0;
+      const southPoleZ = -magnetHeight / 2;
 
       for (let step = 0; step < maxSteps; step++) {
-        // Check if point is inside the magnet
+        // Check if point is inside the magnet material
         const insideMagnetZ = Math.abs(z) < magnetHeight / 2;
         const insideMagnetX = Math.abs(x) < magnetWidth / 2;
         
@@ -369,14 +366,18 @@ export function FieldVisualization({
         if (magnetType === "ring" && dimensions.innerDiameter) {
           const innerWidth = dimensions.innerDiameter;
           const insideHollowX = Math.abs(x) < innerWidth / 2;
-          const insideHollowZ = Math.abs(z) < magnetHeight / 2;
-          const isInHollow = insideHollowX && insideHollowZ;
-          isInside = isInside && !isInHollow; // Inside outer but NOT inside hollow
+          const isInHollow = insideHollowX && insideMagnetZ;
+          isInside = isInside && !isInHollow;
         }
         
         points.push({ x, z, inside: isInside });
 
-        // Check if we've gone too far
+        // Stop if we've reached the south pole (bottom surface)
+        if (z <= southPoleZ - characteristicLength * 0.05) {
+          break;
+        }
+
+        // Stop if gone too far horizontally
         const distFromOrigin = Math.sqrt(x * x + z * z);
         if (distFromOrigin > maxDistance) break;
 
@@ -384,62 +385,28 @@ export function FieldVisualization({
         const field = getBField(x, z);
         let magnitude = Math.sqrt(field.Bx * field.Bx + field.Bz * field.Bz);
         
-        if (magnitude < 0.00001) break; // Stop if field is too weak
+        if (magnitude < 0.00001) break;
 
-        // Inside the magnet, force field to be vertical (uniform field assumption)
-        // This prevents numerical artifacts from causing lines to converge
-        let dx, dz;
-        if (isInside) {
-          // Inside: go straight up (from S to N), ignore horizontal components
-          dx = 0;
-          dz = 1;
-        } else {
-          // Outside: follow the actual field direction
-          dx = field.Bx / magnitude;
-          dz = field.Bz / magnitude;
-        }
+        // Follow the actual field direction everywhere (no special inside/outside handling)
+        const dx = field.Bx / magnitude;
+        const dz = field.Bz / magnitude;
 
-        // Adaptive step size: smaller steps near boundaries and inside magnet
-        const distanceFromOrigin = Math.sqrt(x * x + z * z);
-        let adaptiveDt = baseStepSize * Math.min(3, 0.5 + distanceFromOrigin / characteristicLength);
+        // Adaptive step size
+        let adaptiveDt = baseStepSize * 0.5;
         
-        // Use much smaller steps inside the magnet for better visualization
-        if (isInside) {
-          adaptiveDt *= 0.25;
+        // Smaller steps near the magnet surfaces
+        const distToSurface = Math.min(
+          Math.abs(z - magnetHeight / 2),
+          Math.abs(z + magnetHeight / 2),
+          Math.abs(Math.abs(x) - magnetWidth / 2)
+        );
+        if (distToSurface < characteristicLength * 0.2) {
+          adaptiveDt *= 0.5;
         }
 
         // Euler integration
         x += dx * adaptiveDt;
         z += dz * adaptiveDt;
-
-        // Track loop completion: field line exits from top (north), curves around, 
-        // enters from bottom (south), and travels back up inside to complete the loop
-        if (!isInside) {
-          wasOutside = true;
-          consecutiveInsideSteps = 0;
-        }
-        
-        // After being outside, check if we re-entered from below (south pole)
-        if (wasOutside && isInside && z < 0) {
-          hasReenteredFromBelow = true;
-        }
-        
-        // Count consecutive steps inside after re-entry
-        if (hasReenteredFromBelow && isInside) {
-          consecutiveInsideSteps++;
-        }
-        
-        // Loop is complete when we've traveled through the magnet back near the start
-        // Check if we're near the top (north) side after completing the external loop
-        if (hasReenteredFromBelow && isInside && z > magnetHeight * 0.25 && consecutiveInsideSteps > 15) {
-          // Close to starting height - loop complete
-          break;
-        }
-        
-        // Safety: also stop if we've gone outside the grid bounds
-        if (field.Bx === 0 && field.Bz === 0 && !isInside) {
-          break;
-        }
       }
 
       return points;
@@ -525,32 +492,20 @@ export function FieldVisualization({
       const linesPerSide = Math.max(2, Math.floor(totalRingLines / 2));
       const epsilon = characteristicLength * 0.01; // Small offset from boundaries
       
-      console.log(`Ring magnet: outer=${poleWidth*2}, inner=${innerWidth*2}, linesPerSide=${linesPerSide}`);
-      
       // Left side material: from -poleWidth to -innerWidth
-      // Use midpoint-lerp spacing to distribute from outer edge to inner edge
-      // Vary starting Z height to prevent convergence - outer lines start higher
       for (let i = 0; i < linesPerSide; i++) {
-        const t = (i + 0.5) / linesPerSide; // Midpoint of each interval
+        const t = (i + 0.5) / linesPerSide;
         const startX = -poleWidth + epsilon + t * (poleWidth - innerWidth - 2 * epsilon);
-        // Outer lines (t close to 0) start higher than inner lines (t close to 1)
-        const heightOffset = characteristicLength * (0.05 + 0.15 * (1 - t));
-        const startZ = poleZ + heightOffset;
-        console.log(`Left line ${i}: startX=${startX.toFixed(2)}, startZ=${startZ.toFixed(2)}`);
+        const startZ = poleZ + characteristicLength * 0.02; // Just above north pole
         const points = traceFieldLine(startX, startZ);
         drawFieldLinePath(points);
       }
       
       // Right side material: from innerWidth to poleWidth
-      // Use midpoint-lerp spacing to distribute from inner edge to outer edge
-      // Vary starting Z height to prevent convergence - outer lines start higher
       for (let i = 0; i < linesPerSide; i++) {
-        const t = (i + 0.5) / linesPerSide; // Midpoint of each interval
+        const t = (i + 0.5) / linesPerSide;
         const startX = innerWidth + epsilon + t * (poleWidth - innerWidth - 2 * epsilon);
-        // Inner lines (t close to 0) start lower, outer lines (t close to 1) start higher
-        const heightOffset = characteristicLength * (0.05 + 0.15 * t);
-        const startZ = poleZ + heightOffset;
-        console.log(`Right line ${i}: startX=${startX.toFixed(2)}, startZ=${startZ.toFixed(2)}`);
+        const startZ = poleZ + characteristicLength * 0.02; // Just above north pole
         const points = traceFieldLine(startX, startZ);
         drawFieldLinePath(points);
       }
@@ -561,7 +516,7 @@ export function FieldVisualization({
       
       for (let i = 0; i < totalLines; i++) {
         const startX = -poleWidth + spacing * (i + 1);
-        const startZ = poleZ + characteristicLength * 0.03;
+        const startZ = poleZ + characteristicLength * 0.02; // Just above north pole
         const points = traceFieldLine(startX, startZ);
         drawFieldLinePath(points);
       }
