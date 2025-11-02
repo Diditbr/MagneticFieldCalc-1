@@ -507,28 +507,46 @@ export function FieldVisualization({
     };
     
     // Start flux lines from the north pole (top of magnet)
-    // Distribute starting points evenly across the entire magnet width (edge to edge)
     const poleZ = magnetHeight / 2;
     const poleWidth = magnetWidth / 2;
     
-    // Calculate even spacing across the full magnet width
-    const totalLines = numFluxLines;
-    const spacing = magnetWidth / (totalLines + 1); // Add 1 to avoid edges
-    
-    for (let i = 0; i < totalLines; i++) {
-      // Start from left side and space evenly across the magnet
-      // For 10mm magnet with 8 lines: spacing = 10/9 = 1.11mm
-      // Positions: -5 + 1.11, -5 + 2.22, ..., -5 + 8.88
-      const startX = -poleWidth + spacing * (i + 1);
+    // For ring magnets, distribute lines only across the material (not hollow center)
+    if (magnetType === "ring" && dimensions.innerDiameter) {
+      const innerWidth = dimensions.innerDiameter / 2;
+      const linesPerSide = Math.ceil(numFluxLines / 2);
       
-      // Start just outside the north pole to trace complete closed loop
-      const startZ = poleZ + characteristicLength * 0.03;
+      // Left side material: from -poleWidth to -innerWidth
+      const leftMaterialWidth = poleWidth - innerWidth;
+      const leftSpacing = leftMaterialWidth / (linesPerSide + 1);
       
-      // Trace complete closed field line loop
-      const points = traceFieldLine(startX, startZ);
+      for (let i = 0; i < linesPerSide; i++) {
+        const startX = -poleWidth + leftSpacing * (i + 1);
+        const startZ = poleZ + characteristicLength * 0.03;
+        const points = traceFieldLine(startX, startZ);
+        drawFieldLinePath(points);
+      }
       
-      // Draw the field line
-      drawFieldLinePath(points);
+      // Right side material: from innerWidth to poleWidth
+      const rightMaterialWidth = poleWidth - innerWidth;
+      const rightSpacing = rightMaterialWidth / (linesPerSide + 1);
+      
+      for (let i = 0; i < linesPerSide; i++) {
+        const startX = innerWidth + rightSpacing * (i + 1);
+        const startZ = poleZ + characteristicLength * 0.03;
+        const points = traceFieldLine(startX, startZ);
+        drawFieldLinePath(points);
+      }
+    } else {
+      // For bar/cylindrical magnets, distribute across the entire width
+      const totalLines = numFluxLines;
+      const spacing = magnetWidth / (totalLines + 1);
+      
+      for (let i = 0; i < totalLines; i++) {
+        const startX = -poleWidth + spacing * (i + 1);
+        const startZ = poleZ + characteristicLength * 0.03;
+        const points = traceFieldLine(startX, startZ);
+        drawFieldLinePath(points);
+      }
     }
     
     // Reset stroke style
