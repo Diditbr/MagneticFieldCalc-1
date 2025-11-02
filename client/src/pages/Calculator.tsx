@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Slider } from "@/components/ui/slider";
 import { Calculator as CalcIcon, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { MagnetTypeSelector } from "@/components/MagnetTypeSelector";
@@ -42,7 +43,7 @@ export default function Calculator() {
   });
 
   const [calcPoint, setCalcPoint] = useState({ x: 1, y: 0, z: 1 });
-  const [numFluxLines, setNumFluxLines] = useState(8);
+  const [numFluxLines, setNumFluxLines] = useState(12);
   const [results, setResults] = useState<FieldCalculationResponse | null>(null);
 
   const calculateMutation = useMutation({
@@ -176,22 +177,23 @@ export default function Calculator() {
 
               <div className="border-t pt-6">
                 <div className="space-y-3">
-                  <label className="text-sm font-medium">Number of Flux Lines</label>
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="range"
-                      min="4"
-                      max="32"
-                      step="2"
-                      value={numFluxLines}
-                      onChange={(e) => setNumFluxLines(Number(e.target.value))}
-                      className="flex-1"
-                      data-testid="input-num-flux-lines"
-                    />
-                    <span className="text-sm font-mono text-muted-foreground w-8 text-right">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium">Field Lines</label>
+                    <span className="text-sm font-mono text-muted-foreground tabular-nums">
                       {numFluxLines}
                     </span>
                   </div>
+                  <Slider
+                    min={4}
+                    max={40}
+                    step={2}
+                    value={[numFluxLines]}
+                    onValueChange={(values) => setNumFluxLines(values[0])}
+                    data-testid="input-num-flux-lines"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Adjust the number of magnetic field lines shown in the visualization
+                  </p>
                 </div>
               </div>
 

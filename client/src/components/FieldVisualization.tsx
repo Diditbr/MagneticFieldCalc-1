@@ -487,8 +487,8 @@ export function FieldVisualization({
         return;
       }
       
-      // Use more lines for ring magnets to show distribution better
-      const totalRingLines = Math.max(numFluxLines, 12); // At least 12 lines for rings
+      // Use the user-specified number of lines for ring magnets
+      const totalRingLines = numFluxLines;
       const linesPerSide = Math.max(2, Math.floor(totalRingLines / 2));
       const epsilon = characteristicLength * 0.01; // Small offset from boundaries
       
