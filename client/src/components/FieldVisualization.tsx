@@ -513,25 +513,31 @@ export function FieldVisualization({
     // For ring magnets, distribute lines only across the material (not hollow center)
     if (magnetType === "ring" && dimensions.innerDiameter) {
       const innerWidth = dimensions.innerDiameter / 2;
-      const linesPerSide = Math.ceil(numFluxLines / 2);
+      
+      // Guard against invalid dimensions
+      if (innerWidth >= poleWidth) {
+        console.warn("Inner diameter >= outer diameter for ring magnet");
+        return;
+      }
+      
+      const linesPerSide = Math.max(1, Math.ceil(numFluxLines / 2));
+      const epsilon = characteristicLength * 0.01; // Small offset from boundaries
       
       // Left side material: from -poleWidth to -innerWidth
-      const leftMaterialWidth = poleWidth - innerWidth;
-      const leftSpacing = leftMaterialWidth / (linesPerSide + 1);
-      
+      // Use midpoint-lerp spacing to distribute from outer edge to inner edge
       for (let i = 0; i < linesPerSide; i++) {
-        const startX = -poleWidth + leftSpacing * (i + 1);
+        const t = (i + 0.5) / linesPerSide; // Midpoint of each interval
+        const startX = -poleWidth + epsilon + t * (poleWidth - innerWidth - 2 * epsilon);
         const startZ = poleZ + characteristicLength * 0.03;
         const points = traceFieldLine(startX, startZ);
         drawFieldLinePath(points);
       }
       
       // Right side material: from innerWidth to poleWidth
-      const rightMaterialWidth = poleWidth - innerWidth;
-      const rightSpacing = rightMaterialWidth / (linesPerSide + 1);
-      
+      // Use midpoint-lerp spacing to distribute from inner edge to outer edge
       for (let i = 0; i < linesPerSide; i++) {
-        const startX = innerWidth + rightSpacing * (i + 1);
+        const t = (i + 0.5) / linesPerSide; // Midpoint of each interval
+        const startX = innerWidth + epsilon + t * (poleWidth - innerWidth - 2 * epsilon);
         const startZ = poleZ + characteristicLength * 0.03;
         const points = traceFieldLine(startX, startZ);
         drawFieldLinePath(points);
