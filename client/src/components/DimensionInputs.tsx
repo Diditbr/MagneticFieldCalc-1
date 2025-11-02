@@ -100,32 +100,32 @@ export function DimensionInputs({
 
       {magnetType === "bar" && (
         <>
-          {renderInput("length", "Length", "Length of the bar magnet")}
-          {renderInput("width", "Width", "Width of the bar magnet")}
-          {renderInput("height", "Height", "Height/thickness of the bar magnet")}
+          {renderInput("length", "Length (X-axis)", "Length of the bar magnet along X-axis")}
+          {renderInput("width", "Width (Y-axis)", "Width of the bar magnet along Y-axis")}
+          {renderInput("height", "Height (Z-axis)", "Height/thickness of the bar magnet along Z-axis (magnetization direction)")}
         </>
       )}
 
       {magnetType === "cylindrical" && (
         <>
-          {renderInput("diameter", "Diameter", "Diameter of the cylinder")}
-          {renderInput("length", "Length", "Length/height of the cylinder")}
+          {renderInput("diameter", "Diameter (X-Y plane)", "Diameter of the cylinder in X-Y plane")}
+          {renderInput("length", "Length (Z-axis)", "Length/height of the cylinder along Z-axis (magnetization direction)")}
         </>
       )}
 
       {magnetType === "rectangular" && (
         <>
-          {renderInput("length", "Length", "Length of the rectangular magnet")}
-          {renderInput("width", "Width", "Width of the rectangular magnet")}
-          {renderInput("height", "Height", "Height/thickness of the rectangular magnet")}
+          {renderInput("length", "Length (X-axis)", "Length of the rectangular magnet along X-axis")}
+          {renderInput("width", "Width (Y-axis)", "Width of the rectangular magnet along Y-axis")}
+          {renderInput("height", "Height (Z-axis)", "Height/thickness of the rectangular magnet along Z-axis (magnetization direction)")}
         </>
       )}
 
       {magnetType === "ring" && (
         <>
-          {renderInput("diameter", "Outer Diameter", "Outer diameter of the ring")}
-          {renderInput("innerDiameter", "Inner Diameter", "Inner diameter of the ring")}
-          {renderInput("thickness", "Thickness", "Axial thickness of the ring")}
+          {renderInput("diameter", "Outer Diameter (X-Y plane)", "Outer diameter of the ring in X-Y plane")}
+          {renderInput("innerDiameter", "Inner Diameter (X-Y plane)", "Inner diameter of the ring in X-Y plane")}
+          {renderInput("thickness", "Thickness (Z-axis)", "Axial thickness of the ring along Z-axis (magnetization direction)")}
         </>
       )}
     </div>
