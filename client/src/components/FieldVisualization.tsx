@@ -154,17 +154,24 @@ export function FieldVisualization({
     ctx.strokeStyle = `hsl(${chart1Color} / 0.4)`;
     ctx.lineWidth = 1.5;
 
-    for (let i = 0; i < 8; i++) {
-      const angle = (i * Math.PI * 2) / 8;
-      const startR = scale * 1.2;
-      const endR = scale * 4;
+    const northPoleY = centerY - scale * 0.5;
+    const southPoleY = centerY + scale * 0.5;
 
+    for (let i = 0; i < 6; i++) {
+      const offsetX = (i - 2.5) * scale * 0.3;
+      
       ctx.beginPath();
-      for (let r = startR; r < endR; r += 5) {
-        const theta = angle + Math.sin(r / scale) * 0.3;
-        const x = centerX + r * Math.cos(theta);
-        const y = centerY + r * Math.sin(theta);
-        if (r === startR) {
+      
+      for (let t = 0; t <= 1; t += 0.02) {
+        const angle = t * Math.PI;
+        
+        const radiusX = Math.abs(offsetX) + scale * 1.5 * Math.sin(angle);
+        const radiusY = scale * 2 * Math.sin(angle);
+        
+        const x = centerX + offsetX * (1 - Math.sin(angle)) + radiusX * Math.sign(offsetX || 1);
+        const y = northPoleY + (southPoleY - northPoleY) * t + radiusY * 0.5;
+        
+        if (t === 0) {
           ctx.moveTo(x, y);
         } else {
           ctx.lineTo(x, y);
