@@ -214,6 +214,7 @@ export default function Calculator() {
 
                 <FieldVisualization
                   magnetType={magnetType}
+                  dimensions={dimensions}
                   calcX={calcPoint.x}
                   calcY={calcPoint.y}
                   calcZ={calcPoint.z}

@@ -4,6 +4,14 @@ import type { MagnetType } from "@shared/schema";
 
 interface FieldVisualizationProps {
   magnetType: MagnetType;
+  dimensions: {
+    length?: number;
+    width?: number;
+    height?: number;
+    diameter?: number;
+    innerDiameter?: number;
+    thickness?: number;
+  };
   calcX: number;
   calcY: number;
   calcZ: number;
@@ -14,6 +22,7 @@ interface FieldVisualizationProps {
 
 export function FieldVisualization({
   magnetType,
+  dimensions,
   calcX,
   calcY,
   calcZ,
@@ -34,7 +43,39 @@ export function FieldVisualization({
     const height = canvas.height;
     const centerX = width / 2;
     const centerY = height / 2;
-    const scale = 30;
+    
+    // Calculate scale based on actual magnet dimensions and calculation point
+    let maxDimension = 10; // default
+    
+    if (magnetType === "bar" || magnetType === "rectangular") {
+      maxDimension = Math.max(
+        dimensions.length || 10,
+        dimensions.width || 5,
+        dimensions.height || 2,
+        Math.abs(calcX),
+        Math.abs(calcZ)
+      );
+    } else if (magnetType === "cylindrical") {
+      maxDimension = Math.max(
+        dimensions.diameter || 10,
+        dimensions.length || 10,
+        Math.abs(calcX),
+        Math.abs(calcZ)
+      );
+    } else if (magnetType === "ring") {
+      maxDimension = Math.max(
+        dimensions.diameter || 10,
+        dimensions.thickness || 5,
+        Math.abs(calcX),
+        Math.abs(calcZ)
+      );
+    }
+    
+    // Add some padding and ensure calculation point is visible
+    maxDimension = Math.max(maxDimension * 1.5, Math.abs(calcX) * 1.2, Math.abs(calcZ) * 1.2);
+    
+    // Scale to fit in canvas with margin
+    const scale = Math.min(width, height) / (maxDimension * 2.5);
 
     ctx.clearRect(0, 0, width, height);
 
@@ -49,14 +90,14 @@ export function FieldVisualization({
 
     drawAxes(ctx, centerX, centerY, width, height);
 
-    drawMagnet(ctx, centerX, centerY, magnetType, scale);
+    drawMagnet(ctx, centerX, centerY, magnetType, dimensions, scale);
 
     drawFieldLines(ctx, centerX, centerY, scale);
 
     const calcScreenX = centerX + calcX * scale;
     const calcScreenY = centerY - calcZ * scale;
     drawCalculationPoint(ctx, calcScreenX, calcScreenY, Bx, By, Bz, scale);
-  }, [magnetType, calcX, calcY, calcZ, Bx, By, Bz]);
+  }, [magnetType, dimensions, calcX, calcY, calcZ, Bx, By, Bz]);
 
   function drawAxes(
     ctx: CanvasRenderingContext2D,
@@ -92,41 +133,70 @@ export function FieldVisualization({
     centerX: number,
     centerY: number,
     type: MagnetType,
+    dimensions: {
+      length?: number;
+      width?: number;
+      height?: number;
+      diameter?: number;
+      innerDiameter?: number;
+      thickness?: number;
+    },
     scale: number
   ) {
     ctx.fillStyle = "#ef444415";
     ctx.strokeStyle = "#ef4444";
     ctx.lineWidth = 2;
 
-    const size = scale * 2;
-
     switch (type) {
       case "bar":
-      case "rectangular":
-        ctx.fillRect(centerX - size / 2, centerY - size / 3, size, (size * 2) / 3);
-        ctx.strokeRect(centerX - size / 2, centerY - size / 3, size, (size * 2) / 3);
+      case "rectangular": {
+        const width = (dimensions.length || 10) * scale;
+        const height = (dimensions.height || 2) * scale;
+        ctx.fillRect(centerX - width / 2, centerY - height / 2, width, height);
+        ctx.strokeRect(centerX - width / 2, centerY - height / 2, width, height);
+        
+        ctx.fillStyle = "#ef4444";
+        ctx.font = "bold 14px Inter, sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("N", centerX, centerY - height / 4);
+        ctx.fillText("S", centerX, centerY + height / 4 + 4);
         break;
-      case "cylindrical":
+      }
+      case "cylindrical": {
+        const radius = ((dimensions.diameter || 10) / 2) * scale;
+        const height = (dimensions.length || 10) * scale;
         ctx.beginPath();
-        ctx.ellipse(centerX, centerY, size / 2, size / 3, 0, 0, Math.PI * 2);
+        ctx.ellipse(centerX, centerY, radius, height / 2, 0, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
+        
+        ctx.fillStyle = "#ef4444";
+        ctx.font = "bold 14px Inter, sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("N", centerX, centerY - height / 4);
+        ctx.fillText("S", centerX, centerY + height / 4 + 4);
         break;
-      case "ring":
+      }
+      case "ring": {
+        const outerRadius = ((dimensions.diameter || 10) / 2) * scale;
+        const innerRadius = ((dimensions.innerDiameter || 5) / 2) * scale;
+        const height = (dimensions.thickness || 5) * scale;
+        
         ctx.beginPath();
-        ctx.ellipse(centerX, centerY, size / 2, size / 3, 0, 0, Math.PI * 2);
+        ctx.ellipse(centerX, centerY, outerRadius, height / 2, 0, 0, Math.PI * 2);
         ctx.stroke();
         ctx.beginPath();
-        ctx.ellipse(centerX, centerY, size / 4, size / 6, 0, 0, Math.PI * 2);
+        ctx.ellipse(centerX, centerY, innerRadius, (height / 2) * (innerRadius / outerRadius), 0, 0, Math.PI * 2);
         ctx.stroke();
+        
+        ctx.fillStyle = "#ef4444";
+        ctx.font = "bold 14px Inter, sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("N", centerX, centerY - height / 4);
+        ctx.fillText("S", centerX, centerY + height / 4 + 4);
         break;
+      }
     }
-
-    ctx.fillStyle = "#ef4444";
-    ctx.font = "bold 14px Inter, sans-serif";
-    ctx.textAlign = "center";
-    ctx.fillText("N", centerX, centerY - size / 6);
-    ctx.fillText("S", centerX, centerY + size / 6 + 4);
   }
 
   function drawFieldLines(
