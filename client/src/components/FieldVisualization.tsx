@@ -268,15 +268,28 @@ export function FieldVisualization({
         // Field strength proportional to magnetization
         return { Bx: 0, Bz: m / volume }; // Uniform upward field
       } else {
-        // Outside the magnet: use dipole approximation
-        const eps = characteristicLength * 0.01; // Avoid singularity
+        // Outside the magnet: use modified field to maintain flux line distribution
+        // Near the magnet, reduce horizontal component to prevent convergence
+        
+        const distanceFromMagnet = Math.min(
+          Math.abs(Math.abs(z) - magnetHeight / 2),
+          Math.abs(Math.abs(x) - magnetWidth / 2)
+        );
+        
+        // Use dipole approximation but reduce Bx near the magnet to maintain distribution
+        const eps = characteristicLength * 0.01;
         const r2 = x * x + z * z + eps * eps;
         const r = Math.sqrt(r2);
         const r5 = r2 * r2 * r;
 
         // Dipole field equations (magnetization along z-axis)
-        const Bx = (3 * m * x * z) / r5;
+        let Bx = (3 * m * x * z) / r5;
         const Bz = (m * (3 * z * z - r2)) / r5;
+        
+        // Reduce horizontal component near magnet to prevent convergence
+        // This maintains flux line distribution
+        const reductionFactor = Math.min(1, distanceFromMagnet / (characteristicLength * 0.5));
+        Bx *= reductionFactor * 0.3; // Significantly reduce horizontal field
 
         return { Bx, Bz };
       }
