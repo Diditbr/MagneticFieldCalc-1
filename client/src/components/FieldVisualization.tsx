@@ -257,57 +257,87 @@ export function FieldVisualization({
     const characteristicLength = Math.max(magnetHeight, magnetWidth);
     const baseStepSize = characteristicLength * 0.02;
 
-    // Function to calculate B field at a point using dipole approximation
+    // Function to calculate B field at a point
     function getBField(x: number, z: number): { Bx: number; Bz: number } {
-      const eps = characteristicLength * 0.01; // Avoid singularity, scaled to magnet size
-      const r2 = x * x + z * z + eps * eps;
-      const r = Math.sqrt(r2);
-      const r5 = r2 * r2 * r;
+      // Check if point is inside the magnet
+      const insideMagnetZ = Math.abs(z) < magnetHeight / 2;
+      const insideMagnetX = Math.abs(x) < magnetWidth / 2;
+      
+      if (insideMagnetZ && insideMagnetX) {
+        // Inside the magnet: uniform field from South to North (upward, +z direction)
+        // Field strength proportional to magnetization
+        return { Bx: 0, Bz: m / volume }; // Uniform upward field
+      } else {
+        // Outside the magnet: use dipole approximation
+        const eps = characteristicLength * 0.01; // Avoid singularity
+        const r2 = x * x + z * z + eps * eps;
+        const r = Math.sqrt(r2);
+        const r5 = r2 * r2 * r;
 
-      // Dipole field equations (magnetization along z-axis)
-      const Bx = (3 * m * x * z) / r5;
-      const Bz = (m * (3 * z * z - r2)) / r5;
+        // Dipole field equations (magnetization along z-axis)
+        const Bx = (3 * m * x * z) / r5;
+        const Bz = (m * (3 * z * z - r2)) / r5;
 
-      return { Bx, Bz };
+        return { Bx, Bz };
+      }
     }
 
-    // Function to trace a field line using adaptive integration
-    function traceFieldLine(startX: number, startZ: number, forward: boolean): { x: number; z: number }[] {
+    // Function to trace a field line using adaptive integration to form closed loops
+    function traceFieldLine(startX: number, startZ: number): { x: number; z: number }[] {
       const points: { x: number; z: number }[] = [];
       let x = startX;
       let z = startZ;
-      const maxSteps = 1000;
+      const maxSteps = 2000;
       const maxDistance = characteristicLength * 20;
+      let wasInside = true; // Start just outside north pole
+      let crossedToOutside = false;
+      let crossedBackInside = false;
 
       for (let step = 0; step < maxSteps; step++) {
         points.push({ x, z });
 
         // Check if we've gone too far
-        if (Math.sqrt(x * x + z * z) > maxDistance) break;
+        const distFromOrigin = Math.sqrt(x * x + z * z);
+        if (distFromOrigin > maxDistance) break;
 
         // Get field direction at current point
         const field = getBField(x, z);
         const magnitude = Math.sqrt(field.Bx * field.Bx + field.Bz * field.Bz);
         
-        if (magnitude < 0.0001 * m) break; // Field too weak, scaled to dipole strength
+        if (magnitude < 0.00001 * m) break; // Field too weak
 
         // Normalize direction
         const dx = field.Bx / magnitude;
         const dz = field.Bz / magnitude;
 
-        // Adaptive step size: smaller steps near the magnet, larger steps far away
+        // Adaptive step size: smaller steps near boundaries
         const distanceFromOrigin = Math.sqrt(x * x + z * z);
-        const adaptiveDt = baseStepSize * (1 + distanceFromOrigin / characteristicLength);
-        const dt = forward ? adaptiveDt : -adaptiveDt;
+        const adaptiveDt = baseStepSize * Math.min(3, 0.5 + distanceFromOrigin / characteristicLength);
 
-        // Euler integration with adaptive step
-        x += dx * dt;
-        z += dz * dt;
+        // Euler integration
+        x += dx * adaptiveDt;
+        z += dz * adaptiveDt;
 
-        // Stop if we're back inside the magnet (closed loop)
+        // Track if we've completed a closed loop
         const insideMagnetZ = Math.abs(z) < magnetHeight / 2;
         const insideMagnetX = Math.abs(x) < magnetWidth / 2;
-        if (insideMagnetZ && insideMagnetX) break;
+        const isInside = insideMagnetZ && insideMagnetX;
+        
+        if (!wasInside && !isInside) {
+          crossedToOutside = true;
+        }
+        
+        if (crossedToOutside && isInside) {
+          crossedBackInside = true;
+        }
+        
+        // Complete the loop when we've gone: inside → outside → inside and back near start
+        if (crossedBackInside && isInside && z > 0 && Math.abs(z - startZ) < magnetHeight * 0.3) {
+          // Close to starting height, complete the loop
+          break;
+        }
+        
+        wasInside = isInside;
       }
 
       return points;
@@ -325,53 +355,37 @@ export function FieldVisualization({
       const angle = Math.asin(Math.sqrt(fraction));
       const startX = Math.sin(angle) * poleWidth * 0.95; // 95% of pole width to stay on surface
       
-      // Trace field line forward and backward from starting point
-      const forwardPoints = traceFieldLine(startX, poleZ, true);
-      const backwardPoints = traceFieldLine(startX, poleZ, false);
+      // Start just outside the north pole to trace complete closed loop
+      const startZ = poleZ + characteristicLength * 0.05;
+      
+      // Trace complete closed field line loop
+      const points = traceFieldLine(startX, startZ);
       
       // Draw the complete field line
       ctx.beginPath();
-      
-      // Draw backward part (reversed)
-      for (let j = backwardPoints.length - 1; j >= 0; j--) {
-        const screenX = centerX + backwardPoints[j].x * scale;
-        const screenY = centerY - backwardPoints[j].z * scale;
-        if (j === backwardPoints.length - 1) {
+      for (let j = 0; j < points.length; j++) {
+        const screenX = centerX + points[j].x * scale;
+        const screenY = centerY - points[j].z * scale;
+        if (j === 0) {
           ctx.moveTo(screenX, screenY);
         } else {
           ctx.lineTo(screenX, screenY);
         }
       }
-      
-      // Draw forward part
-      for (let j = 0; j < forwardPoints.length; j++) {
-        const screenX = centerX + forwardPoints[j].x * scale;
-        const screenY = centerY - forwardPoints[j].z * scale;
-        ctx.lineTo(screenX, screenY);
-      }
-      
       ctx.stroke();
       
       // Draw symmetric field line on the other side
       if (startX !== 0) {
         ctx.beginPath();
-        
-        for (let j = backwardPoints.length - 1; j >= 0; j--) {
-          const screenX = centerX - backwardPoints[j].x * scale;
-          const screenY = centerY - backwardPoints[j].z * scale;
-          if (j === backwardPoints.length - 1) {
+        for (let j = 0; j < points.length; j++) {
+          const screenX = centerX - points[j].x * scale;
+          const screenY = centerY - points[j].z * scale;
+          if (j === 0) {
             ctx.moveTo(screenX, screenY);
           } else {
             ctx.lineTo(screenX, screenY);
           }
         }
-        
-        for (let j = 0; j < forwardPoints.length; j++) {
-          const screenX = centerX - forwardPoints[j].x * scale;
-          const screenY = centerY - forwardPoints[j].z * scale;
-          ctx.lineTo(screenX, screenY);
-        }
-        
         ctx.stroke();
       }
     }
