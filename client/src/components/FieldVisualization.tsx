@@ -227,21 +227,39 @@ export function FieldVisualization({
 
     // Get magnet dimensions in world coordinates
     let magnetHeight = 0;
+    let magnetWidth = 0;
+    let volume = 0;
+    
     if (magnetType === "bar" || magnetType === "rectangular") {
       magnetHeight = dimensions.height || 2;
+      magnetWidth = dimensions.length || 10;
+      const depth = dimensions.width || 5;
+      volume = magnetWidth * magnetHeight * depth;
     } else if (magnetType === "cylindrical") {
       magnetHeight = dimensions.length || 10;
+      const radius = (dimensions.diameter || 10) / 2;
+      magnetWidth = dimensions.diameter || 10;
+      volume = Math.PI * radius * radius * magnetHeight;
     } else if (magnetType === "ring") {
       magnetHeight = dimensions.thickness || 5;
+      const outerRadius = (dimensions.diameter || 10) / 2;
+      const innerRadius = (dimensions.innerDiameter || 5) / 2;
+      magnetWidth = dimensions.diameter || 10;
+      volume = Math.PI * (outerRadius * outerRadius - innerRadius * innerRadius) * magnetHeight;
     }
 
-    // Calculate magnetic dipole moment (approximation)
-    // m = magnetization * volume (proportional)
-    const m = magnetHeight;
+    // Calculate magnetic dipole moment proportional to volume
+    // For a uniformly magnetized object: m = M * V
+    // Using relative units where typical magnetization M ≈ 1
+    const m = volume * 0.1; // Scale factor for visual appropriateness
+
+    // Adaptive step size based on magnet dimensions
+    const characteristicLength = Math.max(magnetHeight, magnetWidth);
+    const baseStepSize = characteristicLength * 0.02;
 
     // Function to calculate B field at a point using dipole approximation
     function getBField(x: number, z: number): { Bx: number; Bz: number } {
-      const eps = 0.01; // Small value to avoid singularity at origin
+      const eps = characteristicLength * 0.01; // Avoid singularity, scaled to magnet size
       const r2 = x * x + z * z + eps * eps;
       const r = Math.sqrt(r2);
       const r5 = r2 * r2 * r;
@@ -253,14 +271,13 @@ export function FieldVisualization({
       return { Bx, Bz };
     }
 
-    // Function to trace a field line using Runge-Kutta integration
+    // Function to trace a field line using adaptive integration
     function traceFieldLine(startX: number, startZ: number, forward: boolean): { x: number; z: number }[] {
       const points: { x: number; z: number }[] = [];
       let x = startX;
       let z = startZ;
-      const dt = forward ? 0.02 : -0.02;
-      const maxSteps = 500;
-      const maxDistance = 50;
+      const maxSteps = 1000;
+      const maxDistance = characteristicLength * 20;
 
       for (let step = 0; step < maxSteps; step++) {
         points.push({ x, z });
@@ -272,33 +289,41 @@ export function FieldVisualization({
         const field = getBField(x, z);
         const magnitude = Math.sqrt(field.Bx * field.Bx + field.Bz * field.Bz);
         
-        if (magnitude < 0.001) break; // Field too weak
+        if (magnitude < 0.0001 * m) break; // Field too weak, scaled to dipole strength
 
         // Normalize direction
         const dx = field.Bx / magnitude;
         const dz = field.Bz / magnitude;
 
-        // Simple Euler integration (could upgrade to RK4)
+        // Adaptive step size: smaller steps near the magnet, larger steps far away
+        const distanceFromOrigin = Math.sqrt(x * x + z * z);
+        const adaptiveDt = baseStepSize * (1 + distanceFromOrigin / characteristicLength);
+        const dt = forward ? adaptiveDt : -adaptiveDt;
+
+        // Euler integration with adaptive step
         x += dx * dt;
         z += dz * dt;
 
         // Stop if we're back inside the magnet (closed loop)
-        if (Math.abs(z) < magnetHeight / 2 && Math.abs(x) < 1.0) break;
+        const insideMagnetZ = Math.abs(z) < magnetHeight / 2;
+        const insideMagnetX = Math.abs(x) < magnetWidth / 2;
+        if (insideMagnetZ && insideMagnetX) break;
       }
 
       return points;
     }
 
     // Start flux lines from the north pole (top of magnet)
-    // Distribute them with equal angular spacing for equal flux
+    // Distribute starting points across the pole surface for equal flux
     const poleZ = magnetHeight / 2;
+    const poleWidth = magnetWidth / 2; // Half width at the pole surface
     
     for (let i = 0; i < numFluxLines / 2; i++) {
-      // Start from north pole with slight x offset for equal flux spacing
-      // Using sin distribution for equal flux tubes
+      // Distribute starting points for approximately equal flux
+      // Using angular distribution: more points near edges where flux density is lower
       const fraction = (i + 0.5) / (numFluxLines / 2);
       const angle = Math.asin(Math.sqrt(fraction));
-      const startX = Math.sin(angle) * 0.5;
+      const startX = Math.sin(angle) * poleWidth * 0.95; // 95% of pole width to stay on surface
       
       // Trace field line forward and backward from starting point
       const forwardPoints = traceFieldLine(startX, poleZ, true);
