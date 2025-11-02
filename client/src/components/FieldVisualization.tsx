@@ -520,25 +520,37 @@ export function FieldVisualization({
         return;
       }
       
-      const linesPerSide = Math.max(1, Math.ceil(numFluxLines / 2));
+      // Use more lines for ring magnets to show distribution better
+      const totalRingLines = Math.max(numFluxLines, 12); // At least 12 lines for rings
+      const linesPerSide = Math.max(2, Math.floor(totalRingLines / 2));
       const epsilon = characteristicLength * 0.01; // Small offset from boundaries
+      
+      console.log(`Ring magnet: outer=${poleWidth*2}, inner=${innerWidth*2}, linesPerSide=${linesPerSide}`);
       
       // Left side material: from -poleWidth to -innerWidth
       // Use midpoint-lerp spacing to distribute from outer edge to inner edge
+      // Vary starting Z height to prevent convergence - outer lines start higher
       for (let i = 0; i < linesPerSide; i++) {
         const t = (i + 0.5) / linesPerSide; // Midpoint of each interval
         const startX = -poleWidth + epsilon + t * (poleWidth - innerWidth - 2 * epsilon);
-        const startZ = poleZ + characteristicLength * 0.03;
+        // Outer lines (t close to 0) start higher than inner lines (t close to 1)
+        const heightOffset = characteristicLength * (0.05 + 0.15 * (1 - t));
+        const startZ = poleZ + heightOffset;
+        console.log(`Left line ${i}: startX=${startX.toFixed(2)}, startZ=${startZ.toFixed(2)}`);
         const points = traceFieldLine(startX, startZ);
         drawFieldLinePath(points);
       }
       
       // Right side material: from innerWidth to poleWidth
       // Use midpoint-lerp spacing to distribute from inner edge to outer edge
+      // Vary starting Z height to prevent convergence - outer lines start higher
       for (let i = 0; i < linesPerSide; i++) {
         const t = (i + 0.5) / linesPerSide; // Midpoint of each interval
         const startX = innerWidth + epsilon + t * (poleWidth - innerWidth - 2 * epsilon);
-        const startZ = poleZ + characteristicLength * 0.03;
+        // Inner lines (t close to 0) start lower, outer lines (t close to 1) start higher
+        const heightOffset = characteristicLength * (0.05 + 0.15 * t);
+        const startZ = poleZ + heightOffset;
+        console.log(`Right line ${i}: startX=${startX.toFixed(2)}, startZ=${startZ.toFixed(2)}`);
         const points = traceFieldLine(startX, startZ);
         drawFieldLinePath(points);
       }
