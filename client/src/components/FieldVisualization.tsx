@@ -40,14 +40,14 @@ export function FieldVisualization({
   useEffect(() => {
     const fetchFieldGrid = async () => {
       // Determine grid bounds based on magnet dimensions
-      // Use larger area to show complete flux loops
+      // Use MUCH larger area to ensure all flux lines can complete their loops
       let maxDim = 10;
       if (magnetType === "bar" || magnetType === "rectangular") {
-        maxDim = Math.max(dimensions.length || 10, dimensions.height || 2) * 3.5;
+        maxDim = Math.max(dimensions.length || 10, dimensions.height || 2) * 6;
       } else if (magnetType === "cylindrical") {
-        maxDim = Math.max(dimensions.diameter || 10, dimensions.length || 10) * 3.5;
+        maxDim = Math.max(dimensions.diameter || 10, dimensions.length || 10) * 6;
       } else if (magnetType === "ring") {
-        maxDim = Math.max(dimensions.diameter || 10, dimensions.thickness || 5) * 3.5;
+        maxDim = Math.max(dimensions.diameter || 10, dimensions.thickness || 5) * 6;
       }
       
       try {
@@ -62,7 +62,7 @@ export function FieldVisualization({
             xMax: maxDim / 2,
             zMin: -maxDim / 2,
             zMax: maxDim / 2,
-            gridSize: 40, // Increase for better accuracy
+            gridSize: 50, // Increased for better accuracy with larger area
           }),
         });
         
@@ -300,10 +300,13 @@ export function FieldVisualization({
       const zMin = zValues[0];
       const zMax = zValues[zValues.length - 1];
       
-      // Check if out of bounds
-      if (x < xMin || x > xMax || z < zMin || z > zMax) {
-        return { Bx: 0, Bz: 0 };
-      }
+      // Clamp to grid bounds (use edge values if out of bounds)
+      // This allows flux lines to continue even near grid edges
+      const xClamped = Math.max(xMin, Math.min(xMax, x));
+      const zClamped = Math.max(zMin, Math.min(zMax, z));
+      
+      x = xClamped;
+      z = zClamped;
       
       // Find surrounding grid indices
       let i1 = 0, i2 = 0, j1 = 0, j2 = 0;
