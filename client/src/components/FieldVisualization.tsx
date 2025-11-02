@@ -287,23 +287,19 @@ export function FieldVisualization({
       const points: { x: number; z: number; inside: boolean }[] = [];
       let x = startX;
       let z = startZ;
-      const maxSteps = 3000;
-      const maxDistance = characteristicLength * 20;
+      const maxSteps = 5000;
+      const maxDistance = characteristicLength * 25;
       
       // Track loop completion
-      let hasLeftMagnet = false;
-      let hasReenteredMagnet = false;
-      let startedInside = false;
+      let wasOutside = false;
+      let hasReenteredFromBelow = false;
+      let consecutiveInsideSteps = 0;
 
       for (let step = 0; step < maxSteps; step++) {
         // Check if point is inside the magnet
         const insideMagnetZ = Math.abs(z) < magnetHeight / 2;
         const insideMagnetX = Math.abs(x) < magnetWidth / 2;
         const isInside = insideMagnetZ && insideMagnetX;
-        
-        if (step === 0) {
-          startedInside = isInside;
-        }
         
         points.push({ x, z, inside: isInside });
 
@@ -325,30 +321,34 @@ export function FieldVisualization({
         const distanceFromOrigin = Math.sqrt(x * x + z * z);
         let adaptiveDt = baseStepSize * Math.min(3, 0.5 + distanceFromOrigin / characteristicLength);
         
-        // Use smaller steps inside the magnet for better visualization
+        // Use much smaller steps inside the magnet for better visualization
         if (isInside) {
-          adaptiveDt *= 0.3;
+          adaptiveDt *= 0.25;
         }
 
         // Euler integration
         x += dx * adaptiveDt;
         z += dz * adaptiveDt;
 
-        // Track loop completion: outside → inside → back to starting region
-        if (!isInside && !startedInside) {
-          hasLeftMagnet = true;
+        // Track loop completion
+        if (!isInside) {
+          wasOutside = true;
+          consecutiveInsideSteps = 0;
         }
         
-        if (hasLeftMagnet && isInside) {
-          hasReenteredMagnet = true;
+        // After being outside, check if we re-entered from below (south pole)
+        if (wasOutside && isInside && z < 0) {
+          hasReenteredFromBelow = true;
         }
         
-        // Check if we've completed a full loop
-        if (hasReenteredMagnet && isInside) {
-          // If we're back in the upper half of magnet, close the loop
-          if (z > magnetHeight * 0.2) {
-            break;
-          }
+        // Count consecutive steps inside after re-entry
+        if (hasReenteredFromBelow && isInside) {
+          consecutiveInsideSteps++;
+        }
+        
+        // Loop is complete when we've traveled through the magnet and back to north side
+        if (hasReenteredFromBelow && isInside && z > magnetHeight * 0.3 && consecutiveInsideSteps > 20) {
+          break;
         }
       }
 
@@ -416,14 +416,14 @@ export function FieldVisualization({
     };
     
     // Start flux lines from the north pole (top of magnet)
-    // Distribute starting points across the entire pole surface for equal flux
+    // Distribute starting points evenly across the entire magnet width
     const poleZ = magnetHeight / 2;
     const poleWidth = magnetWidth / 2;
     
     for (let i = 0; i < numFluxLines / 2; i++) {
-      // Distribute starting points evenly across the full width
-      const fraction = (i + 0.5) / (numFluxLines / 2);
-      const startX = fraction * poleWidth * 0.98; // Cover almost full width
+      // Uniform spacing: for 10mm magnet with 8 lines (4 per side): 1mm, 2mm, 3mm, 4mm from center
+      const spacing = poleWidth / (numFluxLines / 2);
+      const startX = (i + 1) * spacing - spacing / 2; // Center each line in its segment
       
       // Start just outside the north pole to trace complete closed loop
       const startZ = poleZ + characteristicLength * 0.03;
@@ -435,9 +435,7 @@ export function FieldVisualization({
       drawFieldLinePath(points, 1);
       
       // Draw symmetric field line on the left side
-      if (startX !== 0) {
-        drawFieldLinePath(points, -1);
-      }
+      drawFieldLinePath(points, -1);
     }
     
     // Reset stroke style
