@@ -94,8 +94,14 @@ export function DimensionInputs({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between">
         <Label className="text-sm font-semibold">Magnet Dimensions</Label>
+        <div className="flex items-center gap-1.5 text-xs bg-purple-50 dark:bg-purple-950 text-purple-700 dark:text-purple-300 px-2 py-1 rounded-md border border-purple-200 dark:border-purple-800">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 5v14M5 12l7-7 7 7"/>
+          </svg>
+          <span className="font-medium">Magnetization: Z-axis</span>
+        </div>
       </div>
 
       {magnetType === "bar" && (

@@ -93,6 +93,8 @@ export function FieldVisualization({
     drawMagnet(ctx, centerX, centerY, magnetType, dimensions, scale);
 
     drawFieldLines(ctx, centerX, centerY, scale);
+    
+    drawMagnetizationArrow(ctx, centerX, centerY, dimensions, magnetType, scale);
 
     const calcScreenX = centerX + calcX * scale;
     const calcScreenY = centerY - calcZ * scale;
@@ -252,6 +254,63 @@ export function FieldVisualization({
     }
   }
 
+  function drawMagnetizationArrow(
+    ctx: CanvasRenderingContext2D,
+    centerX: number,
+    centerY: number,
+    dimensions: {
+      length?: number;
+      width?: number;
+      height?: number;
+      diameter?: number;
+      innerDiameter?: number;
+      thickness?: number;
+    },
+    type: MagnetType,
+    scale: number
+  ) {
+    // Draw magnetization direction arrow (S to N, pointing up along Z-axis)
+    ctx.strokeStyle = "#9333ea";
+    ctx.fillStyle = "#9333ea";
+    ctx.lineWidth = 2.5;
+    
+    let magnetHeight = 2;
+    if (type === "bar" || type === "rectangular") {
+      magnetHeight = dimensions.height || 2;
+    } else if (type === "cylindrical") {
+      magnetHeight = dimensions.length || 10;
+    } else if (type === "ring") {
+      magnetHeight = dimensions.thickness || 5;
+    }
+    
+    const arrowStart = centerY + (magnetHeight * scale * 0.6);
+    const arrowEnd = centerY - (magnetHeight * scale * 0.6);
+    const arrowX = centerX + (Math.max(dimensions.length || 10, dimensions.diameter || 10) * scale * 0.6);
+    
+    // Draw arrow line
+    ctx.beginPath();
+    ctx.moveTo(arrowX, arrowStart);
+    ctx.lineTo(arrowX, arrowEnd);
+    ctx.stroke();
+    
+    // Draw arrowhead
+    const headLength = 12;
+    const headWidth = 8;
+    ctx.beginPath();
+    ctx.moveTo(arrowX, arrowEnd);
+    ctx.lineTo(arrowX - headWidth / 2, arrowEnd + headLength);
+    ctx.lineTo(arrowX + headWidth / 2, arrowEnd + headLength);
+    ctx.closePath();
+    ctx.fill();
+    
+    // Add label
+    ctx.font = "bold 12px Inter, sans-serif";
+    ctx.textAlign = "left";
+    ctx.fillText("M", arrowX + 10, (arrowStart + arrowEnd) / 2 + 4);
+    ctx.font = "10px Inter, sans-serif";
+    ctx.fillText("(magnetization)", arrowX + 10, (arrowStart + arrowEnd) / 2 + 18);
+  }
+
   function drawCalculationPoint(
     ctx: CanvasRenderingContext2D,
     x: number,
@@ -305,12 +364,18 @@ export function FieldVisualization({
           <h3 className="text-lg font-semibold">Field Visualization</h3>
           <div className="flex items-center gap-3 text-xs">
             <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded-sm bg-primary/15 border-2 border-primary"></div>
+              <div className="w-3 h-3 rounded-sm bg-red-500/15 border-2 border-red-500"></div>
               <span className="text-muted-foreground">Magnet</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded-full bg-destructive"></div>
+              <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
               <span className="text-muted-foreground">Calc Point</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9333ea" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 5v14M5 12l7-7 7 7"/>
+              </svg>
+              <span className="text-muted-foreground">Magnetization</span>
             </div>
           </div>
         </div>
