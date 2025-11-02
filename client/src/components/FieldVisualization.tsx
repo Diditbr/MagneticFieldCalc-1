@@ -18,6 +18,7 @@ interface FieldVisualizationProps {
   Bx?: number;
   By?: number;
   Bz?: number;
+  numFluxLines: number;
 }
 
 export function FieldVisualization({
@@ -29,6 +30,7 @@ export function FieldVisualization({
   Bx = 0,
   By = 0,
   Bz = 0,
+  numFluxLines,
 }: FieldVisualizationProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -92,14 +94,14 @@ export function FieldVisualization({
 
     drawMagnet(ctx, centerX, centerY, magnetType, dimensions, scale);
 
-    drawFieldLines(ctx, centerX, centerY, scale);
+    drawFieldLines(ctx, centerX, centerY, scale, magnetType, dimensions, numFluxLines);
     
     drawMagnetizationArrow(ctx, centerX, centerY, dimensions, magnetType, scale);
 
     const calcScreenX = centerX + calcX * scale;
     const calcScreenY = centerY - calcZ * scale;
     drawCalculationPoint(ctx, calcScreenX, calcScreenY, Bx, By, Bz, scale);
-  }, [magnetType, dimensions, calcX, calcY, calcZ, Bx, By, Bz]);
+  }, [magnetType, dimensions, calcX, calcY, calcZ, Bx, By, Bz, numFluxLines]);
 
   function drawAxes(
     ctx: CanvasRenderingContext2D,
@@ -208,52 +210,145 @@ export function FieldVisualization({
     ctx: CanvasRenderingContext2D,
     centerX: number,
     centerY: number,
-    scale: number
+    scale: number,
+    magnetType: MagnetType,
+    dimensions: {
+      length?: number;
+      width?: number;
+      height?: number;
+      diameter?: number;
+      innerDiameter?: number;
+      thickness?: number;
+    },
+    numFluxLines: number
   ) {
     ctx.strokeStyle = "#3b82f6";
     ctx.lineWidth = 1.5;
 
-    const fieldLineConstants = [0.3, 0.5, 0.7, 0.9, 1.1, 1.3, 1.5, 1.7];
+    // Get magnet dimensions in world coordinates
+    let magnetHeight = 0;
+    if (magnetType === "bar" || magnetType === "rectangular") {
+      magnetHeight = dimensions.height || 2;
+    } else if (magnetType === "cylindrical") {
+      magnetHeight = dimensions.length || 10;
+    } else if (magnetType === "ring") {
+      magnetHeight = dimensions.thickness || 5;
+    }
+
+    // Calculate magnetic dipole moment (approximation)
+    // m = magnetization * volume (proportional)
+    const m = magnetHeight;
+
+    // Function to calculate B field at a point using dipole approximation
+    function getBField(x: number, z: number): { Bx: number; Bz: number } {
+      const eps = 0.01; // Small value to avoid singularity at origin
+      const r2 = x * x + z * z + eps * eps;
+      const r = Math.sqrt(r2);
+      const r5 = r2 * r2 * r;
+
+      // Dipole field equations (magnetization along z-axis)
+      const Bx = (3 * m * x * z) / r5;
+      const Bz = (m * (3 * z * z - r2)) / r5;
+
+      return { Bx, Bz };
+    }
+
+    // Function to trace a field line using Runge-Kutta integration
+    function traceFieldLine(startX: number, startZ: number, forward: boolean): { x: number; z: number }[] {
+      const points: { x: number; z: number }[] = [];
+      let x = startX;
+      let z = startZ;
+      const dt = forward ? 0.02 : -0.02;
+      const maxSteps = 500;
+      const maxDistance = 50;
+
+      for (let step = 0; step < maxSteps; step++) {
+        points.push({ x, z });
+
+        // Check if we've gone too far
+        if (Math.sqrt(x * x + z * z) > maxDistance) break;
+
+        // Get field direction at current point
+        const field = getBField(x, z);
+        const magnitude = Math.sqrt(field.Bx * field.Bx + field.Bz * field.Bz);
+        
+        if (magnitude < 0.001) break; // Field too weak
+
+        // Normalize direction
+        const dx = field.Bx / magnitude;
+        const dz = field.Bz / magnitude;
+
+        // Simple Euler integration (could upgrade to RK4)
+        x += dx * dt;
+        z += dz * dt;
+
+        // Stop if we're back inside the magnet (closed loop)
+        if (Math.abs(z) < magnetHeight / 2 && Math.abs(x) < 1.0) break;
+      }
+
+      return points;
+    }
+
+    // Start flux lines from the north pole (top of magnet)
+    // Distribute them with equal angular spacing for equal flux
+    const poleZ = magnetHeight / 2;
     
-    for (const r0 of fieldLineConstants) {
+    for (let i = 0; i < numFluxLines / 2; i++) {
+      // Start from north pole with slight x offset for equal flux spacing
+      // Using sin distribution for equal flux tubes
+      const fraction = (i + 0.5) / (numFluxLines / 2);
+      const angle = Math.asin(Math.sqrt(fraction));
+      const startX = Math.sin(angle) * 0.5;
+      
+      // Trace field line forward and backward from starting point
+      const forwardPoints = traceFieldLine(startX, poleZ, true);
+      const backwardPoints = traceFieldLine(startX, poleZ, false);
+      
+      // Draw the complete field line
       ctx.beginPath();
       
-      const startTheta = Math.PI * 0.05;
-      const endTheta = Math.PI * 0.95;
-      const steps = 100;
-      
-      for (let i = 0; i <= steps; i++) {
-        const theta = startTheta + (endTheta - startTheta) * (i / steps);
-        const sinTheta = Math.sin(theta);
-        const r = r0 * scale * sinTheta * sinTheta;
-        
-        const x = centerX + r * Math.sin(theta);
-        const z = centerY - r * Math.cos(theta);
-        
-        if (i === 0) {
-          ctx.moveTo(x, z);
+      // Draw backward part (reversed)
+      for (let j = backwardPoints.length - 1; j >= 0; j--) {
+        const screenX = centerX + backwardPoints[j].x * scale;
+        const screenY = centerY - backwardPoints[j].z * scale;
+        if (j === backwardPoints.length - 1) {
+          ctx.moveTo(screenX, screenY);
         } else {
-          ctx.lineTo(x, z);
+          ctx.lineTo(screenX, screenY);
         }
       }
+      
+      // Draw forward part
+      for (let j = 0; j < forwardPoints.length; j++) {
+        const screenX = centerX + forwardPoints[j].x * scale;
+        const screenY = centerY - forwardPoints[j].z * scale;
+        ctx.lineTo(screenX, screenY);
+      }
+      
       ctx.stroke();
       
-      ctx.beginPath();
-      for (let i = 0; i <= steps; i++) {
-        const theta = startTheta + (endTheta - startTheta) * (i / steps);
-        const sinTheta = Math.sin(theta);
-        const r = r0 * scale * sinTheta * sinTheta;
+      // Draw symmetric field line on the other side
+      if (startX !== 0) {
+        ctx.beginPath();
         
-        const x = centerX - r * Math.sin(theta);
-        const z = centerY - r * Math.cos(theta);
-        
-        if (i === 0) {
-          ctx.moveTo(x, z);
-        } else {
-          ctx.lineTo(x, z);
+        for (let j = backwardPoints.length - 1; j >= 0; j--) {
+          const screenX = centerX - backwardPoints[j].x * scale;
+          const screenY = centerY - backwardPoints[j].z * scale;
+          if (j === backwardPoints.length - 1) {
+            ctx.moveTo(screenX, screenY);
+          } else {
+            ctx.lineTo(screenX, screenY);
+          }
         }
+        
+        for (let j = 0; j < forwardPoints.length; j++) {
+          const screenX = centerX - forwardPoints[j].x * scale;
+          const screenY = centerY - forwardPoints[j].z * scale;
+          ctx.lineTo(screenX, screenY);
+        }
+        
+        ctx.stroke();
       }
-      ctx.stroke();
     }
   }
 

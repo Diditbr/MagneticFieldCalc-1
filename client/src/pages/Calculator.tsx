@@ -42,6 +42,7 @@ export default function Calculator() {
   });
 
   const [calcPoint, setCalcPoint] = useState({ x: 1, y: 0, z: 1 });
+  const [numFluxLines, setNumFluxLines] = useState(12);
   const [results, setResults] = useState<FieldCalculationResponse | null>(null);
 
   const calculateMutation = useMutation({
@@ -174,6 +175,27 @@ export default function Calculator() {
               </div>
 
               <div className="border-t pt-6">
+                <div className="space-y-3">
+                  <label className="text-sm font-medium">Number of Flux Lines</label>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="range"
+                      min="4"
+                      max="32"
+                      step="2"
+                      value={numFluxLines}
+                      onChange={(e) => setNumFluxLines(Number(e.target.value))}
+                      className="flex-1"
+                      data-testid="input-num-flux-lines"
+                    />
+                    <span className="text-sm font-mono text-muted-foreground w-8 text-right">
+                      {numFluxLines}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="border-t pt-6">
                 <UnitControls fieldUnit={fieldUnit} onFieldUnitChange={setFieldUnit} />
               </div>
 
@@ -221,6 +243,7 @@ export default function Calculator() {
                   Bx={Number(results.Bx) || 0}
                   By={Number(results.By) || 0}
                   Bz={Number(results.Bz) || 0}
+                  numFluxLines={numFluxLines}
                 />
               </>
             ) : (
