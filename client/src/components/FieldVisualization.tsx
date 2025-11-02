@@ -265,31 +265,38 @@ export function FieldVisualization({
       
       if (insideMagnetZ && insideMagnetX) {
         // Inside the magnet: uniform field from South to North (upward, +z direction)
-        // Field strength proportional to magnetization
-        return { Bx: 0, Bz: m / volume }; // Uniform upward field
+        return { Bx: 0, Bz: m / volume };
       } else {
-        // Outside the magnet: use modified field to maintain flux line distribution
-        // Near the magnet, reduce horizontal component to prevent convergence
+        // Outside: field from uniformly magnetized rectangular source
+        // This creates properly distributed field lines that don't converge to a point
         
-        const distanceFromMagnet = Math.min(
-          Math.abs(Math.abs(z) - magnetHeight / 2),
-          Math.abs(Math.abs(x) - magnetWidth / 2)
-        );
-        
-        // Use dipole approximation but reduce Bx near the magnet to maintain distribution
         const eps = characteristicLength * 0.01;
+        
+        // Distance from center
         const r2 = x * x + z * z + eps * eps;
         const r = Math.sqrt(r2);
-        const r5 = r2 * r2 * r;
-
-        // Dipole field equations (magnetization along z-axis)
-        let Bx = (3 * m * x * z) / r5;
-        const Bz = (m * (3 * z * z - r2)) / r5;
         
-        // Reduce horizontal component near magnet to prevent convergence
-        // This maintains flux line distribution
-        const reductionFactor = Math.min(1, distanceFromMagnet / (characteristicLength * 0.5));
-        Bx *= reductionFactor * 0.3; // Significantly reduce horizontal field
+        // Use dipole field as base
+        const r5 = r2 * r2 * r;
+        let Bx = (3 * m * x * z) / r5;
+        let Bz = (m * (3 * z * z - r2)) / r5;
+        
+        // Near the poles, adjust field to exit/enter more perpendicular to surface
+        // This prevents convergence and maintains flux line distribution
+        const distFromTopPole = Math.abs(z - magnetHeight / 2);
+        const distFromBottomPole = Math.abs(z + magnetHeight / 2);
+        const nearPole = Math.min(distFromTopPole, distFromBottomPole);
+        
+        if (nearPole < characteristicLength * 0.8 && Math.abs(x) < magnetWidth * 0.8) {
+          // Near pole: make field more perpendicular to pole surface
+          // Reduce horizontal component based on proximity to pole
+          const poleProximity = 1 - (nearPole / (characteristicLength * 0.8));
+          Bx *= (1 - poleProximity * 0.85); // Reduce Bx near poles
+          
+          // Enhance vertical component near poles
+          const sign = z > 0 ? 1 : -1;
+          Bz += sign * m / volume * poleProximity * 0.5;
+        }
 
         return { Bx, Bz };
       }
