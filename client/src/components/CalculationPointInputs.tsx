@@ -39,32 +39,39 @@ export function CalculationPointInputs({
       </div>
 
       <div className="grid grid-cols-3 gap-3">
-        {(["x", "y", "z"] as const).map((axis) => (
-          <div key={axis} className="space-y-2">
-            <Label htmlFor={`calc-${axis}`} className="text-sm font-medium uppercase">
-              {axis}
-            </Label>
-            <div className="relative">
-              <Input
-                id={`calc-${axis}`}
-                type="number"
-                step="0.1"
-                value={axis === "x" ? x : axis === "y" ? y : z}
-                onChange={(e) => {
-                  const value = parseFloat(e.target.value);
-                  if (!isNaN(value)) {
-                    onChange(axis, value);
-                  }
-                }}
-                className="font-mono pr-12"
-                data-testid={`input-calc-${axis}`}
-              />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
-                {unit}
-              </span>
+        {(["x", "y", "z"] as const).map((axis) => {
+          const axisLabels = {
+            x: "X-axis",
+            y: "Y-axis", 
+            z: "Z-axis"
+          };
+          return (
+            <div key={axis} className="space-y-2">
+              <Label htmlFor={`calc-${axis}`} className="text-sm font-medium">
+                {axisLabels[axis]}
+              </Label>
+              <div className="relative">
+                <Input
+                  id={`calc-${axis}`}
+                  type="number"
+                  step="0.1"
+                  value={axis === "x" ? x : axis === "y" ? y : z}
+                  onChange={(e) => {
+                    const value = parseFloat(e.target.value);
+                    if (!isNaN(value)) {
+                      onChange(axis, value);
+                    }
+                  }}
+                  className="font-mono pr-12"
+                  data-testid={`input-calc-${axis}`}
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                  {unit}
+                </span>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="text-xs text-muted-foreground">
