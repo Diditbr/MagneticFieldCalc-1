@@ -87,14 +87,91 @@ def calculate_field(magnet_config):
     }
 
 
+def calculate_field_grid(magnet_config):
+    """
+    Calculate magnetic field on a 2D grid in the X-Z plane (Y=0 cross-section).
+    
+    Args:
+        magnet_config: Dict with keys:
+            - type, magnetization, dimensions (as in calculate_field)
+            - xMin, xMax, zMin, zMax: grid bounds in meters
+            - gridSize: number of points per dimension
+    
+    Returns:
+        Dict with xValues, zValues, Bx (2D array), Bz (2D array)
+    """
+    magnet_type = magnet_config['type']
+    magnetization = magnet_config['magnetization']
+    grid_size = magnet_config.get('gridSize', 30)
+    
+    # Grid bounds
+    x_min = magnet_config['xMin']
+    x_max = magnet_config['xMax']
+    z_min = magnet_config['zMin']
+    z_max = magnet_config['zMax']
+    
+    # Create magnet based on type (same as calculate_field)
+    if magnet_type in ['bar', 'rectangular']:
+        length = magnet_config.get('length', 0.01)
+        width = magnet_config.get('width', 0.01)
+        height = magnet_config.get('height', 0.01)
+        magnet = magpy.magnet.Cuboid(
+            polarization=(0, 0, magnetization),
+            dimension=(length, width, height)
+        )
+    elif magnet_type == 'cylindrical':
+        diameter = magnet_config.get('diameter', 0.01)
+        length = magnet_config.get('length', 0.01)
+        magnet = magpy.magnet.Cylinder(
+            polarization=(0, 0, magnetization),
+            dimension=(diameter, length)
+        )
+    elif magnet_type == 'ring':
+        outer_diameter = magnet_config.get('diameter', 0.01)
+        inner_diameter = magnet_config.get('innerDiameter', 0.005)
+        thickness = magnet_config.get('thickness', 0.01)
+        magnet = magpy.magnet.CylinderSegment(
+            polarization=(0, 0, magnetization),
+            dimension=(inner_diameter, outer_diameter, thickness, 0, 360)
+        )
+    else:
+        raise ValueError(f"Unknown magnet type: {magnet_type}")
+    
+    # Create grid points in X-Z plane (Y=0)
+    x_values = np.linspace(x_min, x_max, grid_size)
+    z_values = np.linspace(z_min, z_max, grid_size)
+    
+    # Initialize result arrays
+    Bx_grid = np.zeros((grid_size, grid_size))
+    Bz_grid = np.zeros((grid_size, grid_size))
+    
+    # Calculate field at each grid point
+    for i, z in enumerate(z_values):
+        for j, x in enumerate(x_values):
+            observer = np.array([x, 0, z])  # Y=0 plane
+            B = magpy.getB(magnet, observer)
+            Bx_grid[i, j] = float(B[0])
+            Bz_grid[i, j] = float(B[2])  # Use Bz (not By)
+    
+    return {
+        'xValues': x_values.tolist(),
+        'zValues': z_values.tolist(),
+        'Bx': Bx_grid.tolist(),
+        'Bz': Bz_grid.tolist()
+    }
+
+
 def main():
     """Main entry point - read JSON from stdin, calculate, output JSON."""
     try:
         # Read input from stdin
         input_data = json.loads(sys.stdin.read())
         
-        # Calculate field
-        result = calculate_field(input_data)
+        # Check if this is a grid calculation request
+        if input_data.get('mode') == 'grid':
+            result = calculate_field_grid(input_data)
+        else:
+            result = calculate_field(input_data)
         
         # Output result as JSON
         print(json.dumps(result))

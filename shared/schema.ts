@@ -103,3 +103,36 @@ export const fieldLineDataSchema = z.object({
 });
 
 export type FieldLineData = z.infer<typeof fieldLineDataSchema>;
+
+// Field grid request for 2D cross-section visualization
+export const fieldGridRequestSchema = z.object({
+  type: z.enum(magnetTypes),
+  magnetization: z.number().positive(),
+  
+  // Dimensions in meters
+  length: z.number().positive().optional(),
+  width: z.number().positive().optional(),
+  height: z.number().positive().optional(),
+  diameter: z.number().positive().optional(),
+  innerDiameter: z.number().positive().optional(),
+  thickness: z.number().positive().optional(),
+  
+  // Grid parameters for X-Z plane (Y=0 cross-section)
+  xMin: z.number(),
+  xMax: z.number(),
+  zMin: z.number(),
+  zMax: z.number(),
+  gridSize: z.number().int().positive().default(30), // Number of points per dimension
+});
+
+export type FieldGridRequest = z.infer<typeof fieldGridRequestSchema>;
+
+// Field grid response - 2D array of B field vectors
+export const fieldGridResponseSchema = z.object({
+  xValues: z.array(z.number()),
+  zValues: z.array(z.number()),
+  Bx: z.array(z.array(z.number())), // 2D array [z][x]
+  Bz: z.array(z.array(z.number())), // 2D array [z][x]
+});
+
+export type FieldGridResponse = z.infer<typeof fieldGridResponseSchema>;

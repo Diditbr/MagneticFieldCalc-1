@@ -8,6 +8,8 @@ import { storage } from "./storage";
 import {
   fieldCalculationRequestSchema,
   type FieldCalculationResponse,
+  fieldGridRequestSchema,
+  type FieldGridResponse,
 } from "@shared/schema";
 import { calculateFieldEnhanced } from "./calculations";
 
@@ -111,6 +113,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.status(500).json({ error: 'Internal server error' });
       } else {
         res.status(500).json({ error: 'Unknown server error' });
+      }
+    }
+  });
+
+  // Field grid endpoint for visualization - samples B field across X-Z plane
+  app.post("/api/field-grid", async (req, res) => {
+    try {
+      const validatedData = fieldGridRequestSchema.parse(req.body);
+      
+      // Build grid request for Python script
+      const gridRequest = {
+        ...validatedData,
+        mode: 'grid', // Signal to Python script to return grid data
+      };
+      
+      try {
+        const result = await calculateWithMagpylib(gridRequest) as unknown as FieldGridResponse;
+        res.json(result);
+      } catch (error) {
+        console.error('Grid calculation failed:', error);
+        res.status(500).json({ error: 'Field grid calculation failed' });
+      }
+    } catch (error) {
+      if (error instanceof ZodError) {
+        res.status(400).json({ error: error.message });
+      } else {
+        console.error('Unexpected error:', error);
+        res.status(500).json({ error: 'Internal server error' });
       }
     }
   });

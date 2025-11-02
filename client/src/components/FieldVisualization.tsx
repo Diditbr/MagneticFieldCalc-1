@@ -1,6 +1,6 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Card } from "@/components/ui/card";
-import type { MagnetType } from "@shared/schema";
+import type { MagnetType, FieldGridResponse } from "@shared/schema";
 
 interface FieldVisualizationProps {
   magnetType: MagnetType;
@@ -33,10 +33,54 @@ export function FieldVisualization({
   numFluxLines,
 }: FieldVisualizationProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [fieldGrid, setFieldGrid] = useState<FieldGridResponse | null>(null);
+  const [magnetization, setMagnetization] = useState(1.32); // Default NdFeB N42
+  
+  // Fetch field grid from backend when magnet configuration changes
+  useEffect(() => {
+    const fetchFieldGrid = async () => {
+      // Determine grid bounds based on magnet dimensions
+      let maxDim = 10;
+      if (magnetType === "bar" || magnetType === "rectangular") {
+        maxDim = Math.max(dimensions.length || 10, dimensions.height || 2) * 2;
+      } else if (magnetType === "cylindrical") {
+        maxDim = Math.max(dimensions.diameter || 10, dimensions.length || 10) * 2;
+      } else if (magnetType === "ring") {
+        maxDim = Math.max(dimensions.diameter || 10, dimensions.thickness || 5) * 2;
+      }
+      
+      try {
+        const response = await fetch('/api/field-grid', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: magnetType,
+            magnetization,
+            ...dimensions,
+            xMin: -maxDim / 2,
+            xMax: maxDim / 2,
+            zMin: -maxDim / 2,
+            zMax: maxDim / 2,
+            gridSize: 40, // Increase for better accuracy
+          }),
+        });
+        
+        if (response.ok) {
+          const data: FieldGridResponse = await response.json();
+          setFieldGrid(data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch field grid:', error);
+      }
+    };
+    
+    fetchFieldGrid();
+  }, [magnetType, dimensions, magnetization]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+    if (!fieldGrid) return; // Wait for field grid to be available
 
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
@@ -94,14 +138,14 @@ export function FieldVisualization({
 
     drawMagnet(ctx, centerX, centerY, magnetType, dimensions, scale);
 
-    drawFieldLines(ctx, centerX, centerY, scale, magnetType, dimensions, numFluxLines);
+    drawFieldLines(ctx, centerX, centerY, scale, magnetType, dimensions, numFluxLines, fieldGrid);
     
     drawMagnetizationArrow(ctx, centerX, centerY, dimensions, magnetType, scale);
 
     const calcScreenX = centerX + calcX * scale;
     const calcScreenY = centerY - calcZ * scale;
     drawCalculationPoint(ctx, calcScreenX, calcScreenY, Bx, By, Bz, scale);
-  }, [magnetType, dimensions, calcX, calcY, calcZ, Bx, By, Bz, numFluxLines]);
+  }, [magnetType, dimensions, calcX, calcY, calcZ, Bx, By, Bz, numFluxLines, fieldGrid]);
 
   function drawAxes(
     ctx: CanvasRenderingContext2D,
@@ -220,7 +264,8 @@ export function FieldVisualization({
       innerDiameter?: number;
       thickness?: number;
     },
-    numFluxLines: number
+    numFluxLines: number,
+    fieldGrid: FieldGridResponse
   ) {
     ctx.strokeStyle = "#3b82f6";
     ctx.lineWidth = 1.5;
@@ -228,85 +273,73 @@ export function FieldVisualization({
     // Get magnet dimensions in world coordinates
     let magnetHeight = 0;
     let magnetWidth = 0;
-    let volume = 0;
     
     if (magnetType === "bar" || magnetType === "rectangular") {
       magnetHeight = dimensions.height || 2;
       magnetWidth = dimensions.length || 10;
-      const depth = dimensions.width || 5;
-      volume = magnetWidth * magnetHeight * depth;
     } else if (magnetType === "cylindrical") {
       magnetHeight = dimensions.length || 10;
-      const radius = (dimensions.diameter || 10) / 2;
       magnetWidth = dimensions.diameter || 10;
-      volume = Math.PI * radius * radius * magnetHeight;
     } else if (magnetType === "ring") {
       magnetHeight = dimensions.thickness || 5;
-      const outerRadius = (dimensions.diameter || 10) / 2;
-      const innerRadius = (dimensions.innerDiameter || 5) / 2;
       magnetWidth = dimensions.diameter || 10;
-      volume = Math.PI * (outerRadius * outerRadius - innerRadius * innerRadius) * magnetHeight;
     }
-
-    // Calculate magnetic dipole moment proportional to volume
-    // For a uniformly magnetized object: m = M * V
-    // Using relative units where typical magnetization M ≈ 1
-    const m = volume * 0.1; // Scale factor for visual appropriateness
 
     // Adaptive step size based on magnet dimensions
     const characteristicLength = Math.max(magnetHeight, magnetWidth);
     const baseStepSize = characteristicLength * 0.02;
 
-    // Function to calculate B field at a point
+    // Bilinear interpolation over field grid
     function getBField(x: number, z: number): { Bx: number; Bz: number } {
-      // Check if point is inside the magnet
-      const insideMagnetZ = Math.abs(z) < magnetHeight / 2;
-      const insideMagnetX = Math.abs(x) < magnetWidth / 2;
+      const { xValues, zValues, Bx: BxGrid, Bz: BzGrid } = fieldGrid;
       
-      if (insideMagnetZ && insideMagnetX) {
-        // Inside the magnet: uniform field from South to North (upward, +z direction)
-        return { Bx: 0, Bz: m / volume };
-      } else {
-        // Outside the magnet: use hybrid field model
-        const eps = characteristicLength * 0.01;
-        
-        // Calculate dipole field components
-        const r2 = x * x + z * z + eps * eps;
-        const r = Math.sqrt(r2);
-        const r5 = r2 * r2 * r;
-        const dipoleBx = (3 * m * x * z) / r5;
-        const dipoleBz = (m * (3 * z * z - r2)) / r5;
-        
-        // Distance from top and bottom pole surfaces
-        const distFromTopPole = Math.abs(z - magnetHeight / 2);
-        const distFromBottomPole = Math.abs(z + magnetHeight / 2);
-        
-        // Determine which pole we're near
-        const nearTopPole = z > 0 && distFromTopPole < distFromBottomPole;
-        const distFromNearestPole = nearTopPole ? distFromTopPole : distFromBottomPole;
-        
-        // Create a region near poles where field exits/enters perpendicular to surface
-        // This prevents convergence and maintains flux line X-position distribution
-        const poleRegionHeight = characteristicLength * 0.3;
-        
-        if (distFromNearestPole < poleRegionHeight && Math.abs(x) < magnetWidth * 1.2) {
-          // In pole region: field should be purely vertical to maintain X-distribution
-          const poleProximity = 1 - (distFromNearestPole / poleRegionHeight);
-          
-          // Pure vertical field near pole
-          const verticalFieldStrength = m / volume;
-          const verticalBz = nearTopPole ? verticalFieldStrength : -verticalFieldStrength;
-          
-          // Blend between vertical field (at pole) and dipole field (away from pole)
-          const Bx = dipoleBx * (1 - poleProximity);
-          const Bz = dipoleBz * (1 - poleProximity) + verticalBz * poleProximity;
-          
-          return { Bx, Bz };
-        } else {
-          // Far from poles: use dipole field for nice curves
-          return { Bx: dipoleBx, Bz: dipoleBz };
+      // Find grid cell containing (x, z)
+      const xMin = xValues[0];
+      const xMax = xValues[xValues.length - 1];
+      const zMin = zValues[0];
+      const zMax = zValues[zValues.length - 1];
+      
+      // Check if out of bounds
+      if (x < xMin || x > xMax || z < zMin || z > zMax) {
+        return { Bx: 0, Bz: 0 };
+      }
+      
+      // Find surrounding grid indices
+      let i1 = 0, i2 = 0, j1 = 0, j2 = 0;
+      for (let i = 0; i < zValues.length - 1; i++) {
+        if (z >= zValues[i] && z <= zValues[i + 1]) {
+          i1 = i;
+          i2 = i + 1;
+          break;
         }
       }
+      for (let j = 0; j < xValues.length - 1; j++) {
+        if (x >= xValues[j] && x <= xValues[j + 1]) {
+          j1 = j;
+          j2 = j + 1;
+          break;
+        }
+      }
+      
+      // Bilinear interpolation weights
+      const tx = (x - xValues[j1]) / (xValues[j2] - xValues[j1]);
+      const tz = (z - zValues[i1]) / (zValues[i2] - zValues[i1]);
+      
+      // Interpolate Bx
+      const Bx11 = BxGrid[i1][j1];
+      const Bx12 = BxGrid[i1][j2];
+      const Bx21 = BxGrid[i2][j1];
+      const Bx22 = BxGrid[i2][j2];
+      const Bx = (1 - tx) * (1 - tz) * Bx11 + tx * (1 - tz) * Bx12 + (1 - tx) * tz * Bx21 + tx * tz * Bx22;
+      
+      // Interpolate Bz
+      const Bz11 = BzGrid[i1][j1];
+      const Bz12 = BzGrid[i1][j2];
+      const Bz21 = BzGrid[i2][j1];
+      const Bz22 = BzGrid[i2][j2];
+      const Bz = (1 - tx) * (1 - tz) * Bz11 + tx * (1 - tz) * Bz12 + (1 - tx) * tz * Bz21 + tx * tz * Bz22;
+      
+      return { Bx, Bz };
     }
 
     // Function to trace a field line using adaptive integration to form closed loops
@@ -338,7 +371,7 @@ export function FieldVisualization({
         const field = getBField(x, z);
         const magnitude = Math.sqrt(field.Bx * field.Bx + field.Bz * field.Bz);
         
-        if (magnitude < 0.00001 * m) break;
+        if (magnitude < 0.00001) break; // Stop if field is too weak
 
         // Normalize direction
         const dx = field.Bx / magnitude;
