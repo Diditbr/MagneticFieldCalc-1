@@ -205,7 +205,8 @@ def generate_field_visualization(magnet_config):
         raise ValueError(f"Unknown magnet type: {magnet_type}")
     
     # Create grid for field calculation (X-Z plane, Y=0)
-    max_dim = max(mag_width, mag_height) * 2.5
+    # Use 4x magnet size for better scale showing field line closure
+    max_dim = max(mag_width, mag_height) * 4.0
     grid_size = 80
     x = np.linspace(-max_dim/2, max_dim/2, grid_size)
     z = np.linspace(-max_dim/2, max_dim/2, grid_size)
@@ -227,6 +228,14 @@ def generate_field_visualization(magnet_config):
     # Draw streamplot (field lines)
     ax.streamplot(X*1000, Z*1000, Bx, Bz, color='#3b82f6', linewidth=1.5,
                   density=1.5, arrowsize=0.8, arrowstyle='->')
+    
+    # Draw calculation point if provided
+    calc_x = magnet_config.get('calcX')
+    calc_z = magnet_config.get('calcZ')
+    if calc_x is not None and calc_z is not None:
+        ax.plot(calc_x*1000, calc_z*1000, 'o', color='#22c55e', 
+                markersize=8, markeredgewidth=2, markeredgecolor='white',
+                label='Calculation Point', zorder=10)
     
     # Draw magnet outline
     if magnet_type == 'ring':

@@ -48,6 +48,8 @@ export function FieldVisualization({
             type: magnetType,
             magnetization,
             ...dimensions,
+            calcX: calcX / 1000, // Convert mm to meters
+            calcZ: calcZ / 1000, // Convert mm to meters
           }),
         });
         
@@ -65,7 +67,7 @@ export function FieldVisualization({
     };
     
     fetchVisualization();
-  }, [magnetType, dimensions, magnetization]);
+  }, [magnetType, dimensions, magnetization, calcX, calcZ]);
 
   return (
     <Card className="p-4 space-y-3" data-testid="card-field-visualization">
