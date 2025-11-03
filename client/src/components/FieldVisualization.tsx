@@ -19,8 +19,6 @@ interface FieldVisualizationProps {
   By?: number;
   Bz?: number;
   numFluxLines: number;
-  fluxLineStart?: number; // Start position as percentage (0-100)
-  fluxLineEnd?: number;   // End position as percentage (0-100)
 }
 
 export function FieldVisualization({
@@ -33,8 +31,6 @@ export function FieldVisualization({
   By = 0,
   Bz = 0,
   numFluxLines,
-  fluxLineStart = 0,
-  fluxLineEnd = 100,
 }: FieldVisualizationProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [fieldGrid, setFieldGrid] = useState<FieldGridResponse | null>(null);
@@ -491,52 +487,36 @@ export function FieldVisualization({
         return;
       }
       
-      // Use the user-specified number of lines for ring magnets
-      const totalRingLines = numFluxLines;
+      // Use more lines for ring magnets to show distribution better
+      const totalRingLines = Math.max(numFluxLines, 12); // At least 12 lines for rings
       const linesPerSide = Math.max(2, Math.floor(totalRingLines / 2));
-      const epsilon = characteristicLength * 0.01;
-      
-      // Convert percentage range to fractions
-      const rangeStart = fluxLineStart / 100;
-      const rangeEnd = fluxLineEnd / 100;
+      const epsilon = characteristicLength * 0.01; // Small offset from boundaries
       
       // Left side material: from -poleWidth to -innerWidth
-      const leftMaterialWidth = poleWidth - innerWidth;
       for (let i = 0; i < linesPerSide; i++) {
         const t = (i + 0.5) / linesPerSide;
-        // Map t to the user-specified range
-        const adjustedT = rangeStart + t * (rangeEnd - rangeStart);
-        const startX = -poleWidth + epsilon + adjustedT * (leftMaterialWidth - 2 * epsilon);
-        const startZ = poleZ + characteristicLength * 0.02;
+        const startX = -poleWidth + epsilon + t * (poleWidth - innerWidth - 2 * epsilon);
+        const startZ = poleZ + characteristicLength * 0.02; // Just above north pole
         const points = traceFieldLine(startX, startZ);
         drawFieldLinePath(points);
       }
       
       // Right side material: from innerWidth to poleWidth
-      const rightMaterialWidth = poleWidth - innerWidth;
       for (let i = 0; i < linesPerSide; i++) {
         const t = (i + 0.5) / linesPerSide;
-        // Map t to the user-specified range
-        const adjustedT = rangeStart + t * (rangeEnd - rangeStart);
-        const startX = innerWidth + epsilon + adjustedT * (rightMaterialWidth - 2 * epsilon);
-        const startZ = poleZ + characteristicLength * 0.02;
+        const startX = innerWidth + epsilon + t * (poleWidth - innerWidth - 2 * epsilon);
+        const startZ = poleZ + characteristicLength * 0.02; // Just above north pole
         const points = traceFieldLine(startX, startZ);
         drawFieldLinePath(points);
       }
     } else {
-      // For bar/cylindrical magnets, distribute across the width using the specified range
+      // For bar/cylindrical magnets, distribute across the entire width
       const totalLines = numFluxLines;
-      
-      // Convert percentage range to fractions
-      const rangeStart = fluxLineStart / 100;
-      const rangeEnd = fluxLineEnd / 100;
+      const spacing = magnetWidth / (totalLines + 1);
       
       for (let i = 0; i < totalLines; i++) {
-        const t = (i + 0.5) / totalLines; // Position within all lines
-        // Map t to the user-specified range
-        const adjustedT = rangeStart + t * (rangeEnd - rangeStart);
-        const startX = -poleWidth + adjustedT * (2 * poleWidth);
-        const startZ = poleZ + characteristicLength * 0.02;
+        const startX = -poleWidth + spacing * (i + 1);
+        const startZ = poleZ + characteristicLength * 0.02; // Just above north pole
         const points = traceFieldLine(startX, startZ);
         drawFieldLinePath(points);
       }

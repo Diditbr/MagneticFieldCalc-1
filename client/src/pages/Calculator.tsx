@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Slider } from "@/components/ui/slider";
 import { Calculator as CalcIcon, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { MagnetTypeSelector } from "@/components/MagnetTypeSelector";
@@ -43,9 +42,7 @@ export default function Calculator() {
   });
 
   const [calcPoint, setCalcPoint] = useState({ x: 1, y: 0, z: 1 });
-  const [numFluxLines, setNumFluxLines] = useState(12);
-  const [fluxLineStart, setFluxLineStart] = useState(0); // 0% from edge
-  const [fluxLineEnd, setFluxLineEnd] = useState(100); // 100% to edge
+  const [numFluxLines, setNumFluxLines] = useState(8);
   const [results, setResults] = useState<FieldCalculationResponse | null>(null);
 
   const calculateMutation = useMutation({
@@ -178,58 +175,22 @@ export default function Calculator() {
               </div>
 
               <div className="border-t pt-6">
-                <div className="space-y-4">
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <label className="text-sm font-medium">Field Lines</label>
-                      <span className="text-sm font-mono text-muted-foreground tabular-nums">
-                        {numFluxLines}
-                      </span>
-                    </div>
-                    <Slider
-                      min={4}
-                      max={40}
-                      step={2}
-                      value={[numFluxLines]}
-                      onValueChange={(values) => setNumFluxLines(values[0])}
+                <div className="space-y-3">
+                  <label className="text-sm font-medium">Number of Flux Lines</label>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="range"
+                      min="4"
+                      max="32"
+                      step="2"
+                      value={numFluxLines}
+                      onChange={(e) => setNumFluxLines(Number(e.target.value))}
+                      className="flex-1"
                       data-testid="input-num-flux-lines"
                     />
-                  </div>
-
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <label className="text-sm font-medium">Coverage Range</label>
-                      <span className="text-xs font-mono text-muted-foreground tabular-nums">
-                        {fluxLineStart}% - {fluxLineEnd}%
-                      </span>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-muted-foreground w-12">Start</span>
-                        <Slider
-                          min={0}
-                          max={90}
-                          step={5}
-                          value={[fluxLineStart]}
-                          onValueChange={(values) => setFluxLineStart(Math.min(values[0], fluxLineEnd - 10))}
-                          data-testid="input-flux-line-start"
-                        />
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-muted-foreground w-12">End</span>
-                        <Slider
-                          min={10}
-                          max={100}
-                          step={5}
-                          value={[fluxLineEnd]}
-                          onValueChange={(values) => setFluxLineEnd(Math.max(values[0], fluxLineStart + 10))}
-                          data-testid="input-flux-line-end"
-                        />
-                      </div>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Define which portion of the magnet surface shows field lines
-                    </p>
+                    <span className="text-sm font-mono text-muted-foreground w-8 text-right">
+                      {numFluxLines}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -283,8 +244,6 @@ export default function Calculator() {
                   By={Number(results.By) || 0}
                   Bz={Number(results.Bz) || 0}
                   numFluxLines={numFluxLines}
-                  fluxLineStart={fluxLineStart}
-                  fluxLineEnd={fluxLineEnd}
                 />
               </>
             ) : (
