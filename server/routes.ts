@@ -145,6 +145,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Field visualization endpoint - generates matplotlib field line visualization
+  app.post("/api/field-visualization", async (req, res) => {
+    try {
+      // Build visualization request for Python script
+      const visualizationRequest = {
+        ...req.body,
+        mode: 'visualization', // Signal to Python script to return image
+      };
+      
+      try {
+        const result = await calculateWithMagpylib(visualizationRequest);
+        res.json(result);
+      } catch (error) {
+        console.error('Visualization generation failed:', error);
+        res.status(500).json({ error: 'Field visualization generation failed' });
+      }
+    } catch (error) {
+      console.error('Unexpected error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

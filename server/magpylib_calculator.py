@@ -8,6 +8,11 @@ import json
 import sys
 import magpylib as magpy
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')  # Non-interactive backend for server-side rendering
+import matplotlib.pyplot as plt
+import io
+import base64
 
 
 def calculate_field(magnet_config):
@@ -161,15 +166,128 @@ def calculate_field_grid(magnet_config):
     }
 
 
+def generate_field_visualization(magnet_config):
+    """
+    Generate field line visualization using matplotlib streamplot.
+    Returns base64-encoded PNG image.
+    """
+    magnet_type = magnet_config['type']
+    magnetization = magnet_config['magnetization']
+    
+    # Create magnet
+    if magnet_type in ['bar', 'rectangular']:
+        length = magnet_config.get('length', 0.01)
+        width = magnet_config.get('width', 0.01)
+        height = magnet_config.get('height', 0.01)
+        magnet = magpy.magnet.Cuboid(
+            polarization=(0, 0, magnetization),
+            dimension=(length, width, height)
+        )
+        mag_width, mag_height = length, height
+    elif magnet_type == 'cylindrical':
+        diameter = magnet_config.get('diameter', 0.01)
+        length = magnet_config.get('length', 0.01)
+        magnet = magpy.magnet.Cylinder(
+            polarization=(0, 0, magnetization),
+            dimension=(diameter, length)
+        )
+        mag_width, mag_height = diameter, length
+    elif magnet_type == 'ring':
+        outer_diameter = magnet_config.get('diameter', 0.01)
+        inner_diameter = magnet_config.get('innerDiameter', 0.005)
+        thickness = magnet_config.get('thickness', 0.01)
+        magnet = magpy.magnet.CylinderSegment(
+            polarization=(0, 0, magnetization),
+            dimension=(inner_diameter, outer_diameter, thickness, 0, 360)
+        )
+        mag_width, mag_height = outer_diameter, thickness
+    else:
+        raise ValueError(f"Unknown magnet type: {magnet_type}")
+    
+    # Create grid for field calculation (X-Z plane, Y=0)
+    max_dim = max(mag_width, mag_height) * 2.5
+    grid_size = 80
+    x = np.linspace(-max_dim/2, max_dim/2, grid_size)
+    z = np.linspace(-max_dim/2, max_dim/2, grid_size)
+    X, Z = np.meshgrid(x, z)
+    
+    # Calculate field at grid points
+    Bx = np.zeros_like(X)
+    Bz = np.zeros_like(Z)
+    for i in range(grid_size):
+        for j in range(grid_size):
+            observer = np.array([X[i, j], 0, Z[i, j]])
+            B = magpy.getB(magnet, observer)
+            Bx[i, j] = B[0]
+            Bz[i, j] = B[2]
+    
+    # Create figure
+    fig, ax = plt.subplots(figsize=(8, 6), dpi=100)
+    
+    # Draw streamplot (field lines)
+    ax.streamplot(X*1000, Z*1000, Bx, Bz, color='#3b82f6', linewidth=1.5,
+                  density=1.5, arrowsize=0.8, arrowstyle='->')
+    
+    # Draw magnet outline
+    if magnet_type == 'ring':
+        # Draw outer rectangle
+        outer_w, outer_h = mag_width*1000, mag_height*1000
+        inner_diam = magnet_config.get('innerDiameter', 0.005)
+        inner_w, inner_h = inner_diam*1000, mag_height*1000
+        from matplotlib.patches import Rectangle
+        outer_rect = Rectangle((-outer_w/2, -outer_h/2), outer_w, outer_h,
+                               linewidth=2, edgecolor='#ef4444', facecolor='#ef444420')
+        ax.add_patch(outer_rect)
+        # Draw inner rectangle (hollow)
+        inner_rect = Rectangle((-inner_w/2, -inner_h/2), inner_w, inner_h,
+                               linewidth=2, edgecolor='#ef4444', facecolor='white')
+        ax.add_patch(inner_rect)
+        # Add N/S labels
+        ax.text(-outer_w/4, outer_h/4, 'N', fontsize=14, fontweight='bold',
+                ha='center', va='center', color='#ef4444')
+        ax.text(-outer_w/4, -outer_h/4, 'S', fontsize=14, fontweight='bold',
+                ha='center', va='center', color='#ef4444')
+    else:
+        # Draw solid rectangle
+        rect_w, rect_h = mag_width*1000, mag_height*1000
+        from matplotlib.patches import Rectangle
+        rect = Rectangle((-rect_w/2, -rect_h/2), rect_w, rect_h,
+                        linewidth=2, edgecolor='#ef4444', facecolor='#ef444420')
+        ax.add_patch(rect)
+        # Add N/S labels
+        ax.text(0, rect_h/4, 'N', fontsize=14, fontweight='bold',
+                ha='center', va='center', color='#ef4444')
+        ax.text(0, -rect_h/4, 'S', fontsize=14, fontweight='bold',
+                ha='center', va='center', color='#ef4444')
+    
+    ax.set_xlabel('X (mm)', fontsize=10)
+    ax.set_ylabel('Z (mm)', fontsize=10)
+    ax.set_aspect('equal')
+    ax.grid(True, alpha=0.2)
+    ax.set_title('Magnetic Field Lines (X-Z Plane)', fontsize=12, fontweight='bold')
+    
+    # Convert plot to base64-encoded PNG
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png', bbox_inches='tight', dpi=100)
+    plt.close(fig)
+    buf.seek(0)
+    img_base64 = base64.b64encode(buf.read()).decode('utf-8')
+    
+    return {'image': img_base64}
+
+
 def main():
     """Main entry point - read JSON from stdin, calculate, output JSON."""
     try:
         # Read input from stdin
         input_data = json.loads(sys.stdin.read())
         
-        # Check if this is a grid calculation request
-        if input_data.get('mode') == 'grid':
+        # Check mode
+        mode = input_data.get('mode')
+        if mode == 'grid':
             result = calculate_field_grid(input_data)
+        elif mode == 'visualization':
+            result = generate_field_visualization(input_data)
         else:
             result = calculate_field(input_data)
         
