@@ -32,7 +32,7 @@ export function FieldResults({
   const components = [
     { label: "Bx", value: Bx, icon: ArrowRight, color: "text-chart-1" },
     { label: "By", value: By, icon: ArrowUp, color: "text-chart-2" },
-    { label: "Bz", value: Bz, icon: ArrowDown, color: "text-chart-3" },
+    { label: "Bz", value: Bz, icon: ArrowUp, color: "text-chart-3" },
   ];
 
   return (
