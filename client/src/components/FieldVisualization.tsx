@@ -50,6 +50,7 @@ export function FieldVisualization({
             ...dimensions,
             calcX: calcX / 1000, // Convert mm to meters
             calcZ: calcZ / 1000, // Convert mm to meters
+            numFluxLines: numFluxLines, // Pass number of flux lines to backend
           }),
         });
         
@@ -67,7 +68,7 @@ export function FieldVisualization({
     };
     
     fetchVisualization();
-  }, [magnetType, dimensions, magnetization, calcX, calcZ]);
+  }, [magnetType, dimensions, magnetization, calcX, calcZ, numFluxLines]);
 
   return (
     <Card className="p-4 space-y-3" data-testid="card-field-visualization">

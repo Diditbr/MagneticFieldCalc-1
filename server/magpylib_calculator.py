@@ -215,19 +215,35 @@ def generate_field_visualization(magnet_config):
     # Calculate field at grid points
     Bx = np.zeros_like(X)
     Bz = np.zeros_like(Z)
+    B_magnitude = np.zeros_like(X)
     for i in range(grid_size):
         for j in range(grid_size):
             observer = np.array([X[i, j], 0, Z[i, j]])
             B = magpy.getB(magnet, observer)
             Bx[i, j] = B[0]
             Bz[i, j] = B[2]
+            # Calculate magnitude for color coding
+            B_magnitude[i, j] = np.sqrt(B[0]**2 + B[1]**2 + B[2]**2)
     
     # Create figure
     fig, ax = plt.subplots(figsize=(8, 6), dpi=100)
     
-    # Draw streamplot (field lines)
-    ax.streamplot(X*1000, Z*1000, Bx, Bz, color='#3b82f6', linewidth=1.5,
-                  density=1.5, arrowsize=0.8, arrowstyle='->')
+    # Get density parameter (number of flux lines)
+    num_flux_lines = magnet_config.get('numFluxLines', 15)
+    # Convert to density (matplotlib uses density per plot area)
+    # Higher number = more lines
+    density = num_flux_lines / 10.0
+    
+    # Draw streamplot with color-coded field strength
+    # Use log scale for better visualization of field strength variation
+    B_log = np.log10(B_magnitude + 1e-10)  # Add small value to avoid log(0)
+    stream = ax.streamplot(X*1000, Z*1000, Bx, Bz, color=B_log, 
+                          cmap='viridis', linewidth=1.5,
+                          density=density, arrowsize=0.8, arrowstyle='->')
+    
+    # Add colorbar to show field strength
+    cbar = plt.colorbar(stream.lines, ax=ax)
+    cbar.set_label('log₁₀(|B| [T])', fontsize=10)
     
     # Draw calculation point if provided
     calc_x = magnet_config.get('calcX')
