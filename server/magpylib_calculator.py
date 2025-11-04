@@ -228,7 +228,8 @@ def generate_field_visualization(magnet_config):
     x_extent_mm = mag_width_mm * padding_factor
     z_extent_mm = mag_height_mm * padding_factor
     
-    grid_size = 80
+    # Use smaller grid for ring magnets to speed up computation
+    grid_size = 60 if magnet_type == 'ring' else 80
     # Create grid in mm
     x_mm = np.linspace(-x_extent_mm/2, x_extent_mm/2, grid_size)
     z_mm = np.linspace(-z_extent_mm/2, z_extent_mm/2, grid_size)

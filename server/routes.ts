@@ -28,12 +28,12 @@ async function calculateWithMagpylib(request: any): Promise<FieldCalculationResp
     let stderr = '';
     let timedOut = false;
     
-    // Set timeout to prevent hanging (10 seconds)
+    // Set timeout to prevent hanging (30 seconds for complex calculations)
     const timeout = setTimeout(() => {
       timedOut = true;
       python.kill();
-      reject(new Error('Python calculation timed out after 10 seconds'));
-    }, 10000);
+      reject(new Error('Python calculation timed out after 30 seconds'));
+    }, 30000);
     
     python.stdout.on('data', (data) => {
       stdout += data.toString();

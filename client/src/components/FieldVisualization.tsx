@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import type { MagnetType } from "@shared/schema";
 
@@ -37,10 +37,18 @@ export function FieldVisualization({
   const [visualizationImage, setVisualizationImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [magnetization, setMagnetization] = useState(1.32); // Default NdFeB N42
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   
   // Fetch visualization from backend when magnet configuration changes
   useEffect(() => {
-    const fetchVisualization = async () => {
+    // Clear previous timer
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    
+    // Debounce: wait 500ms after last change before fetching
+    debounceTimerRef.current = setTimeout(() => {
+      const fetchVisualization = async () => {
       setIsLoading(true);
       try {
         // Convert all dimensions from mm to meters for backend
@@ -82,9 +90,17 @@ export function FieldVisualization({
       } finally {
         setIsLoading(false);
       }
-    };
+      };
+      
+      fetchVisualization();
+    }, 500); // Wait 500ms before making request
     
-    fetchVisualization();
+    // Cleanup on unmount
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
   }, [magnetType, dimensions, magnetization, calcX, calcZ, numFluxLines, maxColorScale]);
 
   return (
