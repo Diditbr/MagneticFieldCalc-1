@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { spawn } from "child_process";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
+import { existsSync } from "fs";
 import { ZodError } from "zod";
 import { storage } from "./storage";
 import {
@@ -23,7 +24,26 @@ const __dirname = dirname(__filename);
  */
 async function calculateWithMagpylib(request: any): Promise<FieldCalculationResponse> {
   return new Promise((resolve, reject) => {
-    const pythonScript = join(__dirname, 'magpylib_calculator.py');
+    // Find Python script - try multiple locations
+    const possiblePaths = [
+      join(__dirname, 'magpylib_calculator.py'),           // Development: server/
+      join(__dirname, '..', 'server', 'magpylib_calculator.py'),  // Production: dist/ -> server/
+      join(process.cwd(), 'server', 'magpylib_calculator.py'),    // Fallback: from project root
+    ];
+    
+    let pythonScript = '';
+    for (const path of possiblePaths) {
+      if (existsSync(path)) {
+        pythonScript = path;
+        break;
+      }
+    }
+    
+    if (!pythonScript) {
+      reject(new Error(`Python script not found. Tried: ${possiblePaths.join(', ')}`));
+      return;
+    }
+    
     const python = spawn('python3', [pythonScript]);
     
     let stdout = '';
