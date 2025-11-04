@@ -41,13 +41,21 @@ export function FieldVisualization({
     const fetchVisualization = async () => {
       setIsLoading(true);
       try {
+        // Convert all dimensions from mm to meters for backend
+        const dimensionsInMeters: any = {};
+        Object.entries(dimensions).forEach(([key, value]) => {
+          if (value !== undefined) {
+            dimensionsInMeters[key] = value / 1000; // mm to m
+          }
+        });
+        
         const response = await fetch('/api/field-visualization', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             type: magnetType,
             magnetization,
-            ...dimensions,
+            ...dimensionsInMeters, // Send dimensions in meters
             calcX: calcX / 1000, // Convert mm to meters
             calcZ: calcZ / 1000, // Convert mm to meters
             numFluxLines: numFluxLines, // Pass number of flux lines to backend

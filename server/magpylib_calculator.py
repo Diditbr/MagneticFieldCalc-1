@@ -205,10 +205,11 @@ def generate_field_visualization(magnet_config):
         raise ValueError(f"Unknown magnet type: {magnet_type}")
     
     # Create grid for field calculation (X-Z plane, Y=0)
-    # Work in millimeters for direct axis display
+    # NOTE: mag_width and mag_height are in METERS (frontend converts dimensions to meters)
+    # We work in millimeters for axis display
     padding_factor = 3.5  # Show field lines with adequate margin
     
-    # Convert magnet dimensions to mm and calculate plot extents
+    # Convert magnet dimensions from meters to mm for display
     mag_width_mm = mag_width * 1000
     mag_height_mm = mag_height * 1000
     x_extent_mm = mag_width_mm * padding_factor
