@@ -163,6 +163,14 @@ export const fieldVisualizationRequestSchema = z.object({
   calcY: z.number().optional(),
   calcZ: z.number().optional(),
   
+  // Optional line to display (in meters)
+  lineStartX: z.number().optional(),
+  lineStartY: z.number().optional(),
+  lineStartZ: z.number().optional(),
+  lineEndX: z.number().optional(),
+  lineEndY: z.number().optional(),
+  lineEndZ: z.number().optional(),
+  
   // Visualization parameters
   numFluxLines: z.number().int().positive().default(8),
   maxColorScale: z.number().positive().optional(), // Max value for color scale (min is always 0)
