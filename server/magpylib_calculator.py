@@ -205,22 +205,32 @@ def generate_field_visualization(magnet_config):
         raise ValueError(f"Unknown magnet type: {magnet_type}")
     
     # Create grid for field calculation (X-Z plane, Y=0)
-    # Use independent padding factors for X and Z based on actual dimensions
+    # Work in millimeters for direct axis display
     padding_factor = 3.5  # Show field lines with adequate margin
-    x_extent = mag_width * padding_factor
-    z_extent = mag_height * padding_factor
+    
+    # Convert magnet dimensions to mm and calculate plot extents
+    mag_width_mm = mag_width * 1000
+    mag_height_mm = mag_height * 1000
+    x_extent_mm = mag_width_mm * padding_factor
+    z_extent_mm = mag_height_mm * padding_factor
+    
     grid_size = 80
-    x = np.linspace(-x_extent/2, x_extent/2, grid_size)
-    z = np.linspace(-z_extent/2, z_extent/2, grid_size)
-    X, Z = np.meshgrid(x, z)
+    # Create grid in mm
+    x_mm = np.linspace(-x_extent_mm/2, x_extent_mm/2, grid_size)
+    z_mm = np.linspace(-z_extent_mm/2, z_extent_mm/2, grid_size)
+    X_mm, Z_mm = np.meshgrid(x_mm, z_mm)
+    
+    # Convert back to meters for magpylib calculations
+    X_m = X_mm / 1000
+    Z_m = Z_mm / 1000
     
     # Calculate field at grid points
-    Bx = np.zeros_like(X)
-    Bz = np.zeros_like(Z)
-    B_magnitude = np.zeros_like(X)
+    Bx = np.zeros_like(X_mm)
+    Bz = np.zeros_like(Z_mm)
+    B_magnitude = np.zeros_like(X_mm)
     for i in range(grid_size):
         for j in range(grid_size):
-            observer = np.array([X[i, j], 0, Z[i, j]])
+            observer = np.array([X_m[i, j], 0, Z_m[i, j]])
             B = magpy.getB(magnet, observer)
             Bx[i, j] = B[0]
             Bz[i, j] = B[2]
@@ -238,9 +248,9 @@ def generate_field_visualization(magnet_config):
     
     # Draw streamplot with color-coded field strength
     # Use log scale for better visualization of field strength variation
-    # Plot in meters, will convert axis labels to mm
+    # Everything is in mm now, so axes will show correct mm values
     B_log = np.log10(B_magnitude + 1e-10)  # Add small value to avoid log(0)
-    stream = ax.streamplot(X, Z, Bx, Bz, color=B_log, 
+    stream = ax.streamplot(X_mm, Z_mm, Bx, Bz, color=B_log, 
                           cmap='viridis', linewidth=1.5,
                           density=density, arrowsize=0.8, arrowstyle='->')
     
@@ -248,20 +258,20 @@ def generate_field_visualization(magnet_config):
     cbar = plt.colorbar(stream.lines, ax=ax)
     cbar.set_label('log₁₀(|B| [T])', fontsize=10)
     
-    # Draw calculation point if provided
+    # Draw calculation point if provided (convert from m to mm)
     calc_x = magnet_config.get('calcX')
     calc_z = magnet_config.get('calcZ')
     if calc_x is not None and calc_z is not None:
-        ax.plot(calc_x, calc_z, 'o', color='#22c55e', 
+        ax.plot(calc_x * 1000, calc_z * 1000, 'o', color='#22c55e', 
                 markersize=8, markeredgewidth=2, markeredgecolor='white',
                 label='Calculation Point', zorder=10)
     
-    # Draw magnet outline (in meters)
+    # Draw magnet outline (in mm)
     if magnet_type == 'ring':
         # Draw outer rectangle
-        outer_w, outer_h = mag_width, mag_height
+        outer_w, outer_h = mag_width_mm, mag_height_mm
         inner_diam = magnet_config.get('innerDiameter', 0.005)
-        inner_w, inner_h = inner_diam, mag_height
+        inner_w, inner_h = inner_diam * 1000, mag_height_mm
         from matplotlib.patches import Rectangle
         outer_rect = Rectangle((-outer_w/2, -outer_h/2), outer_w, outer_h,
                                linewidth=2, edgecolor='#ef4444', facecolor='#ef444420')
@@ -277,7 +287,7 @@ def generate_field_visualization(magnet_config):
                 ha='center', va='center', color='#ef4444')
     else:
         # Draw solid rectangle
-        rect_w, rect_h = mag_width, mag_height
+        rect_w, rect_h = mag_width_mm, mag_height_mm
         from matplotlib.patches import Rectangle
         rect = Rectangle((-rect_w/2, -rect_h/2), rect_w, rect_h,
                         linewidth=2, edgecolor='#ef4444', facecolor='#ef444420')
@@ -288,16 +298,11 @@ def generate_field_visualization(magnet_config):
         ax.text(0, -rect_h/4, 'S', fontsize=14, fontweight='bold',
                 ha='center', va='center', color='#ef4444')
     
-    # Set axis limits based on actual X and Z extents
-    ax.set_xlim(-x_extent/2, x_extent/2)
-    ax.set_ylim(-z_extent/2, z_extent/2)
+    # Set axis limits in mm
+    ax.set_xlim(-x_extent_mm/2, x_extent_mm/2)
+    ax.set_ylim(-z_extent_mm/2, z_extent_mm/2)
     
-    # Format axis ticks to show millimeters
-    from matplotlib.ticker import FuncFormatter
-    def m_to_mm(x, pos):
-        return f'{x*1000:.1f}'
-    ax.xaxis.set_major_formatter(FuncFormatter(m_to_mm))
-    ax.yaxis.set_major_formatter(FuncFormatter(m_to_mm))
+    # Labels - axes now directly show mm
     ax.set_xlabel('X (mm)', fontsize=10)
     ax.set_ylabel('Z (mm)', fontsize=10)
     ax.set_aspect('equal')
