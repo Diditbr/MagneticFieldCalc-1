@@ -209,17 +209,15 @@ def generate_field_visualization(magnet_config):
             polarization=(0, 0, magnetization),
             dimension=(inner_diameter, outer_diameter, thickness, 0, 360)
         )
-        # For ring: show top-down view (X-Y plane) to see the ring shape
-        mag_width, mag_height = outer_diameter, outer_diameter
-        use_xy_plane = True
+        # For ring: show side view (X-Z plane) with hollow structure visible
+        mag_width, mag_height = outer_diameter, thickness
+        use_xy_plane = False
         inner_radius_m = inner_diameter / 2
         outer_radius_m = outer_diameter / 2
     else:
         raise ValueError(f"Unknown magnet type: {magnet_type}")
     
-    # Create grid for field calculation
-    # Ring magnets: X-Y plane (Z=0, top view) to show ring shape
-    # Other magnets: X-Z plane (Y=0, side view)
+    # Create grid for field calculation - all magnets use X-Z plane (Y=0, side view)
     # NOTE: mag_width and mag_height are in METERS (frontend converts dimensions to meters)
     # We work in millimeters for axis display
     padding_factor = 5.0  # Show field lines with adequate margin
@@ -228,53 +226,31 @@ def generate_field_visualization(magnet_config):
     mag_width_mm = mag_width * 1000
     mag_height_mm = mag_height * 1000
     x_extent_mm = mag_width_mm * padding_factor
-    y_extent_mm = mag_height_mm * padding_factor
+    z_extent_mm = mag_height_mm * padding_factor
     
     grid_size = 80
     # Create grid in mm
     x_mm = np.linspace(-x_extent_mm/2, x_extent_mm/2, grid_size)
-    y_mm = np.linspace(-y_extent_mm/2, y_extent_mm/2, grid_size)
-    X_mm, Y_mm = np.meshgrid(x_mm, y_mm)
+    z_mm = np.linspace(-z_extent_mm/2, z_extent_mm/2, grid_size)
+    X_mm, Z_mm = np.meshgrid(x_mm, z_mm)
     
     # Convert back to meters for magpylib calculations
     X_m = X_mm / 1000
-    Y_m = Y_mm / 1000
+    Z_m = Z_mm / 1000
     
-    # Calculate field at grid points
-    B1 = np.zeros_like(X_mm)  # Bx for both cases
-    B2 = np.zeros_like(Y_mm)  # By (ring) or Bz (others)
+    # Calculate field at grid points (X-Z plane, Y=0)
+    Bx = np.zeros_like(X_mm)
+    Bz = np.zeros_like(Z_mm)
     B_magnitude = np.zeros_like(X_mm)
     
     for i in range(grid_size):
         for j in range(grid_size):
-            if use_xy_plane:
-                # Ring magnet: X-Y plane (z=0, top view)
-                observer = np.array([X_m[i, j], Y_m[i, j], 0])
-            else:
-                # Other magnets: X-Z plane (y=0, side view)
-                observer = np.array([X_m[i, j], 0, Y_m[i, j]])
-            
+            observer = np.array([X_m[i, j], 0, Z_m[i, j]])
             B = magpy.getB(magnet, observer)
-            B1[i, j] = B[0]  # Bx
-            
-            if use_xy_plane:
-                B2[i, j] = B[1]  # By for ring
-            else:
-                B2[i, j] = B[2]  # Bz for others
-            
+            Bx[i, j] = B[0]
+            Bz[i, j] = B[2]
             # Calculate magnitude for color coding
             B_magnitude[i, j] = np.sqrt(B[0]**2 + B[1]**2 + B[2]**2)
-    
-    # For ring magnets: mask points inside the magnet body
-    if use_xy_plane and magnet_type == 'ring':
-        for i in range(grid_size):
-            for j in range(grid_size):
-                r = np.sqrt(X_m[i, j]**2 + Y_m[i, j]**2)
-                # Mask points inside the ring material (between inner and outer radius)
-                if r < outer_radius_m and r > inner_radius_m:
-                    B_magnitude[i, j] = 0
-                    B1[i, j] = 0
-                    B2[i, j] = 0
     
     # Create figure
     fig, ax = plt.subplots(figsize=(8, 6), dpi=100)
@@ -296,7 +272,7 @@ def generate_field_visualization(magnet_config):
     else:
         vmin, vmax = 0, B_magnitude.max()
     
-    stream = ax.streamplot(X_mm, Y_mm, B1, B2, color=B_magnitude, 
+    stream = ax.streamplot(X_mm, Z_mm, Bx, Bz, color=B_magnitude, 
                           cmap='viridis', linewidth=1.5,
                           density=density, arrowsize=0.8, arrowstyle='->',
                           norm=Normalize(vmin=vmin, vmax=vmax))
@@ -307,39 +283,47 @@ def generate_field_visualization(magnet_config):
     
     # Draw calculation point if provided (convert from m to mm)
     calc_x = magnet_config.get('calcX')
-    calc_y_or_z = magnet_config.get('calcY') if use_xy_plane else magnet_config.get('calcZ')
-    if calc_x is not None and calc_y_or_z is not None:
-        ax.plot(calc_x * 1000, calc_y_or_z * 1000, 'o', color='#22c55e', 
+    calc_z = magnet_config.get('calcZ')
+    if calc_x is not None and calc_z is not None:
+        ax.plot(calc_x * 1000, calc_z * 1000, 'o', color='#22c55e', 
                 markersize=8, markeredgewidth=2, markeredgecolor='white',
                 label='Calculation Point', zorder=10)
     
-    # Draw magnet outline (in mm)
+    # Draw magnet outline (in mm) - side view (X-Z plane)
+    from matplotlib.patches import Rectangle
     if magnet_type == 'ring':
-        # Draw concentric circles for ring magnet (top view)
-        from matplotlib.patches import Circle
+        # Ring magnet in side view: show cross-section with hollow center
         outer_radius_mm = outer_radius_m * 1000
         inner_radius_mm = inner_radius_m * 1000
+        rect_h = mag_height_mm
         
-        # Outer circle
-        outer_circle = Circle((0, 0), outer_radius_mm,
+        # Left rectangle (outer edge to inner edge)
+        left_rect = Rectangle((-outer_radius_mm, -rect_h/2), 
+                             outer_radius_mm - inner_radius_mm, rect_h,
                              linewidth=2, edgecolor='#ef4444', facecolor='#ef444420', zorder=5)
-        ax.add_patch(outer_circle)
+        ax.add_patch(left_rect)
         
-        # Inner circle (hollow - white fill)
-        inner_circle = Circle((0, 0), inner_radius_mm,
-                             linewidth=2, edgecolor='#ef4444', facecolor='white', zorder=6)
-        ax.add_patch(inner_circle)
+        # Right rectangle (inner edge to outer edge)
+        right_rect = Rectangle((inner_radius_mm, -rect_h/2), 
+                               outer_radius_mm - inner_radius_mm, rect_h,
+                               linewidth=2, edgecolor='#ef4444', facecolor='#ef444420', zorder=5)
+        ax.add_patch(right_rect)
         
-        # Add magnetization arrow pointing up (along Z)
-        arrow_r = (outer_radius_mm + inner_radius_mm) / 2
-        ax.arrow(0, -arrow_r, 0, arrow_r * 1.5, head_width=arrow_r*0.3, 
-                head_length=arrow_r*0.2, fc='#9333ea', ec='#9333ea', linewidth=2.5, zorder=7)
-        ax.text(arrow_r*0.7, 0, 'N', fontsize=14, fontweight='bold',
-                ha='center', va='center', color='#9333ea')
+        # White rectangle in the middle (the hollow center)
+        hollow_rect = Rectangle((-inner_radius_mm, -rect_h/2), 
+                               inner_radius_mm * 2, rect_h,
+                               linewidth=1, edgecolor='#888888', linestyle='--',
+                               facecolor='white', zorder=6)
+        ax.add_patch(hollow_rect)
+        
+        # Add N/S labels on the sides
+        ax.text(-(outer_radius_mm + inner_radius_mm)/2, rect_h/4, 'N', 
+                fontsize=14, fontweight='bold', ha='center', va='center', color='#ef4444')
+        ax.text(-(outer_radius_mm + inner_radius_mm)/2, -rect_h/4, 'S', 
+                fontsize=14, fontweight='bold', ha='center', va='center', color='#ef4444')
     else:
-        # Draw solid rectangle for other magnet types (side view)
+        # Draw solid rectangle for other magnet types
         rect_w, rect_h = mag_width_mm, mag_height_mm
-        from matplotlib.patches import Rectangle
         rect = Rectangle((-rect_w/2, -rect_h/2), rect_w, rect_h,
                         linewidth=2, edgecolor='#ef4444', facecolor='#ef444420')
         ax.add_patch(rect)
@@ -351,16 +335,12 @@ def generate_field_visualization(magnet_config):
     
     # Set axis limits in mm
     ax.set_xlim(-x_extent_mm/2, x_extent_mm/2)
-    ax.set_ylim(-y_extent_mm/2, y_extent_mm/2)
+    ax.set_ylim(-z_extent_mm/2, z_extent_mm/2)
     
     # Labels - axes now directly show mm
     ax.set_xlabel('X (mm)', fontsize=10)
-    if use_xy_plane:
-        ax.set_ylabel('Y (mm)', fontsize=10)
-        ax.set_title('Magnetfeld-Linien (X-Y Ebene, Draufsicht)', fontsize=12, fontweight='bold')
-    else:
-        ax.set_ylabel('Z (mm)', fontsize=10)
-        ax.set_title('Magnetfeld-Linien (X-Z Ebene, Seitenansicht)', fontsize=12, fontweight='bold')
+    ax.set_ylabel('Z (mm)', fontsize=10)
+    ax.set_title('Magnetfeld-Linien (X-Z Ebene, Seitenansicht)', fontsize=12, fontweight='bold')
     
     ax.set_aspect('equal')
     ax.grid(True, alpha=0.2)
