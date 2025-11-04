@@ -347,24 +347,26 @@ def generate_field_visualization(magnet_config):
     cbar.set_label('Flussdichte |B| [T]', fontsize=10)
     
     # Draw calculation point if provided (convert from m to mm)
-    # NOTE: UI coordinates have z=0 at surface, need to transform to Magpylib coordinates for display
+    # NOTE: UI coordinates have z=0 at surface, Magpylib has z=0 at center
+    # We draw in Magpylib coordinates and adjust axis labels later
     calc_x_ui = magnet_config.get('calcX')
     calc_z_ui = magnet_config.get('calcZ')
     if calc_x_ui is not None and calc_z_ui is not None:
-        # Transform z coordinate: UI has z=0 at surface, visualization has z=0 at center
+        # Transform z coordinate: UI has z=0 at surface, Magpylib has z=0 at center
         calc_z_magpylib = calc_z_ui + mag_height / 2
         ax.plot(calc_x_ui * 1000, calc_z_magpylib * 1000, 'o', color='#22c55e', 
                 markersize=8, markeredgewidth=2, markeredgecolor='white',
                 label='Berechnungspunkt', zorder=10)
     
     # Draw line if provided (convert from m to mm)
-    # NOTE: UI coordinates have z=0 at surface, need to transform to Magpylib coordinates for display
+    # NOTE: UI coordinates have z=0 at surface, Magpylib has z=0 at center
+    # We draw in Magpylib coordinates and adjust axis labels later
     line_start_x_ui = magnet_config.get('lineStartX')
     line_start_z_ui = magnet_config.get('lineStartZ')
     line_end_x_ui = magnet_config.get('lineEndX')
     line_end_z_ui = magnet_config.get('lineEndZ')
     if all(v is not None for v in [line_start_x_ui, line_start_z_ui, line_end_x_ui, line_end_z_ui]):
-        # Transform z coordinates: UI has z=0 at surface, visualization has z=0 at center
+        # Transform z coordinates: UI has z=0 at surface, Magpylib has z=0 at center
         line_start_z_magpylib = line_start_z_ui + mag_height / 2
         line_end_z_magpylib = line_end_z_ui + mag_height / 2
         # Convert from meters to mm
@@ -424,15 +426,19 @@ def generate_field_visualization(magnet_config):
         ax.text(0, -rect_h/4, 'S', fontsize=14, fontweight='bold',
                 ha='center', va='center', color='#ef4444')
     
-    # Set axis limits in mm
-    # Shift Z-axis so that z=0 is at the magnet surface (top pole face) instead of center
-    # In Magpylib coordinates: z=0 at center, surface at z=+mag_height/2
-    # In UI coordinates: z=0 at surface
-    # Transformation: z_ui = z_magpylib - mag_height_mm/2
+    # Set axis limits in mm (in Magpylib coordinates: z=0 at center)
     ax.set_xlim(-x_extent_mm/2, x_extent_mm/2)
-    ax.set_ylim(-z_extent_mm/2 - mag_height_mm/2, z_extent_mm/2 - mag_height_mm/2)
+    ax.set_ylim(-z_extent_mm/2, z_extent_mm/2)
     
-    # Labels - axes now show UI coordinates (z=0 at surface)
+    # Transform Y-axis labels to UI coordinates (z=0 at surface)
+    # In Magpylib: z=0 at center, surface at z=+mag_height/2
+    # In UI: z=0 at surface
+    # Transformation: z_ui = z_magpylib - mag_height_mm/2
+    y_ticks = ax.get_yticks()
+    y_tick_labels = [f'{tick - mag_height_mm/2:.0f}' for tick in y_ticks]
+    ax.set_yticklabels(y_tick_labels)
+    
+    # Labels
     ax.set_xlabel('X (mm)', fontsize=10)
     ax.set_ylabel('Z (mm)', fontsize=10)
     ax.set_title('Magnetfeld-Linien (X-Z Ebene, Seitenansicht)', fontsize=12, fontweight='bold')
