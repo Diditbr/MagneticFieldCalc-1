@@ -317,10 +317,16 @@ def generate_field_visualization(magnet_config):
                                facecolor='white', zorder=6)
         ax.add_patch(hollow_rect)
         
-        # Add N/S labels on the sides
-        ax.text(-(outer_radius_mm + inner_radius_mm)/2, rect_h/4, 'N', 
+        # Add N/S labels - axial magnetization means N at top surface, S at bottom surface
+        # Left side labels
+        ax.text(-(outer_radius_mm + inner_radius_mm)/2, rect_h/2 + rect_h*0.15, 'N', 
                 fontsize=14, fontweight='bold', ha='center', va='center', color='#ef4444')
-        ax.text(-(outer_radius_mm + inner_radius_mm)/2, -rect_h/4, 'S', 
+        ax.text(-(outer_radius_mm + inner_radius_mm)/2, -rect_h/2 - rect_h*0.15, 'S', 
+                fontsize=14, fontweight='bold', ha='center', va='center', color='#ef4444')
+        # Right side labels
+        ax.text((outer_radius_mm + inner_radius_mm)/2, rect_h/2 + rect_h*0.15, 'N', 
+                fontsize=14, fontweight='bold', ha='center', va='center', color='#ef4444')
+        ax.text((outer_radius_mm + inner_radius_mm)/2, -rect_h/2 - rect_h*0.15, 'S', 
                 fontsize=14, fontweight='bold', ha='center', va='center', color='#ef4444')
     else:
         # Draw solid rectangle for other magnet types
