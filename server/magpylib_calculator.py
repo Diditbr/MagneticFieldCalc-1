@@ -434,9 +434,29 @@ def generate_field_visualization(magnet_config):
     # In Magpylib: z=0 at center, surface at z=+mag_height/2
     # In UI: z=0 at surface
     # Transformation: z_ui = z_magpylib - mag_height_mm/2
-    y_ticks = ax.get_yticks()
-    y_tick_labels = [f'{tick - mag_height_mm/2:.0f}' for tick in y_ticks]
-    ax.set_yticklabels(y_tick_labels)
+    # We want to ensure 0 is always shown and ticks are symmetric
+    from matplotlib.ticker import MultipleLocator
+    
+    # Calculate appropriate tick spacing in Magpylib coordinates
+    # The surface is at mag_height_mm/2, so we want ticks centered there in UI coords (which is 0)
+    z_range = z_extent_mm
+    # Determine a nice tick spacing (roughly 5-8 ticks)
+    tick_spacing = 2 ** round(np.log2(z_range / 6))  # Power of 2 for nice numbers
+    if tick_spacing < 1:
+        tick_spacing = 1
+    
+    # Set ticks in Magpylib coordinates, centered at mag_height_mm/2 (which is UI z=0)
+    surface_z_magpylib = mag_height_mm / 2
+    # Find the range of ticks needed
+    min_tick = np.floor((-z_extent_mm/2 - surface_z_magpylib) / tick_spacing) * tick_spacing
+    max_tick = np.ceil((z_extent_mm/2 - surface_z_magpylib) / tick_spacing) * tick_spacing
+    # Generate ticks in UI coordinates
+    ui_ticks = np.arange(min_tick, max_tick + tick_spacing/2, tick_spacing)
+    # Convert to Magpylib coordinates for positioning
+    magpylib_ticks = ui_ticks + surface_z_magpylib
+    
+    ax.set_yticks(magpylib_ticks)
+    ax.set_yticklabels([f'{int(tick)}' for tick in ui_ticks])
     
     # Labels
     ax.set_xlabel('X (mm)', fontsize=10)
