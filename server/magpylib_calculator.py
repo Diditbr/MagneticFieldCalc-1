@@ -285,6 +285,9 @@ def generate_field_visualization(magnet_config):
         ax.text(0, -rect_h/4, 'S', fontsize=14, fontweight='bold',
                 ha='center', va='center', color='#ef4444')
     
+    # Set axis limits in millimeters
+    ax.set_xlim(-max_dim/2*1000, max_dim/2*1000)
+    ax.set_ylim(-max_dim/2*1000, max_dim/2*1000)
     ax.set_xlabel('X (mm)', fontsize=10)
     ax.set_ylabel('Z (mm)', fontsize=10)
     ax.set_aspect('equal')
