@@ -22,7 +22,7 @@ export function FormulaDisplay({ magnetType }: FormulaDisplayProps) {
         "Diametral: Magnetisierung in X-Z-Ebene (Winkel einstellbar)",
         "Berechnung: Numerisch exakt, auch im Nahfeld",
       ],
-      docsUrl: "https://magpylib.readthedocs.io/en/latest/_autogen/magpylib.magnet.Cylinder.html",
+      docsUrl: "https://magpylib.readthedocs.io/en/stable/",
     },
     rectangular: {
       title: "Magpylib Magnet-Simulation (Vierkantmagnet)",
@@ -33,7 +33,7 @@ export function FormulaDisplay({ magnetType }: FormulaDisplayProps) {
         "Magnetisierung: M entlang Z-Achse (Nord oben)",
         "Berechnung: Numerisch exakt, auch im Nahfeld",
       ],
-      docsUrl: "https://magpylib.readthedocs.io/en/latest/_autogen/magpylib.magnet.Cuboid.html",
+      docsUrl: "https://magpylib.readthedocs.io/en/stable/",
     },
     ring: {
       title: "Magpylib Magnet-Simulation (Ringmagnet)",
@@ -44,7 +44,7 @@ export function FormulaDisplay({ magnetType }: FormulaDisplayProps) {
         "Axial: Magnetisierung entlang Z-Achse",
         "Diametral: Magnetisierung in X-Z-Ebene (Winkel einstellbar)",
       ],
-      docsUrl: "https://magpylib.readthedocs.io/en/latest/_autogen/magpylib.magnet.CylinderSegment.html",
+      docsUrl: "https://magpylib.readthedocs.io/en/stable/",
       multipoleNote: "Hinweis: Mehrpolige Magnetisierung am Umfang ist mit Magpylib möglich, aber nicht direkt unterstützt. Man kann mehrere Segmente zu einem Halbach-Array zusammensetzen.",
     },
   };
