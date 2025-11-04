@@ -4,6 +4,10 @@ import { z } from "zod";
 export const magnetTypes = ["bar", "cylindrical", "rectangular", "ring"] as const;
 export type MagnetType = typeof magnetTypes[number];
 
+// Magnetization type enumeration
+export const magnetizationTypes = ["axial", "diametral"] as const;
+export type MagnetizationType = typeof magnetizationTypes[number];
+
 // Material presets with typical magnetization values (in Tesla)
 export const materialPresets = {
   "NdFeB N52": 1.48,
@@ -53,6 +57,8 @@ export type MagnetConfig = z.infer<typeof magnetConfigSchema>;
 export const fieldCalculationRequestSchema = z.object({
   type: z.enum(magnetTypes),
   magnetization: z.number().positive(),
+  magnetizationType: z.enum(magnetizationTypes).default("axial"),
+  magnetizationAngle: z.number().min(0).max(360).optional(), // Angle in degrees for diametral
   
   // Dimensions in meters
   length: z.number().positive().optional(),
@@ -141,6 +147,8 @@ export type FieldGridResponse = z.infer<typeof fieldGridResponseSchema>;
 export const fieldVisualizationRequestSchema = z.object({
   type: z.enum(magnetTypes),
   magnetization: z.number().positive(),
+  magnetizationType: z.enum(magnetizationTypes).default("axial"),
+  magnetizationAngle: z.number().min(0).max(360).optional(), // Angle in degrees for diametral
   
   // Dimensions in meters
   length: z.number().positive().optional(),
