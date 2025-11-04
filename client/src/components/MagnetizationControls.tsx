@@ -39,7 +39,7 @@ export function MagnetizationControls({
           Diametrale Magnetisierung
         </Label>
         <Badge variant="secondary" className="text-xs">
-          {magnetizationType === "axial" ? "Axial (Z)" : "Diametral (X-Y)"}
+          {magnetizationType === "axial" ? "Axial (Z)" : "Diametral (X-Z)"}
         </Badge>
       </div>
 
@@ -47,7 +47,7 @@ export function MagnetizationControls({
         <div className="space-y-3 pl-7">
           <div className="flex items-center justify-between">
             <Label className="text-sm text-muted-foreground">
-              Winkel in X-Y-Ebene
+              Winkel in X-Z-Ebene
             </Label>
             <span className="text-sm font-mono font-semibold">
               {magnetizationAngle.toFixed(0)}°
@@ -66,7 +66,7 @@ export function MagnetizationControls({
             />
           </div>
           <div className="text-xs text-muted-foreground">
-            0° = +X (rechts), 90° = +Y (vorne), 180° = -X (links), 270° = -Y (hinten)
+            0° = +X (rechts), 90° = +Z (oben), 180° = -X (links), 270° = -Z (unten)
           </div>
         </div>
       )}

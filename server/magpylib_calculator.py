@@ -32,11 +32,12 @@ def get_polarization_vector(magnetization, magnetization_type='axial', angle_deg
         # Axial: magnetization along Z-axis
         return (0, 0, magnetization)
     elif magnetization_type == 'diametral':
-        # Diametral: magnetization in X-Y plane at specified angle
+        # Diametral: magnetization in X-Z plane at specified angle
+        # This way both components are visible in the X-Z visualization plane
         angle_rad = math.radians(angle_deg)
         px = magnetization * math.cos(angle_rad)
-        py = magnetization * math.sin(angle_rad)
-        return (px, py, 0)
+        pz = magnetization * math.sin(angle_rad)
+        return (px, 0, pz)
     else:
         raise ValueError(f"Unknown magnetization type: {magnetization_type}")
 

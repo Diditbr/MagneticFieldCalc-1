@@ -29,7 +29,7 @@ export function FormulaDisplay({ magnetType }: FormulaDisplayProps) {
       equations: [
         "Magnet-Typ: magpy.magnet.Cylinder",
         "Axial: Magnetisierung entlang Z-Achse (Nord oben)",
-        "Diametral: Magnetisierung in X-Y-Ebene (Winkel einstellbar)",
+        "Diametral: Magnetisierung in X-Z-Ebene (Winkel einstellbar)",
         "Berechnung: Numerisch exakt, auch im Nahfeld",
       ],
     },
@@ -50,7 +50,7 @@ export function FormulaDisplay({ magnetType }: FormulaDisplayProps) {
       equations: [
         "Magnet-Typ: magpy.magnet.CylinderSegment (360°)",
         "Axial: Magnetisierung entlang Z-Achse",
-        "Diametral: Magnetisierung in X-Y-Ebene (Winkel einstellbar)",
+        "Diametral: Magnetisierung in X-Z-Ebene (Winkel einstellbar)",
         "⚠️ HINWEIS: Feldlinien-Richtung kann abweichen (in Entwicklung)",
       ],
     },
