@@ -169,3 +169,41 @@ export const fieldVisualizationRequestSchema = z.object({
 });
 
 export type FieldVisualizationRequest = z.infer<typeof fieldVisualizationRequestSchema>;
+
+// Line calculation request - for computing field along a line
+export const lineCalculationRequestSchema = z.object({
+  type: z.enum(magnetTypes),
+  magnetization: z.number().positive(),
+  magnetizationType: z.enum(magnetizationTypes).default("axial"),
+  magnetizationAngle: z.number().min(0).max(360).optional(),
+  
+  // Dimensions in meters
+  length: z.number().positive().optional(),
+  width: z.number().positive().optional(),
+  height: z.number().positive().optional(),
+  diameter: z.number().positive().optional(),
+  innerDiameter: z.number().positive().optional(),
+  thickness: z.number().positive().optional(),
+  
+  // Line start point in meters
+  startX: z.number(),
+  startY: z.number(),
+  startZ: z.number(),
+  
+  // Line end point in meters
+  endX: z.number(),
+  endY: z.number(),
+  endZ: z.number(),
+  
+  // Number of points along the line
+  numPoints: z.number().int().min(10).max(200).default(100),
+});
+
+export type LineCalculationRequest = z.infer<typeof lineCalculationRequestSchema>;
+
+// Line calculation response - base64 encoded chart image
+export const lineCalculationResponseSchema = z.object({
+  image: z.string(), // base64 encoded PNG
+});
+
+export type LineCalculationResponse = z.infer<typeof lineCalculationResponseSchema>;
