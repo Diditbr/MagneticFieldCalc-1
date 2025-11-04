@@ -205,11 +205,13 @@ def generate_field_visualization(magnet_config):
         raise ValueError(f"Unknown magnet type: {magnet_type}")
     
     # Create grid for field calculation (X-Z plane, Y=0)
-    # Use 4x magnet size for better scale showing field line closure
-    max_dim = max(mag_width, mag_height) * 4.0
+    # Use independent padding factors for X and Z based on actual dimensions
+    padding_factor = 3.5  # Show field lines with adequate margin
+    x_extent = mag_width * padding_factor
+    z_extent = mag_height * padding_factor
     grid_size = 80
-    x = np.linspace(-max_dim/2, max_dim/2, grid_size)
-    z = np.linspace(-max_dim/2, max_dim/2, grid_size)
+    x = np.linspace(-x_extent/2, x_extent/2, grid_size)
+    z = np.linspace(-z_extent/2, z_extent/2, grid_size)
     X, Z = np.meshgrid(x, z)
     
     # Calculate field at grid points
@@ -286,9 +288,9 @@ def generate_field_visualization(magnet_config):
         ax.text(0, -rect_h/4, 'S', fontsize=14, fontweight='bold',
                 ha='center', va='center', color='#ef4444')
     
-    # Set axis limits and convert axis labels to mm
-    ax.set_xlim(-max_dim/2, max_dim/2)
-    ax.set_ylim(-max_dim/2, max_dim/2)
+    # Set axis limits based on actual X and Z extents
+    ax.set_xlim(-x_extent/2, x_extent/2)
+    ax.set_ylim(-z_extent/2, z_extent/2)
     
     # Format axis ticks to show millimeters
     from matplotlib.ticker import FuncFormatter
