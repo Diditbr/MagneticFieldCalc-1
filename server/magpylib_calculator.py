@@ -6,6 +6,7 @@ Accepts JSON input via stdin and returns JSON output.
 
 import json
 import sys
+import math
 import magpylib as magpy
 import numpy as np
 import matplotlib
@@ -13,6 +14,31 @@ matplotlib.use('Agg')  # Non-interactive backend for server-side rendering
 import matplotlib.pyplot as plt
 import io
 import base64
+
+
+def get_polarization_vector(magnetization, magnetization_type='axial', angle_deg=0):
+    """
+    Calculate polarization vector based on magnetization type and angle.
+    
+    Args:
+        magnetization: Magnetization strength in Tesla
+        magnetization_type: 'axial' or 'diametral'
+        angle_deg: Angle in degrees (0-360) for diametral magnetization
+    
+    Returns:
+        Tuple (px, py, pz) polarization vector
+    """
+    if magnetization_type == 'axial':
+        # Axial: magnetization along Z-axis
+        return (0, 0, magnetization)
+    elif magnetization_type == 'diametral':
+        # Diametral: magnetization in X-Y plane at specified angle
+        angle_rad = math.radians(angle_deg)
+        px = magnetization * math.cos(angle_rad)
+        py = magnetization * math.sin(angle_rad)
+        return (px, py, 0)
+    else:
+        raise ValueError(f"Unknown magnetization type: {magnetization_type}")
 
 
 def calculate_field(magnet_config):
@@ -31,6 +57,8 @@ def calculate_field(magnet_config):
     """
     magnet_type = magnet_config['type']
     magnetization = magnet_config['magnetization']
+    magnetization_type = magnet_config.get('magnetizationType', 'axial')
+    magnetization_angle = magnet_config.get('magnetizationAngle', 0)
     x = magnet_config['x']
     y = magnet_config['y']
     z = magnet_config['z']
@@ -40,37 +68,42 @@ def calculate_field(magnet_config):
     
     # Create magnet based on type
     if magnet_type in ['bar', 'rectangular']:
-        # Create cuboid magnet (magnetized along z-axis)
+        # Create cuboid magnet (always axially magnetized)
         length = magnet_config.get('length', 0.01)
         width = magnet_config.get('width', 0.01)
         height = magnet_config.get('height', 0.01)
         
         magnet = magpy.magnet.Cuboid(
-            polarization=(0, 0, magnetization),  # Magnetized along z-axis
+            polarization=(0, 0, magnetization),  # Always axial for cuboids
             dimension=(length, width, height)
         )
     
     elif magnet_type == 'cylindrical':
-        # Create cylindrical magnet (magnetized along z-axis / height direction)
+        # Create cylindrical magnet (supports axial and diametral)
         diameter = magnet_config.get('diameter', 0.01)
         length = magnet_config.get('length', 0.01)
-        radius = diameter / 2
         
+        polarization = get_polarization_vector(magnetization, magnetization_type, magnetization_angle)
         magnet = magpy.magnet.Cylinder(
-            polarization=(0, 0, magnetization),
+            polarization=polarization,
             dimension=(diameter, length)
         )
     
     elif magnet_type == 'ring':
-        # Create ring magnet using CylinderSegment with full 360° angle
+        # Create ring magnet using CylinderSegment (supports axial and diametral)
         outer_diameter = magnet_config.get('diameter', 0.01)
         inner_diameter = magnet_config.get('innerDiameter', 0.005)
         thickness = magnet_config.get('thickness', 0.01)
         
-        # CRITICAL: CylinderSegment has INVERTED polarization vs Cylinder
-        # Use negative magnetization to place Nord at +Z (top face)
+        polarization = get_polarization_vector(magnetization, magnetization_type, magnetization_angle)
+        
+        # CRITICAL: CylinderSegment has INVERTED polarization for axial
+        # Only invert Z-component for axial magnetization
+        if magnetization_type == 'axial':
+            polarization = (polarization[0], polarization[1], -polarization[2])
+        
         magnet = magpy.magnet.CylinderSegment(
-            polarization=(0, 0, -magnetization),
+            polarization=polarization,
             dimension=(inner_diameter, outer_diameter, thickness, 0, 360)
         )
     
@@ -178,6 +211,8 @@ def generate_field_visualization(magnet_config):
     """
     magnet_type = magnet_config['type']
     magnetization = magnet_config['magnetization']
+    magnetization_type = magnet_config.get('magnetizationType', 'axial')
+    magnetization_angle = magnet_config.get('magnetizationAngle', 0)
     
     # Initialize variables
     inner_radius_m = 0
@@ -190,7 +225,7 @@ def generate_field_visualization(magnet_config):
         width = magnet_config.get('width', 0.01)
         height = magnet_config.get('height', 0.01)
         magnet = magpy.magnet.Cuboid(
-            polarization=(0, 0, magnetization),
+            polarization=(0, 0, magnetization),  # Always axial for cuboids
             dimension=(length, width, height)
         )
         mag_width, mag_height = length, height
@@ -198,8 +233,10 @@ def generate_field_visualization(magnet_config):
     elif magnet_type == 'cylindrical':
         diameter = magnet_config.get('diameter', 0.01)
         length = magnet_config.get('length', 0.01)
+        
+        polarization = get_polarization_vector(magnetization, magnetization_type, magnetization_angle)
         magnet = magpy.magnet.Cylinder(
-            polarization=(0, 0, magnetization),
+            polarization=polarization,
             dimension=(diameter, length)
         )
         mag_width, mag_height = diameter, length
@@ -208,10 +245,16 @@ def generate_field_visualization(magnet_config):
         outer_diameter = magnet_config.get('diameter', 0.01)
         inner_diameter = magnet_config.get('innerDiameter', 0.005)
         thickness = magnet_config.get('thickness', 0.01)
-        # CylinderSegment has inverted polarization convention
-        # Use negative magnetization to place Nord at +Z (top)
+        
+        polarization = get_polarization_vector(magnetization, magnetization_type, magnetization_angle)
+        
+        # CRITICAL: CylinderSegment has INVERTED polarization for axial
+        # Only invert Z-component for axial magnetization
+        if magnetization_type == 'axial':
+            polarization = (polarization[0], polarization[1], -polarization[2])
+        
         magnet = magpy.magnet.CylinderSegment(
-            polarization=(0, 0, -magnetization),
+            polarization=polarization,
             dimension=(inner_diameter, outer_diameter, thickness, 0, 360)
         )
         # For ring: show side view (X-Z plane) with hollow structure visible
