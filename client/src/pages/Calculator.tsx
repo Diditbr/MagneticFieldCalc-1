@@ -297,6 +297,11 @@ export default function Calculator() {
                 <FieldVisualization
                   magnetType={magnetType}
                   dimensions={dimensions}
+                  magnetization={
+                    selectedMaterial === "Custom"
+                      ? customMagnetization
+                      : materialPresets[selectedMaterial]
+                  }
                   magnetizationType={magnetizationType}
                   magnetizationAngle={magnetizationAngle}
                   calcX={calcPoint.x}

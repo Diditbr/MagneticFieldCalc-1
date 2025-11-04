@@ -12,6 +12,7 @@ interface FieldVisualizationProps {
     innerDiameter?: number;
     thickness?: number;
   };
+  magnetization: number;
   magnetizationType: MagnetizationType;
   magnetizationAngle: number;
   calcX: number;
@@ -27,6 +28,7 @@ interface FieldVisualizationProps {
 export function FieldVisualization({
   magnetType,
   dimensions,
+  magnetization,
   magnetizationType,
   magnetizationAngle,
   calcX,
@@ -40,7 +42,6 @@ export function FieldVisualization({
 }: FieldVisualizationProps) {
   const [visualizationImage, setVisualizationImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [magnetization, setMagnetization] = useState(1.32); // Default NdFeB N42
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   
   // Fetch visualization from backend when magnet configuration changes
