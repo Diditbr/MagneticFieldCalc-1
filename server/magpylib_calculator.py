@@ -67,10 +67,10 @@ def calculate_field(magnet_config):
         inner_diameter = magnet_config.get('innerDiameter', 0.005)
         thickness = magnet_config.get('thickness', 0.01)
         
-        # Polarization points from S to N inside material
-        # Positive Z places Nord at +Z (top face)
+        # CRITICAL: CylinderSegment has INVERTED polarization vs Cylinder
+        # Use negative magnetization to place Nord at +Z (top face)
         magnet = magpy.magnet.CylinderSegment(
-            polarization=(0, 0, magnetization),
+            polarization=(0, 0, -magnetization),
             dimension=(inner_diameter, outer_diameter, thickness, 0, 360)
         )
     
@@ -137,9 +137,9 @@ def calculate_field_grid(magnet_config):
         outer_diameter = magnet_config.get('diameter', 0.01)
         inner_diameter = magnet_config.get('innerDiameter', 0.005)
         thickness = magnet_config.get('thickness', 0.01)
-        # Polarization points from S to N, +Z places Nord at top
+        # CylinderSegment has inverted polarization - use negative for Nord at top
         magnet = magpy.magnet.CylinderSegment(
-            polarization=(0, 0, magnetization),
+            polarization=(0, 0, -magnetization),
             dimension=(inner_diameter, outer_diameter, thickness, 0, 360)
         )
     else:
@@ -208,9 +208,10 @@ def generate_field_visualization(magnet_config):
         outer_diameter = magnet_config.get('diameter', 0.01)
         inner_diameter = magnet_config.get('innerDiameter', 0.005)
         thickness = magnet_config.get('thickness', 0.01)
-        # Polarization from S to N inside material - +Z = Nord at top
+        # CylinderSegment has inverted polarization convention
+        # Use negative magnetization to place Nord at +Z (top)
         magnet = magpy.magnet.CylinderSegment(
-            polarization=(0, 0, magnetization),
+            polarization=(0, 0, -magnetization),
             dimension=(inner_diameter, outer_diameter, thickness, 0, 360)
         )
         # For ring: show side view (X-Z plane) with hollow structure visible
