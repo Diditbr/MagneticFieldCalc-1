@@ -411,6 +411,118 @@ def generate_field_visualization(magnet_config):
     return {'image': img_base64}
 
 
+def calculate_line_field(magnet_config):
+    """
+    Calculate magnetic field along a line in 3D space and generate a chart.
+    
+    Args:
+        magnet_config: Dict with keys:
+            - type, magnetization, dimensions (as in calculate_field)
+            - startX, startY, startZ: line start point in meters
+            - endX, endY, endZ: line end point in meters
+            - numPoints: number of points along the line (default: 100)
+    
+    Returns:
+        Dict with base64-encoded PNG image of the chart
+    """
+    magnet_type = magnet_config['type']
+    magnetization = magnet_config['magnetization']
+    magnetization_type = magnet_config.get('magnetizationType', 'axial')
+    magnetization_angle = magnet_config.get('magnetizationAngle', 0)
+    
+    # Line parameters
+    start = np.array([
+        magnet_config['startX'],
+        magnet_config['startY'],
+        magnet_config['startZ']
+    ])
+    end = np.array([
+        magnet_config['endX'],
+        magnet_config['endY'],
+        magnet_config['endZ']
+    ])
+    num_points = magnet_config.get('numPoints', 100)
+    
+    # Create magnet based on type (same as calculate_field)
+    if magnet_type in ['bar', 'rectangular']:
+        length = magnet_config.get('length', 0.01)
+        width = magnet_config.get('width', 0.01)
+        height = magnet_config.get('height', 0.01)
+        magnet = magpy.magnet.Cuboid(
+            polarization=(0, 0, magnetization),  # Always axial for cuboids
+            dimension=(length, width, height)
+        )
+    elif magnet_type == 'cylindrical':
+        diameter = magnet_config.get('diameter', 0.01)
+        length = magnet_config.get('length', 0.01)
+        polarization = get_polarization_vector(magnetization, magnetization_type, magnetization_angle)
+        magnet = magpy.magnet.Cylinder(
+            polarization=polarization,
+            dimension=(diameter, length)
+        )
+    elif magnet_type == 'ring':
+        outer_diameter = magnet_config.get('diameter', 0.01)
+        inner_diameter = magnet_config.get('innerDiameter', 0.005)
+        thickness = magnet_config.get('thickness', 0.01)
+        polarization = get_polarization_vector(magnetization, magnetization_type, magnetization_angle)
+        if magnetization_type == 'axial':
+            polarization = (polarization[0], polarization[1], -polarization[2])
+        magnet = magpy.magnet.CylinderSegment(
+            polarization=polarization,
+            dimension=(inner_diameter, outer_diameter, thickness, 0, 360)
+        )
+    else:
+        raise ValueError(f"Unknown magnet type: {magnet_type}")
+    
+    # Generate points along the line
+    line_points = np.linspace(start, end, num_points)
+    
+    # Calculate B field at each point
+    Bx_values = []
+    By_values = []
+    Bz_values = []
+    distances = []  # Distance from start point along the line
+    
+    for point in line_points:
+        B = magpy.getB(magnet, point)
+        Bx_values.append(float(B[0]))
+        By_values.append(float(B[1]))
+        Bz_values.append(float(B[2]))
+        # Calculate distance from start along the line (in mm for display)
+        distances.append(float(np.linalg.norm(point - start) * 1000))
+    
+    # Create matplotlib chart
+    fig, ax = plt.subplots(figsize=(10, 6))
+    
+    # Plot three lines for Bx, By, Bz
+    ax.plot(distances, [b * 1000 for b in Bx_values], 'r-', linewidth=2, label='Bx')
+    ax.plot(distances, [b * 1000 for b in By_values], 'g-', linewidth=2, label='By')
+    ax.plot(distances, [b * 1000 for b in Bz_values], 'b-', linewidth=2, label='Bz')
+    
+    # Add grid and labels
+    ax.grid(True, alpha=0.3)
+    ax.set_xlabel('Distanz entlang Linie (mm)', fontsize=12)
+    ax.set_ylabel('Magnetische Flussdichte (mT)', fontsize=12)
+    ax.set_title('Feldkomponenten entlang der Linie', fontsize=14, fontweight='bold')
+    ax.legend(loc='best', fontsize=10)
+    
+    # Add zero line
+    ax.axhline(y=0, color='k', linestyle='--', alpha=0.3, linewidth=0.8)
+    
+    plt.tight_layout()
+    
+    # Convert plot to base64 PNG
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png', dpi=100, bbox_inches='tight')
+    buf.seek(0)
+    img_base64 = base64.b64encode(buf.read()).decode('utf-8')
+    plt.close(fig)
+    
+    return {
+        'image': img_base64
+    }
+
+
 def main():
     """Main entry point - read JSON from stdin, calculate, output JSON."""
     try:
@@ -423,6 +535,8 @@ def main():
             result = calculate_field_grid(input_data)
         elif mode == 'visualization':
             result = generate_field_visualization(input_data)
+        elif mode == 'line':
+            result = calculate_line_field(input_data)
         else:
             result = calculate_field(input_data)
         

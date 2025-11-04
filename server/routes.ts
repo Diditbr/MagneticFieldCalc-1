@@ -10,6 +10,8 @@ import {
   type FieldCalculationResponse,
   fieldGridRequestSchema,
   type FieldGridResponse,
+  lineCalculationRequestSchema,
+  type LineCalculationResponse,
 } from "@shared/schema";
 import { calculateFieldEnhanced } from "./calculations";
 
@@ -164,6 +166,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Unexpected error:', error);
       res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // Line calculation endpoint - calculates field along a line and generates chart
+  app.post("/api/line-calculation", async (req, res) => {
+    try {
+      // Validate request body
+      const validatedData = lineCalculationRequestSchema.parse(req.body);
+      
+      // Build line calculation request for Python script
+      const lineRequest = {
+        ...validatedData,
+        mode: 'line', // Signal to Python script to calculate along line
+      };
+      
+      try {
+        const result = await calculateWithMagpylib(lineRequest) as unknown as LineCalculationResponse;
+        res.json(result);
+      } catch (error) {
+        console.error('Line calculation failed:', error);
+        res.status(500).json({ error: 'Line calculation failed' });
+      }
+    } catch (error) {
+      if (error instanceof ZodError) {
+        res.status(400).json({ error: error.message });
+      } else {
+        console.error('Unexpected error:', error);
+        res.status(500).json({ error: 'Internal server error' });
+      }
     }
   });
 
