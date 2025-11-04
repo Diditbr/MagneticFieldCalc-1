@@ -207,7 +207,7 @@ def generate_field_visualization(magnet_config):
     # Create grid for field calculation (X-Z plane, Y=0)
     # NOTE: mag_width and mag_height are in METERS (frontend converts dimensions to meters)
     # We work in millimeters for axis display
-    padding_factor = 3.5  # Show field lines with adequate margin
+    padding_factor = 4.0  # Show field lines with adequate margin
     
     # Convert magnet dimensions from meters to mm for display
     mag_width_mm = mag_width * 1000
@@ -248,16 +248,22 @@ def generate_field_visualization(magnet_config):
     density = num_flux_lines / 10.0
     
     # Draw streamplot with color-coded field strength
-    # Use log scale for better visualization of field strength variation
+    # Use logarithmic normalization for better visualization
     # Everything is in mm now, so axes will show correct mm values
-    B_log = np.log10(B_magnitude + 1e-10)  # Add small value to avoid log(0)
-    stream = ax.streamplot(X_mm, Z_mm, Bx, Bz, color=B_log, 
-                          cmap='viridis', linewidth=1.5,
-                          density=density, arrowsize=0.8, arrowstyle='->')
+    from matplotlib.colors import LogNorm
     
-    # Add colorbar to show field strength
+    # Use actual magnitude values with LogNorm for true logarithmic color scale
+    # Add small epsilon to avoid log(0)
+    B_plot = B_magnitude + 1e-12
+    
+    stream = ax.streamplot(X_mm, Z_mm, Bx, Bz, color=B_plot, 
+                          cmap='viridis', linewidth=1.5,
+                          density=density, arrowsize=0.8, arrowstyle='->',
+                          norm=LogNorm(vmin=B_plot.min(), vmax=B_plot.max()))
+    
+    # Add colorbar with logarithmic scale
     cbar = plt.colorbar(stream.lines, ax=ax)
-    cbar.set_label('log₁₀(|B| [T])', fontsize=10)
+    cbar.set_label('|B| [T] (log scale)', fontsize=10)
     
     # Draw calculation point if provided (convert from m to mm)
     calc_x = magnet_config.get('calcX')
