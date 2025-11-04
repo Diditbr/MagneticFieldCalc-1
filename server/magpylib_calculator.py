@@ -337,7 +337,20 @@ def generate_field_visualization(magnet_config):
     if calc_x is not None and calc_z is not None:
         ax.plot(calc_x * 1000, calc_z * 1000, 'o', color='#22c55e', 
                 markersize=8, markeredgewidth=2, markeredgecolor='white',
-                label='Calculation Point', zorder=10)
+                label='Berechnungspunkt', zorder=10)
+    
+    # Draw line if provided (convert from m to mm)
+    line_start_x = magnet_config.get('lineStartX')
+    line_start_z = magnet_config.get('lineStartZ')
+    line_end_x = magnet_config.get('lineEndX')
+    line_end_z = magnet_config.get('lineEndZ')
+    if all(v is not None for v in [line_start_x, line_start_z, line_end_x, line_end_z]):
+        # Convert from meters to mm
+        line_x_mm = [line_start_x * 1000, line_end_x * 1000]
+        line_z_mm = [line_start_z * 1000, line_end_z * 1000]
+        ax.plot(line_x_mm, line_z_mm, 'o-', color='#3b82f6', 
+                linewidth=2.5, markersize=6, markeredgewidth=1.5, markeredgecolor='white',
+                label='Messlinie', zorder=11)
     
     # Draw magnet outline (in mm) - side view (X-Z plane)
     from matplotlib.patches import Rectangle
@@ -397,6 +410,11 @@ def generate_field_visualization(magnet_config):
     ax.set_xlabel('X (mm)', fontsize=10)
     ax.set_ylabel('Z (mm)', fontsize=10)
     ax.set_title('Magnetfeld-Linien (X-Z Ebene, Seitenansicht)', fontsize=12, fontweight='bold')
+    
+    # Add legend if there are labeled items
+    handles, labels = ax.get_legend_handles_labels()
+    if handles:
+        ax.legend(loc='upper right', fontsize=9, framealpha=0.9)
     
     ax.set_aspect('equal')
     ax.grid(True, alpha=0.2)
