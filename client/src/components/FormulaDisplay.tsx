@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
 import type { MagnetType } from "@shared/schema";
 
 interface FormulaDisplayProps {
@@ -12,18 +12,8 @@ export function FormulaDisplay({ magnetType }: FormulaDisplayProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const formulas = {
-    bar: {
-      title: "Magpylib Magnet-Simulation (Quader)",
-      description:
-        "Präzise Berechnung mit Magpylib (Python-Bibliothek). Verwendet Cuboid-Modell für exakte Nahfeld-Ergebnisse.",
-      equations: [
-        "Magnet-Typ: magpy.magnet.Cuboid",
-        "Magnetisierung: M entlang Z-Achse (Nord oben)",
-        "Berechnung: Numerisch exakt, auch im Nahfeld",
-      ],
-    },
     cylindrical: {
-      title: "Magpylib Magnet-Simulation (Zylinder)",
+      title: "Magpylib Magnet-Simulation (Rundmagnet)",
       description:
         "Präzise Berechnung mit Magpylib. Verwendet Cylinder-Modell. Unterstützt axiale und diametrale Magnetisierung.",
       equations: [
@@ -32,9 +22,10 @@ export function FormulaDisplay({ magnetType }: FormulaDisplayProps) {
         "Diametral: Magnetisierung in X-Z-Ebene (Winkel einstellbar)",
         "Berechnung: Numerisch exakt, auch im Nahfeld",
       ],
+      docsUrl: "https://magpylib.readthedocs.io/en/latest/_autogen/magpylib.magnet.Cylinder.html",
     },
     rectangular: {
-      title: "Magpylib Magnet-Simulation (Rechteck)",
+      title: "Magpylib Magnet-Simulation (Vierkantmagnet)",
       description:
         "Präzise Berechnung mit Magpylib. Verwendet Cuboid-Modell für exakte Nahfeld-Ergebnisse.",
       equations: [
@@ -42,17 +33,19 @@ export function FormulaDisplay({ magnetType }: FormulaDisplayProps) {
         "Magnetisierung: M entlang Z-Achse (Nord oben)",
         "Berechnung: Numerisch exakt, auch im Nahfeld",
       ],
+      docsUrl: "https://magpylib.readthedocs.io/en/latest/_autogen/magpylib.magnet.Cuboid.html",
     },
     ring: {
-      title: "Magpylib Magnet-Simulation (Ring)",
+      title: "Magpylib Magnet-Simulation (Ringmagnet)",
       description:
         "Präzise Berechnung mit Magpylib. Verwendet CylinderSegment-Modell. Unterstützt axiale und diametrale Magnetisierung.",
       equations: [
         "Magnet-Typ: magpy.magnet.CylinderSegment (360°)",
         "Axial: Magnetisierung entlang Z-Achse",
         "Diametral: Magnetisierung in X-Z-Ebene (Winkel einstellbar)",
-        "⚠️ HINWEIS: Feldlinien-Richtung kann abweichen (in Entwicklung)",
       ],
+      docsUrl: "https://magpylib.readthedocs.io/en/latest/_autogen/magpylib.magnet.CylinderSegment.html",
+      multipoleNote: "Hinweis: Mehrpolige Magnetisierung am Umfang ist mit Magpylib möglich, aber nicht direkt unterstützt. Man kann mehrere Segmente zu einem Halbach-Array zusammensetzen.",
     },
   };
 
@@ -92,6 +85,22 @@ export function FormulaDisplay({ magnetType }: FormulaDisplayProps) {
               </div>
             ))}
           </div>
+
+          {("multipoleNote" in formula) && (
+            <div className="p-3 rounded-md bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 text-xs text-blue-900 dark:text-blue-100">
+              {formula.multipoleNote}
+            </div>
+          )}
+
+          <a
+            href={formula.docsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline"
+          >
+            <ExternalLink className="h-3 w-3" />
+            Magpylib Dokumentation
+          </a>
 
           <div className="text-xs text-muted-foreground pt-2">
             Hinweis: Berechnungen mit Magpylib v5.2 - numerisch exakte Ergebnisse. 
