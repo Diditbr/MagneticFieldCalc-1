@@ -37,6 +37,9 @@ export function LineInputs({
     <Card>
       <CardHeader>
         <CardTitle className="text-base">Linienfeld-Berechnung</CardTitle>
+        <p className="text-xs text-muted-foreground mt-1">
+          Koordinatensystem: X=0, Y=0 in der Magnetmitte, Z=0 an der Magnetoberfläche
+        </p>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-3">

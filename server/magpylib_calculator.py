@@ -52,6 +52,7 @@ def calculate_field(magnet_config):
             - magnetization: float (Tesla)
             - dimensions in meters
             - observer position (x, y, z) in meters
+              NOTE: z=0 is at the magnet surface (top pole face) in UI coordinates
     
     Returns:
         Dict with Bx, By, Bz, magnitude, distance
@@ -60,12 +61,26 @@ def calculate_field(magnet_config):
     magnetization = magnet_config['magnetization']
     magnetization_type = magnet_config.get('magnetizationType', 'axial')
     magnetization_angle = magnet_config.get('magnetizationAngle', 0)
-    x = magnet_config['x']
-    y = magnet_config['y']
-    z = magnet_config['z']
+    x_ui = magnet_config['x']
+    y_ui = magnet_config['y']
+    z_ui = magnet_config['z']
     
-    # Observer position
-    observer = np.array([x, y, z])
+    # Determine magnet height (dimension along z-axis) for coordinate transformation
+    if magnet_type in ['bar', 'rectangular']:
+        magnet_height = magnet_config.get('height', 0.01)
+    elif magnet_type == 'cylindrical':
+        magnet_height = magnet_config.get('length', 0.01)
+    elif magnet_type == 'ring':
+        magnet_height = magnet_config.get('thickness', 0.01)
+    else:
+        magnet_height = 0.01
+    
+    # Transform coordinates: UI has z=0 at surface, Magpylib has z=0 at center
+    # z_magpylib = z_ui + height/2
+    z_magpylib = z_ui + magnet_height / 2
+    
+    # Observer position in Magpylib coordinates
+    observer = np.array([x_ui, y_ui, z_magpylib])
     
     # Create magnet based on type
     if magnet_type in ['bar', 'rectangular']:
@@ -332,22 +347,29 @@ def generate_field_visualization(magnet_config):
     cbar.set_label('Flussdichte |B| [T]', fontsize=10)
     
     # Draw calculation point if provided (convert from m to mm)
-    calc_x = magnet_config.get('calcX')
-    calc_z = magnet_config.get('calcZ')
-    if calc_x is not None and calc_z is not None:
-        ax.plot(calc_x * 1000, calc_z * 1000, 'o', color='#22c55e', 
+    # NOTE: UI coordinates have z=0 at surface, need to transform to Magpylib coordinates for display
+    calc_x_ui = magnet_config.get('calcX')
+    calc_z_ui = magnet_config.get('calcZ')
+    if calc_x_ui is not None and calc_z_ui is not None:
+        # Transform z coordinate: UI has z=0 at surface, visualization has z=0 at center
+        calc_z_magpylib = calc_z_ui + mag_height / 2
+        ax.plot(calc_x_ui * 1000, calc_z_magpylib * 1000, 'o', color='#22c55e', 
                 markersize=8, markeredgewidth=2, markeredgecolor='white',
                 label='Berechnungspunkt', zorder=10)
     
     # Draw line if provided (convert from m to mm)
-    line_start_x = magnet_config.get('lineStartX')
-    line_start_z = magnet_config.get('lineStartZ')
-    line_end_x = magnet_config.get('lineEndX')
-    line_end_z = magnet_config.get('lineEndZ')
-    if all(v is not None for v in [line_start_x, line_start_z, line_end_x, line_end_z]):
+    # NOTE: UI coordinates have z=0 at surface, need to transform to Magpylib coordinates for display
+    line_start_x_ui = magnet_config.get('lineStartX')
+    line_start_z_ui = magnet_config.get('lineStartZ')
+    line_end_x_ui = magnet_config.get('lineEndX')
+    line_end_z_ui = magnet_config.get('lineEndZ')
+    if all(v is not None for v in [line_start_x_ui, line_start_z_ui, line_end_x_ui, line_end_z_ui]):
+        # Transform z coordinates: UI has z=0 at surface, visualization has z=0 at center
+        line_start_z_magpylib = line_start_z_ui + mag_height / 2
+        line_end_z_magpylib = line_end_z_ui + mag_height / 2
         # Convert from meters to mm
-        line_x_mm = [line_start_x * 1000, line_end_x * 1000]
-        line_z_mm = [line_start_z * 1000, line_end_z * 1000]
+        line_x_mm = [line_start_x_ui * 1000, line_end_x_ui * 1000]
+        line_z_mm = [line_start_z_magpylib * 1000, line_end_z_magpylib * 1000]
         ax.plot(line_x_mm, line_z_mm, 'o-', color='#3b82f6', 
                 linewidth=2.5, markersize=6, markeredgewidth=1.5, markeredgecolor='white',
                 label='Messlinie', zorder=11)
@@ -436,8 +458,8 @@ def calculate_line_field(magnet_config):
     Args:
         magnet_config: Dict with keys:
             - type, magnetization, dimensions (as in calculate_field)
-            - startX, startY, startZ: line start point in meters
-            - endX, endY, endZ: line end point in meters
+            - startX, startY, startZ: line start point in meters (UI coordinates: z=0 at surface)
+            - endX, endY, endZ: line end point in meters (UI coordinates: z=0 at surface)
             - numPoints: number of points along the line (default: 100)
     
     Returns:
@@ -448,17 +470,34 @@ def calculate_line_field(magnet_config):
     magnetization_type = magnet_config.get('magnetizationType', 'axial')
     magnetization_angle = magnet_config.get('magnetizationAngle', 0)
     
-    # Line parameters
-    start = np.array([
+    # Determine magnet height for coordinate transformation
+    if magnet_type in ['bar', 'rectangular']:
+        magnet_height = magnet_config.get('height', 0.01)
+    elif magnet_type == 'cylindrical':
+        magnet_height = magnet_config.get('length', 0.01)
+    elif magnet_type == 'ring':
+        magnet_height = magnet_config.get('thickness', 0.01)
+    else:
+        magnet_height = 0.01
+    
+    # Line parameters (in UI coordinates)
+    start_ui = np.array([
         magnet_config['startX'],
         magnet_config['startY'],
         magnet_config['startZ']
     ])
-    end = np.array([
+    end_ui = np.array([
         magnet_config['endX'],
         magnet_config['endY'],
         magnet_config['endZ']
     ])
+    
+    # Transform z coordinates: UI has z=0 at surface, Magpylib has z=0 at center
+    start_magpylib = start_ui.copy()
+    start_magpylib[2] += magnet_height / 2
+    end_magpylib = end_ui.copy()
+    end_magpylib[2] += magnet_height / 2
+    
     num_points = magnet_config.get('numPoints', 100)
     
     # Create magnet based on type (same as calculate_field)
@@ -492,8 +531,8 @@ def calculate_line_field(magnet_config):
     else:
         raise ValueError(f"Unknown magnet type: {magnet_type}")
     
-    # Generate points along the line
-    line_points = np.linspace(start, end, num_points)
+    # Generate points along the line (in Magpylib coordinates)
+    line_points = np.linspace(start_magpylib, end_magpylib, num_points)
     
     # Calculate B field at each point
     Bx_values = []
@@ -507,7 +546,8 @@ def calculate_line_field(magnet_config):
         By_values.append(float(B[1]))
         Bz_values.append(float(B[2]))
         # Calculate distance from start along the line (in mm for display)
-        distances.append(float(np.linalg.norm(point - start) * 1000))
+        # Use UI coordinates for distance calculation so it matches user expectations
+        distances.append(float(np.linalg.norm(point - start_magpylib) * 1000))
     
     # Create matplotlib chart
     fig, ax = plt.subplots(figsize=(10, 6))

@@ -25,14 +25,14 @@ export function CalculationPointInputs({
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
-        <Label className="text-sm font-semibold">Calculation Point</Label>
+        <Label className="text-sm font-semibold">Berechnungspunkt</Label>
         <Tooltip>
           <TooltipTrigger asChild>
             <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
           </TooltipTrigger>
           <TooltipContent>
             <p className="max-w-xs text-xs">
-              Position where the magnetic field will be calculated, relative to the magnet center
+              Position, an der das Magnetfeld berechnet wird. Z=0 ist an der Magnetoberfläche (obere Polfläche).
             </p>
           </TooltipContent>
         </Tooltip>
@@ -75,7 +75,7 @@ export function CalculationPointInputs({
       </div>
 
       <div className="text-xs text-muted-foreground">
-        Origin (0,0,0) is at the magnet's geometric center
+        Koordinatensystem: X=0, Y=0 in der Magnetmitte, Z=0 an der Magnetoberfläche
       </div>
     </div>
   );

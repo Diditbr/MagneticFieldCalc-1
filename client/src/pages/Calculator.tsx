@@ -49,7 +49,7 @@ export default function Calculator() {
     thickness: 5,
   });
 
-  const [calcPoint, setCalcPoint] = useState({ x: 1, y: 0, z: 1 });
+  const [calcPoint, setCalcPoint] = useState({ x: 0, y: 0, z: 1 });
   const [numFluxLines, setNumFluxLines] = useState(8);
   const [autoColorScale, setAutoColorScale] = useState(true);
   const [maxColorScale, setMaxColorScale] = useState(0.1);
