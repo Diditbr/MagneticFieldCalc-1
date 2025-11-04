@@ -67,8 +67,10 @@ def calculate_field(magnet_config):
         inner_diameter = magnet_config.get('innerDiameter', 0.005)
         thickness = magnet_config.get('thickness', 0.01)
         
+        # Use negative magnetization for correct field direction
+        # (polarization points from S to N inside the material)
         magnet = magpy.magnet.CylinderSegment(
-            polarization=(0, 0, magnetization),
+            polarization=(0, 0, -magnetization),
             dimension=(inner_diameter, outer_diameter, thickness, 0, 360)
         )
     
@@ -135,8 +137,9 @@ def calculate_field_grid(magnet_config):
         outer_diameter = magnet_config.get('diameter', 0.01)
         inner_diameter = magnet_config.get('innerDiameter', 0.005)
         thickness = magnet_config.get('thickness', 0.01)
+        # Use negative magnetization for correct field direction
         magnet = magpy.magnet.CylinderSegment(
-            polarization=(0, 0, magnetization),
+            polarization=(0, 0, -magnetization),
             dimension=(inner_diameter, outer_diameter, thickness, 0, 360)
         )
     else:
@@ -205,8 +208,10 @@ def generate_field_visualization(magnet_config):
         outer_diameter = magnet_config.get('diameter', 0.01)
         inner_diameter = magnet_config.get('innerDiameter', 0.005)
         thickness = magnet_config.get('thickness', 0.01)
+        # Use negative magnetization for correct field direction
+        # (polarization points from S to N inside the material)
         magnet = magpy.magnet.CylinderSegment(
-            polarization=(0, 0, magnetization),
+            polarization=(0, 0, -magnetization),
             dimension=(inner_diameter, outer_diameter, thickness, 0, 360)
         )
         # For ring: show side view (X-Z plane) with hollow structure visible
