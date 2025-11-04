@@ -12,6 +12,8 @@ import { MagnetizationControls } from "@/components/MagnetizationControls";
 import { FieldResults } from "@/components/FieldResults";
 import { FieldVisualization } from "@/components/FieldVisualization";
 import { FormulaDisplay } from "@/components/FormulaDisplay";
+import { LineInputs } from "@/components/LineInputs";
+import { LineFieldChart } from "@/components/LineFieldChart";
 import { convertLength, convertField } from "@/lib/units";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -23,6 +25,8 @@ import type {
   LengthUnit,
   FieldCalculationRequest,
   FieldCalculationResponse,
+  LineCalculationRequest,
+  LineCalculationResponse,
 } from "@shared/schema";
 import { materialPresets } from "@shared/schema";
 
@@ -51,6 +55,10 @@ export default function Calculator() {
   const [maxColorScale, setMaxColorScale] = useState(0.1);
   const [results, setResults] = useState<FieldCalculationResponse | null>(null);
 
+  const [lineStart, setLineStart] = useState({ x: 0, y: 0, z: 5 });
+  const [lineEnd, setLineEnd] = useState({ x: 0, y: 0, z: 15 });
+  const [lineChartImage, setLineChartImage] = useState<string | null>(null);
+
   const calculateMutation = useMutation({
     mutationFn: async (request: FieldCalculationRequest) => {
       const response = await apiRequest(
@@ -63,6 +71,26 @@ export default function Calculator() {
     },
     onSuccess: (data) => {
       setResults(data);
+      calculateLineMutation.mutate(buildLineRequest());
+    },
+  });
+
+  const calculateLineMutation = useMutation({
+    mutationFn: async (request: LineCalculationRequest) => {
+      const response = await apiRequest(
+        "POST",
+        "/api/line-calculation",
+        request
+      );
+      const data = await response.json() as LineCalculationResponse;
+      return data;
+    },
+    onSuccess: (data) => {
+      setLineChartImage(data.image);
+    },
+    onError: (error) => {
+      console.error('Line calculation error:', error);
+      setLineChartImage(null);
     },
   });
 
@@ -72,6 +100,57 @@ export default function Calculator() {
 
   const handleCalcPointChange = (axis: "x" | "y" | "z", value: number) => {
     setCalcPoint((prev) => ({ ...prev, [axis]: value }));
+  };
+
+  const handleLineStartChange = (axis: "x" | "y" | "z", value: number) => {
+    setLineStart((prev) => ({ ...prev, [axis]: value }));
+  };
+
+  const handleLineEndChange = (axis: "x" | "y" | "z", value: number) => {
+    setLineEnd((prev) => ({ ...prev, [axis]: value }));
+  };
+
+  const buildLineRequest = (): LineCalculationRequest => {
+    const magnetizationValue =
+      selectedMaterial === "Custom"
+        ? customMagnetization
+        : materialPresets[selectedMaterial];
+
+    const toMeters = (val: number | undefined) => {
+      if (typeof val !== 'number' || isNaN(val) || val <= 0) {
+        return 0.01;
+      }
+      return convertLength(val, lengthUnit, "m");
+    };
+
+    const request: LineCalculationRequest = {
+      type: magnetType,
+      magnetization: magnetizationValue,
+      magnetizationType: magnetizationType,
+      magnetizationAngle: magnetizationAngle,
+      startX: convertLength(lineStart.x, lengthUnit, "m"),
+      startY: convertLength(lineStart.y, lengthUnit, "m"),
+      startZ: convertLength(lineStart.z, lengthUnit, "m"),
+      endX: convertLength(lineEnd.x, lengthUnit, "m"),
+      endY: convertLength(lineEnd.y, lengthUnit, "m"),
+      endZ: convertLength(lineEnd.z, lengthUnit, "m"),
+      numPoints: 100,
+    };
+
+    if (magnetType === "bar" || magnetType === "rectangular") {
+      request.length = toMeters(dimensions.length);
+      request.width = toMeters(dimensions.width);
+      request.height = toMeters(dimensions.height);
+    } else if (magnetType === "cylindrical") {
+      request.diameter = toMeters(dimensions.diameter);
+      request.length = toMeters(dimensions.length);
+    } else if (magnetType === "ring") {
+      request.diameter = toMeters(dimensions.diameter);
+      request.innerDiameter = toMeters(dimensions.innerDiameter);
+      request.thickness = toMeters(dimensions.thickness);
+    }
+
+    return request;
   };
 
   const handleCalculate = () => {
@@ -330,6 +409,30 @@ export default function Calculator() {
             )}
 
             <FormulaDisplay magnetType={magnetType} />
+          </div>
+
+          <div className="lg:col-span-2 space-y-6">
+            <LineInputs
+              startX={lineStart.x}
+              startY={lineStart.y}
+              startZ={lineStart.z}
+              endX={lineEnd.x}
+              endY={lineEnd.y}
+              endZ={lineEnd.z}
+              onStartXChange={(v) => handleLineStartChange("x", v)}
+              onStartYChange={(v) => handleLineStartChange("y", v)}
+              onStartZChange={(v) => handleLineStartChange("z", v)}
+              onEndXChange={(v) => handleLineEndChange("x", v)}
+              onEndYChange={(v) => handleLineEndChange("y", v)}
+              onEndZChange={(v) => handleLineEndChange("z", v)}
+              lengthUnit={lengthUnit}
+            />
+            
+            <LineFieldChart
+              imageData={lineChartImage}
+              isLoading={calculateLineMutation.isPending}
+              error={calculateLineMutation.isError ? 'Fehler bei der Berechnung' : undefined}
+            />
           </div>
         </div>
       </main>
