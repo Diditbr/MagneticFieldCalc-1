@@ -271,6 +271,9 @@ export default function Calculator() {
                   distance={convertLength(Number(results.distance) || 0, "m", lengthUnit)}
                   fieldUnit={fieldUnit}
                   lengthUnit={lengthUnit}
+                  calcX={calcPoint.x}
+                  calcY={calcPoint.y}
+                  calcZ={calcPoint.z}
                 />
 
                 <FieldVisualization

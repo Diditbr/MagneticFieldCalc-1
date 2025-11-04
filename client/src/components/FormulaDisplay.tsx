@@ -13,43 +13,43 @@ export function FormulaDisplay({ magnetType }: FormulaDisplayProps) {
 
   const formulas = {
     bar: {
-      title: "Bar Magnet Dipole Approximation",
+      title: "Magpylib Magnet-Simulation (Quader)",
       description:
-        "For distances large compared to magnet size, the field can be approximated using the magnetic dipole model.",
+        "Präzise Berechnung mit Magpylib (Python-Bibliothek). Verwendet Cuboid-Modell für exakte Nahfeld-Ergebnisse.",
       equations: [
-        "B(r) = (μ₀/4π) × (3(m·r̂)r̂ - m) / r³",
-        "m = M × V (magnetic moment = magnetization × volume)",
-        "μ₀ = 4π × 10⁻⁷ T·m/A (permeability of free space)",
+        "Magnet-Typ: magpy.magnet.Cuboid",
+        "Magnetisierung: M entlang Z-Achse (Nord oben)",
+        "Berechnung: Numerisch exakt, auch im Nahfeld",
       ],
     },
     cylindrical: {
-      title: "Cylindrical Magnet Field",
+      title: "Magpylib Magnet-Simulation (Zylinder)",
       description:
-        "The field from a cylindrical magnet can be calculated using integration over the magnetized volume or using the dipole approximation for far-field.",
+        "Präzise Berechnung mit Magpylib. Verwendet Cylinder-Modell für exakte Nahfeld-Ergebnisse.",
       equations: [
-        "For axial field: Bz = (M/2) × [(z+L/2)/√((z+L/2)² + R²) - (z-L/2)/√((z-L/2)² + R²)]",
-        "M = magnetization (T), L = length, R = radius",
-        "For radial: dipole approximation is typically used",
+        "Magnet-Typ: magpy.magnet.Cylinder",
+        "Magnetisierung: M entlang Z-Achse (Nord oben)",
+        "Berechnung: Numerisch exakt, auch im Nahfeld",
       ],
     },
     rectangular: {
-      title: "Rectangular Magnet Field",
+      title: "Magpylib Magnet-Simulation (Rechteck)",
       description:
-        "Rectangular magnets can be modeled using surface charge methods or dipole approximation for distant points.",
+        "Präzise Berechnung mit Magpylib. Verwendet Cuboid-Modell für exakte Nahfeld-Ergebnisse.",
       equations: [
-        "B(r) = (μ₀/4π) × (3(m·r̂)r̂ - m) / r³ (dipole approximation)",
-        "m = M × L × W × H (magnetic moment)",
-        "Exact solutions require numerical integration",
+        "Magnet-Typ: magpy.magnet.Cuboid",
+        "Magnetisierung: M entlang Z-Achse (Nord oben)",
+        "Berechnung: Numerisch exakt, auch im Nahfeld",
       ],
     },
     ring: {
-      title: "Ring Magnet Field",
+      title: "Magpylib Magnet-Simulation (Ring)",
       description:
-        "Ring magnets (annular magnets) have fields that can be calculated using integration methods or approximated as a dipole.",
+        "Präzise Berechnung mit Magpylib. Verwendet CylinderSegment-Modell für exakte Nahfeld-Ergebnisse.",
       equations: [
-        "For axial field: Superposition of two cylinders (outer - inner)",
-        "B(r) ≈ dipole approximation for far-field",
-        "m = M × π × (R₁² - R₂²) × t",
+        "Magnet-Typ: magpy.magnet.CylinderSegment (360°)",
+        "Magnetisierung: M entlang Z-Achse",
+        "⚠️ HINWEIS: Feldlinien-Richtung kann abweichen (in Entwicklung)",
       ],
     },
   };
@@ -69,7 +69,7 @@ export function FormulaDisplay({ magnetType }: FormulaDisplayProps) {
           ) : (
             <ChevronDown className="h-4 w-4 text-muted-foreground" />
           )}
-          <h3 className="text-sm font-semibold">Formula & Physics</h3>
+          <h3 className="text-sm font-semibold">Berechnungsmethode</h3>
         </div>
       </button>
 
@@ -92,8 +92,8 @@ export function FormulaDisplay({ magnetType }: FormulaDisplayProps) {
           </div>
 
           <div className="text-xs text-muted-foreground pt-2">
-            Note: These calculations use simplified models. Real-world measurements may vary based on
-            magnet quality, temperature, and manufacturing tolerances.
+            Hinweis: Berechnungen mit Magpylib v5.2 - numerisch exakte Ergebnisse. 
+            Abweichungen in der Praxis durch Materialqualität, Temperatur und Fertigungstoleranzen möglich.
           </div>
         </div>
       )}

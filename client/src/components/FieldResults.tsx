@@ -12,6 +12,9 @@ interface FieldResultsProps {
   distance: number;
   fieldUnit: FieldUnit;
   lengthUnit: string;
+  calcX: number;
+  calcY: number;
+  calcZ: number;
 }
 
 export function FieldResults({
@@ -22,6 +25,9 @@ export function FieldResults({
   distance,
   fieldUnit,
   lengthUnit,
+  calcX,
+  calcY,
+  calcZ,
 }: FieldResultsProps) {
   const components = [
     { label: "Bx", value: Bx, icon: ArrowRight, color: "text-chart-1" },
@@ -32,9 +38,9 @@ export function FieldResults({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Field Results</h3>
-        <Badge variant="secondary" className="font-mono text-xs" data-testid="badge-distance">
-          Distance: {distance.toFixed(2)} {lengthUnit}
+        <h3 className="text-lg font-semibold">Feldergebnisse</h3>
+        <Badge variant="secondary" className="font-mono text-xs" data-testid="badge-coordinates">
+          x: {calcX.toFixed(2)}, y: {calcY.toFixed(2)}, z: {calcZ.toFixed(2)} {lengthUnit}
         </Badge>
       </div>
 
