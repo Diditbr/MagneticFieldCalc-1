@@ -23,6 +23,12 @@ interface FieldVisualizationProps {
   Bz?: number;
   numFluxLines: number;
   maxColorScale?: number;
+  lineStartX?: number;
+  lineStartY?: number;
+  lineStartZ?: number;
+  lineEndX?: number;
+  lineEndY?: number;
+  lineEndZ?: number;
 }
 
 export function FieldVisualization({
@@ -39,6 +45,12 @@ export function FieldVisualization({
   Bz = 0,
   numFluxLines,
   maxColorScale,
+  lineStartX,
+  lineStartY,
+  lineStartZ,
+  lineEndX,
+  lineEndY,
+  lineEndZ,
 }: FieldVisualizationProps) {
   const [visualizationImage, setVisualizationImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -80,6 +92,17 @@ export function FieldVisualization({
           requestBody.maxColorScale = maxColorScale;
         }
         
+        // Add line coordinates if defined (convert mm to meters)
+        if (lineStartX !== undefined && lineStartZ !== undefined && 
+            lineEndX !== undefined && lineEndZ !== undefined) {
+          requestBody.lineStartX = lineStartX / 1000;
+          requestBody.lineStartY = lineStartY !== undefined ? lineStartY / 1000 : 0;
+          requestBody.lineStartZ = lineStartZ / 1000;
+          requestBody.lineEndX = lineEndX / 1000;
+          requestBody.lineEndY = lineEndY !== undefined ? lineEndY / 1000 : 0;
+          requestBody.lineEndZ = lineEndZ / 1000;
+        }
+        
         const response = await fetch('/api/field-visualization', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -108,28 +131,25 @@ export function FieldVisualization({
         clearTimeout(debounceTimerRef.current);
       }
     };
-  }, [magnetType, dimensions, magnetization, magnetizationType, magnetizationAngle, calcX, calcZ, numFluxLines, maxColorScale]);
+  }, [magnetType, dimensions, magnetization, magnetizationType, magnetizationAngle, calcX, calcZ, numFluxLines, maxColorScale, lineStartX, lineStartY, lineStartZ, lineEndX, lineEndY, lineEndZ]);
 
   return (
     <Card className="p-4 space-y-3" data-testid="card-field-visualization">
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <h3 className="font-semibold">Field Visualization</h3>
-          <div className="flex items-center gap-4 text-sm">
+          <h3 className="font-semibold">Feldvisualisierung</h3>
+          <div className="flex items-center gap-4 text-sm flex-wrap">
             <div className="flex items-center gap-2">
               <div className="w-4 h-2 border-2 border-[#ef4444] bg-[#ef444420]"></div>
               <span className="text-muted-foreground">Magnet</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-green-500"></div>
-              <span className="text-muted-foreground">Calc Point</span>
+              <span className="text-muted-foreground">Berechnungspunkt</span>
             </div>
             <div className="flex items-center gap-2">
-              <svg width="20" height="20" viewBox="0 0 20 20" className="text-purple-600">
-                <line x1="4" y1="16" x2="4" y2="4" stroke="currentColor" strokeWidth="2.5" />
-                <polygon points="4,4 1,8 7,8" fill="currentColor" />
-              </svg>
-              <span className="text-muted-foreground">Magnetization</span>
+              <div className="w-4 h-0.5 bg-blue-500"></div>
+              <span className="text-muted-foreground">Messlinie</span>
             </div>
           </div>
         </div>
@@ -150,7 +170,7 @@ export function FieldVisualization({
           </div>
         )}
         <div className="text-xs text-muted-foreground text-center">
-          2D cross-section showing field lines and calculation point (X-Z plane)
+          2D-Querschnitt mit Feldlinien (X-Z Ebene, Seitenansicht)
         </div>
       </div>
     </Card>

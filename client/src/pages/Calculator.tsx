@@ -391,6 +391,12 @@ export default function Calculator() {
                   Bz={Number(results.Bz) || 0}
                   numFluxLines={numFluxLines}
                   maxColorScale={autoColorScale ? undefined : maxColorScale}
+                  lineStartX={lineStart.x}
+                  lineStartY={lineStart.y}
+                  lineStartZ={lineStart.z}
+                  lineEndX={lineEnd.x}
+                  lineEndY={lineEnd.y}
+                  lineEndZ={lineEnd.z}
                 />
               </>
             ) : (
