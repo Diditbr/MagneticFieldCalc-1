@@ -8,6 +8,7 @@ import { MaterialSelector } from "@/components/MaterialSelector";
 import { DimensionInputs } from "@/components/DimensionInputs";
 import { CalculationPointInputs } from "@/components/CalculationPointInputs";
 import { UnitControls } from "@/components/UnitControls";
+import { MagnetizationControls } from "@/components/MagnetizationControls";
 import { FieldResults } from "@/components/FieldResults";
 import { FieldVisualization } from "@/components/FieldVisualization";
 import { FormulaDisplay } from "@/components/FormulaDisplay";
@@ -17,6 +18,7 @@ import { apiRequest } from "@/lib/queryClient";
 import type {
   MagnetType,
   MaterialPreset,
+  MagnetizationType,
   FieldUnit,
   LengthUnit,
   FieldCalculationRequest,
@@ -31,6 +33,8 @@ export default function Calculator() {
   const [customMagnetization, setCustomMagnetization] = useState(1.0);
   const [lengthUnit, setLengthUnit] = useState<LengthUnit>("mm");
   const [fieldUnit, setFieldUnit] = useState<FieldUnit>("mT");
+  const [magnetizationType, setMagnetizationType] = useState<MagnetizationType>("axial");
+  const [magnetizationAngle, setMagnetizationAngle] = useState(0);
 
   const [dimensions, setDimensions] = useState({
     length: 10,
@@ -97,6 +101,8 @@ export default function Calculator() {
     const request: FieldCalculationRequest = {
       type: magnetType,
       magnetization: magnetizationValue,
+      magnetizationType: magnetizationType,
+      magnetizationAngle: magnetizationAngle,
       x: convertLength(calcPoint.x, lengthUnit, "m"),
       y: convertLength(calcPoint.y, lengthUnit, "m"),
       z: convertLength(calcPoint.z, lengthUnit, "m"),
@@ -121,10 +127,12 @@ export default function Calculator() {
   useEffect(() => {
     if (magnetType === "bar") {
       setDimensions((prev) => ({ ...prev, length: 10, width: 5, height: 2 }));
+      setMagnetizationType("axial"); // Reset to axial for non-cylindrical magnets
     } else if (magnetType === "cylindrical") {
       setDimensions((prev) => ({ ...prev, diameter: 10, length: 10 }));
     } else if (magnetType === "rectangular") {
       setDimensions((prev) => ({ ...prev, length: 10, width: 8, height: 3 }));
+      setMagnetizationType("axial"); // Reset to axial for non-cylindrical magnets
     } else if (magnetType === "ring") {
       setDimensions((prev) => ({ ...prev, diameter: 10, innerDiameter: 5, thickness: 5 }));
     }
@@ -163,6 +171,16 @@ export default function Calculator() {
                   lengthUnit={lengthUnit}
                   onDimensionChange={handleDimensionChange}
                   onLengthUnitChange={setLengthUnit}
+                />
+              </div>
+
+              <div className="border-t pt-6">
+                <MagnetizationControls
+                  magnetType={magnetType}
+                  magnetizationType={magnetizationType}
+                  magnetizationAngle={magnetizationAngle}
+                  onMagnetizationTypeChange={setMagnetizationType}
+                  onMagnetizationAngleChange={setMagnetizationAngle}
                 />
               </div>
 
@@ -279,6 +297,8 @@ export default function Calculator() {
                 <FieldVisualization
                   magnetType={magnetType}
                   dimensions={dimensions}
+                  magnetizationType={magnetizationType}
+                  magnetizationAngle={magnetizationAngle}
                   calcX={calcPoint.x}
                   calcY={calcPoint.y}
                   calcZ={calcPoint.z}

@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { Card } from "@/components/ui/card";
-import type { MagnetType } from "@shared/schema";
+import type { MagnetType, MagnetizationType } from "@shared/schema";
 
 interface FieldVisualizationProps {
   magnetType: MagnetType;
@@ -12,6 +12,8 @@ interface FieldVisualizationProps {
     innerDiameter?: number;
     thickness?: number;
   };
+  magnetizationType: MagnetizationType;
+  magnetizationAngle: number;
   calcX: number;
   calcY: number;
   calcZ: number;
@@ -25,6 +27,8 @@ interface FieldVisualizationProps {
 export function FieldVisualization({
   magnetType,
   dimensions,
+  magnetizationType,
+  magnetizationAngle,
   calcX,
   calcY,
   calcZ,
@@ -62,6 +66,8 @@ export function FieldVisualization({
         const requestBody: any = {
           type: magnetType,
           magnetization,
+          magnetizationType,
+          magnetizationAngle,
           ...dimensionsInMeters, // Send dimensions in meters
           calcX: calcX / 1000, // Convert mm to meters
           calcZ: calcZ / 1000, // Convert mm to meters
@@ -101,7 +107,7 @@ export function FieldVisualization({
         clearTimeout(debounceTimerRef.current);
       }
     };
-  }, [magnetType, dimensions, magnetization, calcX, calcZ, numFluxLines, maxColorScale]);
+  }, [magnetType, dimensions, magnetization, magnetizationType, magnetizationAngle, calcX, calcZ, numFluxLines, maxColorScale]);
 
   return (
     <Card className="p-4 space-y-3" data-testid="card-field-visualization">

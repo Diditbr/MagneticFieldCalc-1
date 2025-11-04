@@ -25,10 +25,11 @@ export function FormulaDisplay({ magnetType }: FormulaDisplayProps) {
     cylindrical: {
       title: "Magpylib Magnet-Simulation (Zylinder)",
       description:
-        "Präzise Berechnung mit Magpylib. Verwendet Cylinder-Modell für exakte Nahfeld-Ergebnisse.",
+        "Präzise Berechnung mit Magpylib. Verwendet Cylinder-Modell. Unterstützt axiale und diametrale Magnetisierung.",
       equations: [
         "Magnet-Typ: magpy.magnet.Cylinder",
-        "Magnetisierung: M entlang Z-Achse (Nord oben)",
+        "Axial: Magnetisierung entlang Z-Achse (Nord oben)",
+        "Diametral: Magnetisierung in X-Y-Ebene (Winkel einstellbar)",
         "Berechnung: Numerisch exakt, auch im Nahfeld",
       ],
     },
@@ -45,10 +46,11 @@ export function FormulaDisplay({ magnetType }: FormulaDisplayProps) {
     ring: {
       title: "Magpylib Magnet-Simulation (Ring)",
       description:
-        "Präzise Berechnung mit Magpylib. Verwendet CylinderSegment-Modell für exakte Nahfeld-Ergebnisse.",
+        "Präzise Berechnung mit Magpylib. Verwendet CylinderSegment-Modell. Unterstützt axiale und diametrale Magnetisierung.",
       equations: [
         "Magnet-Typ: magpy.magnet.CylinderSegment (360°)",
-        "Magnetisierung: M entlang Z-Achse",
+        "Axial: Magnetisierung entlang Z-Achse",
+        "Diametral: Magnetisierung in X-Y-Ebene (Winkel einstellbar)",
         "⚠️ HINWEIS: Feldlinien-Richtung kann abweichen (in Entwicklung)",
       ],
     },
