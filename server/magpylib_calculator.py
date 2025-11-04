@@ -250,9 +250,18 @@ def generate_field_visualization(magnet_config):
     # Draw streamplot with color-coded field strength
     # Linear scale for direct field magnitude visualization
     # Everything is in mm now, so axes will show correct mm values
+    # Use maxColorScale if provided, otherwise auto-scale
+    from matplotlib.colors import Normalize
+    max_color_scale = magnet_config.get('maxColorScale')
+    if max_color_scale is not None and max_color_scale > 0:
+        vmin, vmax = 0, max_color_scale
+    else:
+        vmin, vmax = 0, B_magnitude.max()
+    
     stream = ax.streamplot(X_mm, Z_mm, Bx, Bz, color=B_magnitude, 
                           cmap='viridis', linewidth=1.5,
-                          density=density, arrowsize=0.8, arrowstyle='->')
+                          density=density, arrowsize=0.8, arrowstyle='->',
+                          norm=Normalize(vmin=vmin, vmax=vmax))
     
     # Add colorbar with linear scale
     cbar = plt.colorbar(stream.lines, ax=ax)

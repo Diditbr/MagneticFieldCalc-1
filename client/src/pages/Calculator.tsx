@@ -43,6 +43,8 @@ export default function Calculator() {
 
   const [calcPoint, setCalcPoint] = useState({ x: 1, y: 0, z: 1 });
   const [numFluxLines, setNumFluxLines] = useState(8);
+  const [autoColorScale, setAutoColorScale] = useState(true);
+  const [maxColorScale, setMaxColorScale] = useState(0.1);
   const [results, setResults] = useState<FieldCalculationResponse | null>(null);
 
   const calculateMutation = useMutation({
@@ -176,7 +178,7 @@ export default function Calculator() {
 
               <div className="border-t pt-6">
                 <div className="space-y-3">
-                  <label className="text-sm font-medium">Number of Flux Lines</label>
+                  <label className="text-sm font-medium">Anzahl Feldlinien</label>
                   <div className="flex items-center gap-3">
                     <input
                       type="range"
@@ -192,6 +194,43 @@ export default function Calculator() {
                       {numFluxLines}
                     </span>
                   </div>
+                </div>
+              </div>
+
+              <div className="border-t pt-6">
+                <div className="space-y-3">
+                  <label className="text-sm font-medium">Farbskala Maximum</label>
+                  <div className="flex items-center gap-3 mb-3">
+                    <input
+                      type="checkbox"
+                      id="auto-color-scale"
+                      checked={autoColorScale}
+                      onChange={(e) => setAutoColorScale(e.target.checked)}
+                      className="h-4 w-4"
+                      data-testid="checkbox-auto-color-scale"
+                    />
+                    <label htmlFor="auto-color-scale" className="text-sm text-muted-foreground cursor-pointer">
+                      Automatisch
+                    </label>
+                  </div>
+                  {!autoColorScale && (
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="number"
+                        min="0.001"
+                        max="10"
+                        step="0.01"
+                        value={maxColorScale}
+                        onChange={(e) => setMaxColorScale(Number(e.target.value))}
+                        className="flex-1 px-3 py-2 border rounded-md"
+                        data-testid="input-max-color-scale"
+                      />
+                      <span className="text-sm text-muted-foreground">T</span>
+                    </div>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    Minimum ist immer 0 T
+                  </p>
                 </div>
               </div>
 
@@ -244,6 +283,7 @@ export default function Calculator() {
                   By={Number(results.By) || 0}
                   Bz={Number(results.Bz) || 0}
                   numFluxLines={numFluxLines}
+                  maxColorScale={autoColorScale ? undefined : maxColorScale}
                 />
               </>
             ) : (

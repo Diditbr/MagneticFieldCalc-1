@@ -19,6 +19,7 @@ interface FieldVisualizationProps {
   By?: number;
   Bz?: number;
   numFluxLines: number;
+  maxColorScale?: number;
 }
 
 export function FieldVisualization({
@@ -31,6 +32,7 @@ export function FieldVisualization({
   By = 0,
   Bz = 0,
   numFluxLines,
+  maxColorScale,
 }: FieldVisualizationProps) {
   const [visualizationImage, setVisualizationImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -49,17 +51,24 @@ export function FieldVisualization({
           }
         });
         
+        const requestBody: any = {
+          type: magnetType,
+          magnetization,
+          ...dimensionsInMeters, // Send dimensions in meters
+          calcX: calcX / 1000, // Convert mm to meters
+          calcZ: calcZ / 1000, // Convert mm to meters
+          numFluxLines: numFluxLines, // Pass number of flux lines to backend
+        };
+        
+        // Add maxColorScale only if it's defined
+        if (maxColorScale !== undefined && maxColorScale > 0) {
+          requestBody.maxColorScale = maxColorScale;
+        }
+        
         const response = await fetch('/api/field-visualization', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            type: magnetType,
-            magnetization,
-            ...dimensionsInMeters, // Send dimensions in meters
-            calcX: calcX / 1000, // Convert mm to meters
-            calcZ: calcZ / 1000, // Convert mm to meters
-            numFluxLines: numFluxLines, // Pass number of flux lines to backend
-          }),
+          body: JSON.stringify(requestBody),
         });
         
         if (response.ok) {
@@ -76,7 +85,7 @@ export function FieldVisualization({
     };
     
     fetchVisualization();
-  }, [magnetType, dimensions, magnetization, calcX, calcZ, numFluxLines]);
+  }, [magnetType, dimensions, magnetization, calcX, calcZ, numFluxLines, maxColorScale]);
 
   return (
     <Card className="p-4 space-y-3" data-testid="card-field-visualization">

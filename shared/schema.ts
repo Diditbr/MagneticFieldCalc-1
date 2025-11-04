@@ -136,3 +136,28 @@ export const fieldGridResponseSchema = z.object({
 });
 
 export type FieldGridResponse = z.infer<typeof fieldGridResponseSchema>;
+
+// Field visualization request
+export const fieldVisualizationRequestSchema = z.object({
+  type: z.enum(magnetTypes),
+  magnetization: z.number().positive(),
+  
+  // Dimensions in meters
+  length: z.number().positive().optional(),
+  width: z.number().positive().optional(),
+  height: z.number().positive().optional(),
+  diameter: z.number().positive().optional(),
+  innerDiameter: z.number().positive().optional(),
+  thickness: z.number().positive().optional(),
+  
+  // Optional calculation point (in meters)
+  calcX: z.number().optional(),
+  calcY: z.number().optional(),
+  calcZ: z.number().optional(),
+  
+  // Visualization parameters
+  numFluxLines: z.number().int().positive().default(8),
+  maxColorScale: z.number().positive().optional(), // Max value for color scale (min is always 0)
+});
+
+export type FieldVisualizationRequest = z.infer<typeof fieldVisualizationRequestSchema>;
