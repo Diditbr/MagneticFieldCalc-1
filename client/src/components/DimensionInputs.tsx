@@ -66,14 +66,19 @@ export function DimensionInputs({
             type="number"
             step="0.1"
             min="0.1"
-            value={currentValue}
-            onChange={(e) => {
+            defaultValue={currentValue}
+            onBlur={(e) => {
               const value = parseFloat(e.target.value);
               if (!isNaN(value) && value > 0) {
                 onDimensionChange(key, value);
-              } else if (e.target.value === '' || e.target.value === '-') {
-                // Allow empty or minus sign for user input
-                return;
+              } else {
+                // Reset to current value if invalid
+                e.target.value = String(currentValue);
+              }
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.currentTarget.blur();
               }
             }}
             className="font-mono"
