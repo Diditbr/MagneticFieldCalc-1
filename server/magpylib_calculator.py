@@ -48,7 +48,7 @@ def calculate_field(magnet_config):
     
     Args:
         magnet_config: Dict with keys:
-            - type: str ('bar', 'cylindrical', 'rectangular', 'ring')
+            - type: str ('cylindrical', 'rectangular', 'ring')
             - magnetization: float (Tesla)
             - dimensions in meters
             - observer position (x, y, z) in meters
@@ -66,7 +66,7 @@ def calculate_field(magnet_config):
     z_ui = magnet_config['z']
     
     # Determine magnet height (dimension along z-axis) for coordinate transformation
-    if magnet_type in ['bar', 'rectangular']:
+    if magnet_type == 'rectangular':
         magnet_height = magnet_config.get('height', 0.01)
     elif magnet_type == 'cylindrical':
         magnet_height = magnet_config.get('length', 0.01)
@@ -83,7 +83,7 @@ def calculate_field(magnet_config):
     observer = np.array([x_ui, y_ui, z_magpylib])
     
     # Create magnet based on type
-    if magnet_type in ['bar', 'rectangular']:
+    if magnet_type == 'rectangular':
         # Create cuboid magnet (always axially magnetized)
         length = magnet_config.get('length', 0.01)
         width = magnet_config.get('width', 0.01)
@@ -167,7 +167,7 @@ def calculate_field_grid(magnet_config):
     z_max = magnet_config['zMax']
     
     # Create magnet based on type (same as calculate_field)
-    if magnet_type in ['bar', 'rectangular']:
+    if magnet_type == 'rectangular':
         length = magnet_config.get('length', 0.01)
         width = magnet_config.get('width', 0.01)
         height = magnet_config.get('height', 0.01)
@@ -236,7 +236,7 @@ def generate_field_visualization(magnet_config):
     use_xy_plane = False
     
     # Create magnet
-    if magnet_type in ['bar', 'rectangular']:
+    if magnet_type == 'rectangular':
         length = magnet_config.get('length', 0.01)
         width = magnet_config.get('width', 0.01)
         height = magnet_config.get('height', 0.01)
@@ -501,7 +501,7 @@ def calculate_line_field(magnet_config):
     magnetization_angle = magnet_config.get('magnetizationAngle', 0)
     
     # Determine magnet height for coordinate transformation
-    if magnet_type in ['bar', 'rectangular']:
+    if magnet_type == 'rectangular':
         magnet_height = magnet_config.get('height', 0.01)
     elif magnet_type == 'cylindrical':
         magnet_height = magnet_config.get('length', 0.01)
@@ -531,7 +531,7 @@ def calculate_line_field(magnet_config):
     num_points = magnet_config.get('numPoints', 100)
     
     # Create magnet based on type (same as calculate_field)
-    if magnet_type in ['bar', 'rectangular']:
+    if magnet_type == 'rectangular':
         length = magnet_config.get('length', 0.01)
         width = magnet_config.get('width', 0.01)
         height = magnet_config.get('height', 0.01)

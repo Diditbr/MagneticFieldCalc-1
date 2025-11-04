@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 // Magnet type enumeration
-export const magnetTypes = ["bar", "cylindrical", "rectangular", "ring"] as const;
+export const magnetTypes = ["cylindrical", "rectangular", "ring"] as const;
 export type MagnetType = typeof magnetTypes[number];
 
 // Magnetization type enumeration

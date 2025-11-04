@@ -32,7 +32,7 @@ import { materialPresets } from "@shared/schema";
 
 export default function Calculator() {
   const { toast } = useToast();
-  const [magnetType, setMagnetType] = useState<MagnetType>("bar");
+  const [magnetType, setMagnetType] = useState<MagnetType>("rectangular");
   const [selectedMaterial, setSelectedMaterial] = useState<MaterialPreset>("NdFeB N42");
   const [customMagnetization, setCustomMagnetization] = useState(1.0);
   const [lengthUnit, setLengthUnit] = useState<LengthUnit>("mm");
@@ -137,7 +137,7 @@ export default function Calculator() {
       numPoints: 100,
     };
 
-    if (magnetType === "bar" || magnetType === "rectangular") {
+    if (magnetType === "rectangular") {
       request.length = toMeters(dimensions.length);
       request.width = toMeters(dimensions.width);
       request.height = toMeters(dimensions.height);
@@ -187,7 +187,7 @@ export default function Calculator() {
       z: convertLength(calcPoint.z, lengthUnit, "m"),
     };
 
-    if (magnetType === "bar" || magnetType === "rectangular") {
+    if (magnetType === "rectangular") {
       request.length = toMeters(dimensions.length);
       request.width = toMeters(dimensions.width);
       request.height = toMeters(dimensions.height);
@@ -204,14 +204,11 @@ export default function Calculator() {
   };
 
   useEffect(() => {
-    if (magnetType === "bar") {
-      setDimensions((prev) => ({ ...prev, length: 10, width: 5, height: 2 }));
+    if (magnetType === "rectangular") {
+      setDimensions((prev) => ({ ...prev, length: 10, width: 8, height: 3 }));
       setMagnetizationType("axial"); // Reset to axial for non-cylindrical magnets
     } else if (magnetType === "cylindrical") {
       setDimensions((prev) => ({ ...prev, diameter: 10, length: 10 }));
-    } else if (magnetType === "rectangular") {
-      setDimensions((prev) => ({ ...prev, length: 10, width: 8, height: 3 }));
-      setMagnetizationType("axial"); // Reset to axial for non-cylindrical magnets
     } else if (magnetType === "ring") {
       setDimensions((prev) => ({ ...prev, diameter: 10, innerDiameter: 5, thickness: 5 }));
     }
