@@ -425,10 +425,14 @@ def generate_field_visualization(magnet_config):
                 ha='center', va='center', color='#ef4444')
     
     # Set axis limits in mm
+    # Shift Z-axis so that z=0 is at the magnet surface (top pole face) instead of center
+    # In Magpylib coordinates: z=0 at center, surface at z=+mag_height/2
+    # In UI coordinates: z=0 at surface
+    # Transformation: z_ui = z_magpylib - mag_height_mm/2
     ax.set_xlim(-x_extent_mm/2, x_extent_mm/2)
-    ax.set_ylim(-z_extent_mm/2, z_extent_mm/2)
+    ax.set_ylim(-z_extent_mm/2 - mag_height_mm/2, z_extent_mm/2 - mag_height_mm/2)
     
-    # Labels - axes now directly show mm
+    # Labels - axes now show UI coordinates (z=0 at surface)
     ax.set_xlabel('X (mm)', fontsize=10)
     ax.set_ylabel('Z (mm)', fontsize=10)
     ax.set_title('Magnetfeld-Linien (X-Z Ebene, Seitenansicht)', fontsize=12, fontweight='bold')
