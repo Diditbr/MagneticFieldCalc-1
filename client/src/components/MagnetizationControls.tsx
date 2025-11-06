@@ -17,31 +17,74 @@ export function MagnetizationControls({
   onMagnetizationTypeChange,
   onMagnetizationAngleChange,
 }: MagnetizationControlsProps) {
-  // Only show for cylindrical and ring magnets
-  if (magnetType !== "cylindrical" && magnetType !== "ring") {
+  // Only show for cylindrical, ring, and ring_segment magnets
+  if (magnetType !== "cylindrical" && magnetType !== "ring" && magnetType !== "ring_segment") {
     return null;
   }
 
+  const showRadial = magnetType === "ring_segment";
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-3">
-        <input
-          type="checkbox"
-          id="diametral-magnetization"
-          checked={magnetizationType === "diametral"}
-          onChange={(e) =>
-            onMagnetizationTypeChange(e.target.checked ? "diametral" : "axial")
-          }
-          className="h-4 w-4"
-          data-testid="checkbox-diametral"
-        />
-        <Label htmlFor="diametral-magnetization" className="text-sm font-medium cursor-pointer">
-          Diametrale Magnetisierung
-        </Label>
-        <Badge variant="secondary" className="text-xs">
-          {magnetizationType === "axial" ? "Axial (Z)" : "Diametral (X-Z)"}
-        </Badge>
-      </div>
+      {showRadial ? (
+        <div className="space-y-3">
+          <Label className="text-sm font-semibold">Magnetisierungsrichtung</Label>
+          <div className="space-y-2">
+            <label className="flex items-center gap-3">
+              <input
+                type="radio"
+                name="magnetization-type"
+                checked={magnetizationType === "axial"}
+                onChange={() => onMagnetizationTypeChange("axial")}
+                className="h-4 w-4"
+                data-testid="radio-axial"
+              />
+              <span className="text-sm">Axial (Z-Richtung)</span>
+            </label>
+            <label className="flex items-center gap-3">
+              <input
+                type="radio"
+                name="magnetization-type"
+                checked={magnetizationType === "radial"}
+                onChange={() => onMagnetizationTypeChange("radial")}
+                className="h-4 w-4"
+                data-testid="radio-radial"
+              />
+              <span className="text-sm">Radial (r-Richtung)</span>
+            </label>
+            <label className="flex items-center gap-3">
+              <input
+                type="radio"
+                name="magnetization-type"
+                checked={magnetizationType === "diametral"}
+                onChange={() => onMagnetizationTypeChange("diametral")}
+                className="h-4 w-4"
+                data-testid="radio-diametral"
+              />
+              <span className="text-sm">Diametral (X-Z-Ebene)</span>
+            </label>
+          </div>
+        </div>
+      ) : (
+        <div className="flex items-center gap-3">
+          <input
+            type="checkbox"
+            id="diametral-magnetization"
+            checked={magnetizationType === "diametral"}
+            onChange={(e) =>
+              onMagnetizationTypeChange(e.target.checked ? "diametral" : "axial")
+            }
+            className="h-4 w-4"
+            data-testid="checkbox-diametral"
+          />
+          <Label htmlFor="diametral-magnetization" className="text-sm font-medium cursor-pointer">
+            Diametrale Magnetisierung
+          </Label>
+          <Badge variant="secondary" className="text-xs">
+            {magnetizationType === "axial" ? "Axial (Z)" : "Diametral (X-Z)"}
+          </Badge>
+        </div>
+      )}
 
       {magnetizationType === "diametral" && (
         <div className="space-y-3 pl-7">

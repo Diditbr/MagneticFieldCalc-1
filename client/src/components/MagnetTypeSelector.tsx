@@ -1,6 +1,6 @@
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Circle, Square, Disc } from "lucide-react";
+import { Circle, Square, Disc, Slice } from "lucide-react";
 import type { MagnetType } from "@shared/schema";
 
 interface MagnetTypeSelectorProps {
@@ -12,13 +12,14 @@ const magnetTypeConfig = [
   { value: "rectangular" as const, label: "Vierkantmagnet", icon: Square },
   { value: "cylindrical" as const, label: "Rundmagnet", icon: Circle },
   { value: "ring" as const, label: "Ringmagnet", icon: Disc },
+  { value: "ring_segment" as const, label: "Ringsegment", icon: Slice },
 ];
 
 export function MagnetTypeSelector({ value, onChange }: MagnetTypeSelectorProps) {
   return (
     <div className="space-y-3">
       <Label className="text-sm font-semibold">Magnettyp</Label>
-      <RadioGroup value={value} onValueChange={onChange} className="grid grid-cols-2 gap-2">
+      <RadioGroup value={value} onValueChange={onChange} className="grid grid-cols-2 lg:grid-cols-4 gap-2">
         {magnetTypeConfig.map(({ value: typeValue, label, icon: Icon }) => (
           <label
             key={typeValue}

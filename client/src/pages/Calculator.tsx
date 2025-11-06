@@ -47,6 +47,8 @@ export default function Calculator() {
     diameter: 10,
     innerDiameter: 5,
     thickness: 5,
+    phi1: 0,
+    phi2: 90,
   });
 
   const [calcPoint, setCalcPoint] = useState({ x: 0, y: 0, z: 1 });
@@ -148,17 +150,34 @@ export default function Calculator() {
       request.diameter = toMeters(dimensions.diameter);
       request.innerDiameter = toMeters(dimensions.innerDiameter);
       request.thickness = toMeters(dimensions.thickness);
+    } else if (magnetType === "ring_segment") {
+      request.diameter = toMeters(dimensions.diameter);
+      request.innerDiameter = toMeters(dimensions.innerDiameter);
+      request.thickness = toMeters(dimensions.thickness);
+      request.phi1 = dimensions.phi1 || 0;
+      request.phi2 = dimensions.phi2 || 90;
     }
 
     return request;
   };
 
   const handleCalculate = () => {
-    if (magnetType === "ring" && dimensions.innerDiameter && dimensions.diameter) {
+    if ((magnetType === "ring" || magnetType === "ring_segment") && dimensions.innerDiameter && dimensions.diameter) {
       if (dimensions.innerDiameter >= dimensions.diameter) {
         toast({
-          title: "Invalid Ring Dimensions",
-          description: "Inner diameter must be smaller than outer diameter for ring magnets.",
+          title: "Ungültige Ringabmessungen",
+          description: "Innendurchmesser muss kleiner als Außendurchmesser sein.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    if (magnetType === "ring_segment" && dimensions.phi1 !== undefined && dimensions.phi2 !== undefined) {
+      if (dimensions.phi1 >= dimensions.phi2) {
+        toast({
+          title: "Ungültige Winkel",
+          description: "Startwinkel φ₁ muss kleiner als Endwinkel φ₂ sein.",
           variant: "destructive",
         });
         return;
@@ -198,6 +217,12 @@ export default function Calculator() {
       request.diameter = toMeters(dimensions.diameter);
       request.innerDiameter = toMeters(dimensions.innerDiameter);
       request.thickness = toMeters(dimensions.thickness);
+    } else if (magnetType === "ring_segment") {
+      request.diameter = toMeters(dimensions.diameter);
+      request.innerDiameter = toMeters(dimensions.innerDiameter);
+      request.thickness = toMeters(dimensions.thickness);
+      request.phi1 = dimensions.phi1 || 0;
+      request.phi2 = dimensions.phi2 || 90;
     }
 
     calculateMutation.mutate(request);
@@ -211,6 +236,8 @@ export default function Calculator() {
       setDimensions((prev) => ({ ...prev, diameter: 10, length: 10 }));
     } else if (magnetType === "ring") {
       setDimensions((prev) => ({ ...prev, diameter: 10, innerDiameter: 5, thickness: 5 }));
+    } else if (magnetType === "ring_segment") {
+      setDimensions((prev) => ({ ...prev, diameter: 10, innerDiameter: 5, thickness: 5, phi1: 0, phi2: 90 }));
     }
   }, [magnetType]);
 

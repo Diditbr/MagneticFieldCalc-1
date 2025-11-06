@@ -137,12 +137,20 @@ def calculate_field(magnet_config):
         phi2 = magnet_config.get('phi2', 90)
         
         if magnetization_type == 'radial':
-            # Radial magnetization: use special 'radial' orientation parameter
-            # For radial: polarization magnitude matters, direction is radial
+            # Radial magnetization: magnetization points radially outward
+            # For ring segment, we use polarization that creates radial field
+            # Note: radial polarization is in the r-direction (outward from center)
+            # For Magpylib, we can approximate this by setting polarization direction
+            # The best approach is to set a polarization in X-Y plane
+            # pointing from center to middle of segment angle
+            mid_angle = (phi1 + phi2) / 2
+            mid_angle_rad = math.radians(mid_angle)
+            # Polarization in X-Y plane pointing radially outward at mid angle
+            px = magnetization * math.cos(mid_angle_rad)
+            py = magnetization * math.sin(mid_angle_rad)
             magnet = magpy.magnet.CylinderSegment(
-                polarization=(0, 0, magnetization),  # Magnitude only
-                dimension=(inner_diameter, outer_diameter, thickness, phi1, phi2),
-                orientation='radial'  # Special parameter for radial magnetization
+                polarization=(px, py, 0),
+                dimension=(inner_diameter, outer_diameter, thickness, phi1, phi2)
             )
         else:
             # Axial or Diametral magnetization
@@ -320,10 +328,13 @@ def generate_field_visualization(magnet_config):
         phi2 = magnet_config.get('phi2', 90)
         
         if magnetization_type == 'radial':
+            mid_angle = (phi1 + phi2) / 2
+            mid_angle_rad = math.radians(mid_angle)
+            px = magnetization * math.cos(mid_angle_rad)
+            py = magnetization * math.sin(mid_angle_rad)
             magnet = magpy.magnet.CylinderSegment(
-                polarization=(0, 0, magnetization),
-                dimension=(inner_diameter, outer_diameter, thickness, phi1, phi2),
-                orientation='radial'
+                polarization=(px, py, 0),
+                dimension=(inner_diameter, outer_diameter, thickness, phi1, phi2)
             )
         else:
             polarization = get_polarization_vector(magnetization, magnetization_type, magnetization_angle)
@@ -627,10 +638,13 @@ def calculate_line_field(magnet_config):
         phi2 = magnet_config.get('phi2', 90)
         
         if magnetization_type == 'radial':
+            mid_angle = (phi1 + phi2) / 2
+            mid_angle_rad = math.radians(mid_angle)
+            px = magnetization * math.cos(mid_angle_rad)
+            py = magnetization * math.sin(mid_angle_rad)
             magnet = magpy.magnet.CylinderSegment(
-                polarization=(0, 0, magnetization),
-                dimension=(inner_diameter, outer_diameter, thickness, phi1, phi2),
-                orientation='radial'
+                polarization=(px, py, 0),
+                dimension=(inner_diameter, outer_diameter, thickness, phi1, phi2)
             )
         else:
             polarization = get_polarization_vector(magnetization, magnetization_type, magnetization_angle)

@@ -24,6 +24,8 @@ interface DimensionInputsProps {
     diameter?: number;
     innerDiameter?: number;
     thickness?: number;
+    phi1?: number;
+    phi2?: number;
   };
   lengthUnit: LengthUnit;
   onDimensionChange: (key: string, value: number) => void;
@@ -133,6 +135,16 @@ export function DimensionInputs({
           {renderInput("diameter", "Außendurchmesser (X-Y Ebene)", "Außendurchmesser des Rings in der X-Y Ebene")}
           {renderInput("innerDiameter", "Innendurchmesser (X-Y Ebene)", "Innendurchmesser des Rings in der X-Y Ebene")}
           {renderInput("thickness", "Dicke (Z-Achse)", "Axiale Dicke des Rings entlang der Z-Achse (Magnetisierungsrichtung)")}
+        </>
+      )}
+
+      {magnetType === "ring_segment" && (
+        <>
+          {renderInput("diameter", "Außendurchmesser (X-Y Ebene)", "Außendurchmesser des Ringsegments in der X-Y Ebene")}
+          {renderInput("innerDiameter", "Innendurchmesser (X-Y Ebene)", "Innendurchmesser des Ringsegments in der X-Y Ebene")}
+          {renderInput("thickness", "Dicke (Z-Achse)", "Axiale Dicke des Ringsegments entlang der Z-Achse")}
+          {renderInput("phi1", "Startwinkel φ₁ (°)", "Startwinkel des Ringsegments in Grad (0-360°)", 0)}
+          {renderInput("phi2", "Endwinkel φ₂ (°)", "Endwinkel des Ringsegments in Grad (0-360°)", 90)}
         </>
       )}
     </div>
