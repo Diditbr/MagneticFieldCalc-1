@@ -414,7 +414,7 @@ export default function Calculator() {
                         <input
                           type="range"
                           min="4"
-                          max="50"
+                          max="40"
                           step="2"
                           value={numFluxLines}
                           onChange={(e) => setNumFluxLines(Number(e.target.value))}

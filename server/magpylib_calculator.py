@@ -420,7 +420,8 @@ def generate_field_visualization(magnet_config):
         # Add vector field arrows - controlled by numFluxLines parameter
         num_flux_lines = magnet_config.get('numFluxLines', 8)
         # Calculate skip to get approximately the requested number of arrows
-        target_arrows = max(4, min(num_flux_lines * num_flux_lines, 2500))  # Between 16 and 2500 arrows (50x50)
+        # Limit to 1600 arrows (40x40) to prevent timeout - Plotly annotations are slow!
+        target_arrows = max(4, min(num_flux_lines * num_flux_lines, 1600))  # Between 16 and 1600 arrows (40x40)
         skip = max(1, int(grid_size / np.sqrt(target_arrows)))
         
         # Uniform arrow length - only direction matters
@@ -543,7 +544,8 @@ def generate_field_visualization(magnet_config):
         # Add arrows - controlled by numFluxLines parameter
         num_flux_lines = magnet_config.get('numFluxLines', 8)
         # Calculate skip to get approximately the requested number of arrows
-        target_arrows = max(4, min(num_flux_lines * num_flux_lines, 2500))  # Between 16 and 2500 arrows (50x50)
+        # Limit to 1600 arrows (40x40) to prevent timeout - Plotly annotations are slow!
+        target_arrows = max(4, min(num_flux_lines * num_flux_lines, 1600))  # Between 16 and 1600 arrows (40x40)
         skip = max(1, int(grid_size / np.sqrt(target_arrows)))
         
         # Uniform arrow length - only direction matters
