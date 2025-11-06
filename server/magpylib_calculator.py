@@ -361,9 +361,9 @@ def generate_field_visualization(magnet_config):
     else:
         raise ValueError(f"Unknown magnet type: {magnet_type}")
     
-    # Grid setup - balanced for quality and performance
+    # Grid setup - higher resolution for better quality
     padding_factor = 5.0
-    grid_size = 35 if magnet_type == 'ring_segment' else (40 if magnet_type == 'ring' else 45)
+    grid_size = 50 if magnet_type == 'ring_segment' else (55 if magnet_type == 'ring' else 60)
     
     # Convert to mm
     mag_width_mm = mag_width * 1000
@@ -392,14 +392,20 @@ def generate_field_visualization(magnet_config):
         fig = go.Figure()
         
         # Add field magnitude as contour/heatmap
-        fig.add_trace(go.Heatmap(
-            x=x_mm,
-            y=y_mm,
-            z=B_mag,
-            colorscale='Viridis',
-            colorbar=dict(title="Flussdichte |B| [T]"),
-            hovertemplate='X: %{x:.2f} mm<br>Y: %{y:.2f} mm<br>|B|: %{z:.4f} T<extra></extra>'
-        ))
+        max_color = magnet_config.get('maxColorScale')
+        heatmap_params = {
+            'x': x_mm,
+            'y': y_mm,
+            'z': B_mag,
+            'colorscale': 'Viridis',
+            'colorbar': dict(title="Flussdichte |B| [T]"),
+            'hovertemplate': 'X: %{x:.2f} mm<br>Y: %{y:.2f} mm<br>|B|: %{z:.4f} T<extra></extra>'
+        }
+        if max_color and max_color > 0:
+            heatmap_params['zmin'] = 0
+            heatmap_params['zmax'] = max_color
+        
+        fig.add_trace(go.Heatmap(**heatmap_params))
         
         # Add vector field arrows (limit to ~50 arrows max for performance)
         max_arrows = 50
@@ -407,18 +413,25 @@ def generate_field_visualization(magnet_config):
         if total_points > max_arrows:
             skip = max(skip, int(np.sqrt(grid_size * grid_size / max_arrows)))
         
+        # Uniform arrow length - only direction matters
+        arrow_length_mm = mag_width_mm * 0.3  # 30% of magnet width
+        
         for i in range(0, grid_size, skip):
             for j in range(0, grid_size, skip):
                 if B_mag[i, j] > 1e-10:
-                    scale = 3000 * B_mag[i, j] / max(B_mag.max(), 1e-10)
-                    fig.add_annotation(
-                        x=X_mm[i, j], y=Y_mm[i, j],
-                        ax=X_mm[i, j] + Bx[i, j] * scale,
-                        ay=Y_mm[i, j] + By[i, j] * scale,
-                        xref='x', yref='y', axref='x', ayref='y',
-                        showarrow=True, arrowhead=2, arrowsize=1,
-                        arrowwidth=1.5, arrowcolor='rgba(255, 255, 255, 0.7)'
-                    )
+                    # Normalize direction and apply uniform length
+                    B_norm = np.sqrt(Bx[i, j]**2 + By[i, j]**2)
+                    if B_norm > 1e-10:
+                        dx = (Bx[i, j] / B_norm) * arrow_length_mm
+                        dy = (By[i, j] / B_norm) * arrow_length_mm
+                        fig.add_annotation(
+                            x=X_mm[i, j], y=Y_mm[i, j],
+                            ax=X_mm[i, j] + dx,
+                            ay=Y_mm[i, j] + dy,
+                            xref='x', yref='y', axref='x', ayref='y',
+                            showarrow=True, arrowhead=2, arrowsize=1,
+                            arrowwidth=1.5, arrowcolor='rgba(255, 255, 255, 0.7)'
+                        )
         
         # Add magnet shape
         if magnet_type == 'ring_segment':
@@ -492,12 +505,20 @@ def generate_field_visualization(magnet_config):
         fig = go.Figure()
         
         # Add heatmap
-        fig.add_trace(go.Heatmap(
-            x=x_mm, y=z_mm, z=B_mag,
-            colorscale='Viridis',
-            colorbar=dict(title="Flussdichte |B| [T]"),
-            hovertemplate='X: %{x:.2f} mm<br>Z: %{y:.2f} mm<br>|B|: %{z:.4f} T<extra></extra>'
-        ))
+        max_color = magnet_config.get('maxColorScale')
+        heatmap_params = {
+            'x': x_mm,
+            'y': z_mm,
+            'z': B_mag,
+            'colorscale': 'Viridis',
+            'colorbar': dict(title="Flussdichte |B| [T]"),
+            'hovertemplate': 'X: %{x:.2f} mm<br>Z: %{y:.2f} mm<br>|B|: %{z:.4f} T<extra></extra>'
+        }
+        if max_color and max_color > 0:
+            heatmap_params['zmin'] = 0
+            heatmap_params['zmax'] = max_color
+        
+        fig.add_trace(go.Heatmap(**heatmap_params))
         
         # Add arrows (limit to ~50 arrows max for performance)
         max_arrows = 50
@@ -505,18 +526,25 @@ def generate_field_visualization(magnet_config):
         if total_points > max_arrows:
             skip = max(skip, int(np.sqrt(grid_size * grid_size / max_arrows)))
         
+        # Uniform arrow length - only direction matters
+        arrow_length_mm = max(mag_width_mm, mag_height_mm) * 0.3  # 30% of larger dimension
+        
         for i in range(0, grid_size, skip):
             for j in range(0, grid_size, skip):
                 if B_mag[i, j] > 1e-10:
-                    scale = 3000 * B_mag[i, j] / max(B_mag.max(), 1e-10)
-                    fig.add_annotation(
-                        x=X_mm[i, j], y=Z_mm[i, j],
-                        ax=X_mm[i, j] + Bx[i, j] * scale,
-                        ay=Z_mm[i, j] + Bz[i, j] * scale,
-                        xref='x', yref='y', axref='x', ayref='y',
-                        showarrow=True, arrowhead=2, arrowsize=1,
-                        arrowwidth=1.5, arrowcolor='rgba(255, 255, 255, 0.7)'
-                    )
+                    # Normalize direction and apply uniform length
+                    B_norm = np.sqrt(Bx[i, j]**2 + Bz[i, j]**2)
+                    if B_norm > 1e-10:
+                        dx = (Bx[i, j] / B_norm) * arrow_length_mm
+                        dz = (Bz[i, j] / B_norm) * arrow_length_mm
+                        fig.add_annotation(
+                            x=X_mm[i, j], y=Z_mm[i, j],
+                            ax=X_mm[i, j] + dx,
+                            ay=Z_mm[i, j] + dz,
+                            xref='x', yref='y', axref='x', ayref='y',
+                            showarrow=True, arrowhead=2, arrowsize=1,
+                            arrowwidth=1.5, arrowcolor='rgba(255, 255, 255, 0.7)'
+                        )
         
         # Add magnet shape
         if magnet_type in ['ring', 'ring_segment']:
