@@ -119,9 +119,10 @@ def calculate_field(magnet_config):
         if magnetization_type == 'axial':
             polarization = (polarization[0], polarization[1], -polarization[2])
         
+        # CylinderSegment expects RADII not DIAMETERS!
         magnet = magpy.magnet.CylinderSegment(
             polarization=polarization,
-            dimension=(inner_diameter, outer_diameter, thickness, 0, 360)
+            dimension=(inner_diameter/2, outer_diameter/2, thickness, 0, 360)
         )
     
     elif magnet_type == 'ring_segment':
@@ -151,9 +152,10 @@ def calculate_field(magnet_config):
                 px = magnetization * math.cos(mid_angle_rad)
                 py = magnetization * math.sin(mid_angle_rad)
                 
+                # CylinderSegment expects RADII not DIAMETERS!
                 sub_magnet = magpy.magnet.CylinderSegment(
                     polarization=(px, py, 0),
-                    dimension=(inner_diameter, outer_diameter, thickness, sub_phi1, sub_phi2)
+                    dimension=(inner_diameter/2, outer_diameter/2, thickness, sub_phi1, sub_phi2)
                 )
                 magnets.append(sub_magnet)
             
@@ -167,9 +169,10 @@ def calculate_field(magnet_config):
             if magnetization_type == 'axial':
                 polarization = (polarization[0], polarization[1], -polarization[2])
             
+            # CylinderSegment expects RADII not DIAMETERS!
             magnet = magpy.magnet.CylinderSegment(
                 polarization=polarization,
-                dimension=(inner_diameter, outer_diameter, thickness, phi1, phi2)
+                dimension=(inner_diameter/2, outer_diameter/2, thickness, phi1, phi2)
             )
     
     else:
@@ -236,9 +239,10 @@ def calculate_field_grid(magnet_config):
         inner_diameter = magnet_config.get('innerDiameter', 0.005)
         thickness = magnet_config.get('thickness', 0.01)
         # CylinderSegment has inverted polarization - use negative for Nord at top
+        # CylinderSegment expects RADII not DIAMETERS!
         magnet = magpy.magnet.CylinderSegment(
             polarization=(0, 0, -magnetization),
-            dimension=(inner_diameter, outer_diameter, thickness, 0, 360)
+            dimension=(inner_diameter/2, outer_diameter/2, thickness, 0, 360)
         )
     else:
         raise ValueError(f"Unknown magnet type: {magnet_type}")
@@ -315,9 +319,10 @@ def generate_field_visualization(magnet_config):
         polarization = get_polarization_vector(magnetization, magnetization_type, magnetization_angle)
         if magnetization_type == 'axial':
             polarization = (polarization[0], polarization[1], -polarization[2])
+        # CylinderSegment expects RADII not DIAMETERS!
         magnet = magpy.magnet.CylinderSegment(
             polarization=polarization,
-            dimension=(inner_diameter, outer_diameter, thickness, 0, 360)
+            dimension=(inner_diameter/2, outer_diameter/2, thickness, 0, 360)
         )
         mag_length, mag_width, mag_height = outer_diameter, outer_diameter, thickness
         inner_r, outer_r = inner_diameter / 2, outer_diameter / 2
@@ -341,9 +346,10 @@ def generate_field_visualization(magnet_config):
                 mid_angle_rad = math.radians(mid_angle)
                 px = magnetization * math.cos(mid_angle_rad)
                 py = magnetization * math.sin(mid_angle_rad)
+                # CylinderSegment expects RADII not DIAMETERS!
                 sub_magnet = magpy.magnet.CylinderSegment(
                     polarization=(px, py, 0),
-                    dimension=(inner_diameter, outer_diameter, thickness, sub_phi1, sub_phi2)
+                    dimension=(inner_diameter/2, outer_diameter/2, thickness, sub_phi1, sub_phi2)
                 )
                 magnets.append(sub_magnet)
             magnet = magpy.Collection(*magnets)
@@ -351,9 +357,10 @@ def generate_field_visualization(magnet_config):
             polarization = get_polarization_vector(magnetization, magnetization_type, magnetization_angle)
             if magnetization_type == 'axial':
                 polarization = (polarization[0], polarization[1], -polarization[2])
+            # CylinderSegment expects RADII not DIAMETERS!
             magnet = magpy.magnet.CylinderSegment(
                 polarization=polarization,
-                dimension=(inner_diameter, outer_diameter, thickness, phi1, phi2)
+                dimension=(inner_diameter/2, outer_diameter/2, thickness, phi1, phi2)
             )
         
         mag_length, mag_width, mag_height = outer_diameter, outer_diameter, thickness
@@ -673,9 +680,10 @@ def calculate_line_field(magnet_config):
         polarization = get_polarization_vector(magnetization, magnetization_type, magnetization_angle)
         if magnetization_type == 'axial':
             polarization = (polarization[0], polarization[1], -polarization[2])
+        # CylinderSegment expects RADII not DIAMETERS!
         magnet = magpy.magnet.CylinderSegment(
             polarization=polarization,
-            dimension=(inner_diameter, outer_diameter, thickness, 0, 360)
+            dimension=(inner_diameter/2, outer_diameter/2, thickness, 0, 360)
         )
     elif magnet_type == 'ring_segment':
         outer_diameter = magnet_config.get('diameter', 0.01)
@@ -700,9 +708,10 @@ def calculate_line_field(magnet_config):
                 px = magnetization * math.cos(mid_angle_rad)
                 py = magnetization * math.sin(mid_angle_rad)
                 
+                # CylinderSegment expects RADII not DIAMETERS!
                 sub_magnet = magpy.magnet.CylinderSegment(
                     polarization=(px, py, 0),
-                    dimension=(inner_diameter, outer_diameter, thickness, sub_phi1, sub_phi2)
+                    dimension=(inner_diameter/2, outer_diameter/2, thickness, sub_phi1, sub_phi2)
                 )
                 magnets.append(sub_magnet)
             
@@ -711,9 +720,10 @@ def calculate_line_field(magnet_config):
             polarization = get_polarization_vector(magnetization, magnetization_type, magnetization_angle)
             if magnetization_type == 'axial':
                 polarization = (polarization[0], polarization[1], -polarization[2])
+            # CylinderSegment expects RADII not DIAMETERS!
             magnet = magpy.magnet.CylinderSegment(
                 polarization=polarization,
-                dimension=(inner_diameter, outer_diameter, thickness, phi1, phi2)
+                dimension=(inner_diameter/2, outer_diameter/2, thickness, phi1, phi2)
             )
     else:
         raise ValueError(f"Unknown magnet type: {magnet_type}")
