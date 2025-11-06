@@ -359,9 +359,9 @@ def generate_field_visualization(magnet_config):
     else:
         raise ValueError(f"Unknown magnet type: {magnet_type}")
     
-    # Grid setup
+    # Grid setup  
     padding_factor = 5.0
-    grid_size = 40 if magnet_type == 'ring_segment' else (50 if magnet_type == 'ring' else 60)
+    grid_size = 25 if magnet_type == 'ring_segment' else (30 if magnet_type == 'ring' else 35)
     
     # Convert to mm
     mag_width_mm = mag_width * 1000
@@ -386,7 +386,7 @@ def generate_field_visualization(magnet_config):
         B_mag = np.sqrt(Bx**2 + By**2 + Bz**2)
         
         # Create Plotly figure
-        skip = max(1, grid_size // 20)
+        skip = max(4, grid_size // 8)  # Much larger skip for fewer arrows
         fig = go.Figure()
         
         # Add field magnitude as contour/heatmap
@@ -399,7 +399,12 @@ def generate_field_visualization(magnet_config):
             hovertemplate='X: %{x:.2f} mm<br>Y: %{y:.2f} mm<br>|B|: %{z:.4f} T<extra></extra>'
         ))
         
-        # Add vector field arrows
+        # Add vector field arrows (limit to ~50 arrows max for performance)
+        max_arrows = 50
+        total_points = ((grid_size // skip) ** 2)
+        if total_points > max_arrows:
+            skip = max(skip, int(np.sqrt(grid_size * grid_size / max_arrows)))
+        
         for i in range(0, grid_size, skip):
             for j in range(0, grid_size, skip):
                 if B_mag[i, j] > 1e-10:
@@ -481,7 +486,7 @@ def generate_field_visualization(magnet_config):
         B_mag = np.sqrt(Bx**2 + By**2 + Bz**2)
         
         # Create figure
-        skip = max(1, grid_size // 20)
+        skip = max(4, grid_size // 8)  # Much larger skip for fewer arrows
         fig = go.Figure()
         
         # Add heatmap
@@ -492,7 +497,12 @@ def generate_field_visualization(magnet_config):
             hovertemplate='X: %{x:.2f} mm<br>Z: %{y:.2f} mm<br>|B|: %{z:.4f} T<extra></extra>'
         ))
         
-        # Add arrows
+        # Add arrows (limit to ~50 arrows max for performance)
+        max_arrows = 50
+        total_points = ((grid_size // skip) ** 2)
+        if total_points > max_arrows:
+            skip = max(skip, int(np.sqrt(grid_size * grid_size / max_arrows)))
+        
         for i in range(0, grid_size, skip):
             for j in range(0, grid_size, skip):
                 if B_mag[i, j] > 1e-10:
