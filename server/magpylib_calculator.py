@@ -369,7 +369,8 @@ def generate_field_visualization(magnet_config):
         raise ValueError(f"Unknown magnet type: {magnet_type}")
     
     # Grid setup - high resolution for best quality
-    padding_factor = 5.0
+    # Padding factor of 3.3 means magnet fills ~30% of display area (1/3.3 ≈ 0.30)
+    padding_factor = 3.3
     grid_size = 70 if magnet_type == 'ring_segment' else (75 if magnet_type == 'ring' else 80)
     
     # Convert to mm
