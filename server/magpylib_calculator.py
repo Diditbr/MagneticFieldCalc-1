@@ -361,9 +361,9 @@ def generate_field_visualization(magnet_config):
     else:
         raise ValueError(f"Unknown magnet type: {magnet_type}")
     
-    # Grid setup - higher resolution for better quality
+    # Grid setup - high resolution for best quality
     padding_factor = 5.0
-    grid_size = 50 if magnet_type == 'ring_segment' else (55 if magnet_type == 'ring' else 60)
+    grid_size = 70 if magnet_type == 'ring_segment' else (75 if magnet_type == 'ring' else 80)
     
     # Convert to mm
     mag_width_mm = mag_width * 1000
@@ -388,7 +388,6 @@ def generate_field_visualization(magnet_config):
         B_mag = np.sqrt(Bx**2 + By**2 + Bz**2)
         
         # Create Plotly figure
-        skip = max(4, grid_size // 8)  # Much larger skip for fewer arrows
         fig = go.Figure()
         
         # Add field magnitude as contour/heatmap
@@ -407,11 +406,11 @@ def generate_field_visualization(magnet_config):
         
         fig.add_trace(go.Heatmap(**heatmap_params))
         
-        # Add vector field arrows (limit to ~50 arrows max for performance)
-        max_arrows = 50
-        total_points = ((grid_size // skip) ** 2)
-        if total_points > max_arrows:
-            skip = max(skip, int(np.sqrt(grid_size * grid_size / max_arrows)))
+        # Add vector field arrows - controlled by numFluxLines parameter
+        num_flux_lines = magnet_config.get('numFluxLines', 8)
+        # Calculate skip to get approximately the requested number of arrows
+        target_arrows = max(4, min(num_flux_lines * num_flux_lines, 100))  # Between 16 and 100 arrows
+        skip = max(1, int(grid_size / np.sqrt(target_arrows)))
         
         # Uniform arrow length - only direction matters
         arrow_length_mm = mag_width_mm * 0.3  # 30% of magnet width
@@ -501,7 +500,6 @@ def generate_field_visualization(magnet_config):
         B_mag = np.sqrt(Bx**2 + By**2 + Bz**2)
         
         # Create figure
-        skip = max(4, grid_size // 8)  # Much larger skip for fewer arrows
         fig = go.Figure()
         
         # Add heatmap
@@ -520,11 +518,11 @@ def generate_field_visualization(magnet_config):
         
         fig.add_trace(go.Heatmap(**heatmap_params))
         
-        # Add arrows (limit to ~50 arrows max for performance)
-        max_arrows = 50
-        total_points = ((grid_size // skip) ** 2)
-        if total_points > max_arrows:
-            skip = max(skip, int(np.sqrt(grid_size * grid_size / max_arrows)))
+        # Add arrows - controlled by numFluxLines parameter
+        num_flux_lines = magnet_config.get('numFluxLines', 8)
+        # Calculate skip to get approximately the requested number of arrows
+        target_arrows = max(4, min(num_flux_lines * num_flux_lines, 100))  # Between 16 and 100 arrows
+        skip = max(1, int(grid_size / np.sqrt(target_arrows)))
         
         # Uniform arrow length - only direction matters
         arrow_length_mm = max(mag_width_mm, mag_height_mm) * 0.3  # 30% of larger dimension
