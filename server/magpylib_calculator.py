@@ -569,8 +569,16 @@ def generate_field_visualization(magnet_config):
                         )
         
         # Add magnet shape
-        if magnet_type in ['ring', 'ring_segment']:
-            # Cross-section view
+        if magnet_type == 'ring_segment':
+            # Ring segment cross-section: single rectangle (thickness = outer_r - inner_r)
+            segment_thickness = outer_r_mm - inner_r_mm
+            fig.add_shape(type="rect",
+                x0=-segment_thickness/2, y0=-mag_height_mm/2,
+                x1=segment_thickness/2, y1=mag_height_mm/2,
+                line=dict(color="rgb(239, 68, 68)", width=2),
+                fillcolor="rgba(239, 68, 68, 0.3)")
+        elif magnet_type == 'ring':
+            # Full ring cross-section: two rectangles (left and right)
             fig.add_shape(type="rect",
                 x0=-outer_r_mm, y0=-mag_height_mm/2,
                 x1=-inner_r_mm, y1=mag_height_mm/2,
