@@ -1,11 +1,11 @@
 import { z } from "zod";
 
 // Magnet type enumeration
-export const magnetTypes = ["cylindrical", "rectangular", "ring"] as const;
+export const magnetTypes = ["cylindrical", "rectangular", "ring", "ring_segment"] as const;
 export type MagnetType = typeof magnetTypes[number];
 
 // Magnetization type enumeration
-export const magnetizationTypes = ["axial", "diametral"] as const;
+export const magnetizationTypes = ["axial", "diametral", "radial"] as const;
 export type MagnetizationType = typeof magnetizationTypes[number];
 
 // Material presets with typical magnetization values (in Tesla)
@@ -37,9 +37,11 @@ export const magnetConfigSchema = z.object({
   length: z.number().positive().optional(), // for bar/rectangular
   width: z.number().positive().optional(), // for rectangular
   height: z.number().positive().optional(), // for bar/rectangular
-  diameter: z.number().positive().optional(), // for cylindrical/ring
-  innerDiameter: z.number().positive().optional(), // for ring
-  thickness: z.number().positive().optional(), // for ring
+  diameter: z.number().positive().optional(), // for cylindrical/ring/ring_segment
+  innerDiameter: z.number().positive().optional(), // for ring/ring_segment
+  thickness: z.number().positive().optional(), // for ring/ring_segment
+  phi1: z.number().min(0).max(360).optional(), // for ring_segment (start angle in degrees)
+  phi2: z.number().min(0).max(360).optional(), // for ring_segment (end angle in degrees)
   
   // Calculation point (in meters from magnet center)
   calcX: z.number(),
@@ -67,6 +69,8 @@ export const fieldCalculationRequestSchema = z.object({
   diameter: z.number().positive().optional(),
   innerDiameter: z.number().positive().optional(),
   thickness: z.number().positive().optional(),
+  phi1: z.number().min(0).max(360).optional(), // for ring_segment
+  phi2: z.number().min(0).max(360).optional(), // for ring_segment
   
   // Calculation point in meters
   x: z.number(),
@@ -74,7 +78,7 @@ export const fieldCalculationRequestSchema = z.object({
   z: z.number(),
 }).refine(
   (data) => {
-    if (data.type === "ring" && data.innerDiameter && data.diameter) {
+    if ((data.type === "ring" || data.type === "ring_segment") && data.innerDiameter && data.diameter) {
       return data.innerDiameter < data.diameter;
     }
     return true;
@@ -82,6 +86,17 @@ export const fieldCalculationRequestSchema = z.object({
   {
     message: "Inner diameter must be smaller than outer diameter for ring magnets",
     path: ["innerDiameter"],
+  }
+).refine(
+  (data) => {
+    if (data.type === "ring_segment" && data.phi1 !== undefined && data.phi2 !== undefined) {
+      return data.phi1 < data.phi2;
+    }
+    return true;
+  },
+  {
+    message: "Start angle (φ1) must be smaller than end angle (φ2)",
+    path: ["phi1"],
   }
 );
 
@@ -157,6 +172,8 @@ export const fieldVisualizationRequestSchema = z.object({
   diameter: z.number().positive().optional(),
   innerDiameter: z.number().positive().optional(),
   thickness: z.number().positive().optional(),
+  phi1: z.number().min(0).max(360).optional(), // for ring_segment
+  phi2: z.number().min(0).max(360).optional(), // for ring_segment
   
   // Optional calculation point (in meters)
   calcX: z.number().optional(),
@@ -192,6 +209,8 @@ export const lineCalculationRequestSchema = z.object({
   diameter: z.number().positive().optional(),
   innerDiameter: z.number().positive().optional(),
   thickness: z.number().positive().optional(),
+  phi1: z.number().min(0).max(360).optional(), // for ring_segment
+  phi2: z.number().min(0).max(360).optional(), // for ring_segment
   
   // Line start point in meters
   startX: z.number(),
