@@ -50,6 +50,7 @@ export function LineInputs({
                 X
               </Label>
               <Input
+                key={`start-x-${startX}`}
                 id="line-start-x"
                 data-testid="input-line-start-x"
                 type="number"
@@ -76,6 +77,7 @@ export function LineInputs({
                 Y
               </Label>
               <Input
+                key={`start-y-${startY}`}
                 id="line-start-y"
                 data-testid="input-line-start-y"
                 type="number"
@@ -102,6 +104,7 @@ export function LineInputs({
                 Z
               </Label>
               <Input
+                key={`start-z-${startZ}`}
                 id="line-start-z"
                 data-testid="input-line-start-z"
                 type="number"
@@ -134,6 +137,7 @@ export function LineInputs({
                 X
               </Label>
               <Input
+                key={`end-x-${endX}`}
                 id="line-end-x"
                 data-testid="input-line-end-x"
                 type="number"
@@ -160,6 +164,7 @@ export function LineInputs({
                 Y
               </Label>
               <Input
+                key={`end-y-${endY}`}
                 id="line-end-y"
                 data-testid="input-line-end-y"
                 type="number"
@@ -186,6 +191,7 @@ export function LineInputs({
                 Z
               </Label>
               <Input
+                key={`end-z-${endZ}`}
                 id="line-end-z"
                 data-testid="input-line-end-z"
                 type="number"

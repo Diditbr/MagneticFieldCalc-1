@@ -52,6 +52,7 @@ export function CalculationPointInputs({
               </Label>
               <div className="relative">
                 <Input
+                  key={`calc-${axis}-${axis === "x" ? x : axis === "y" ? y : z}`}
                   id={`calc-${axis}`}
                   type="number"
                   step="0.1"

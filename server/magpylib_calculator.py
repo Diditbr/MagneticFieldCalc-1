@@ -562,7 +562,9 @@ def calculate_line_field(magnet_config):
         raise ValueError(f"Unknown magnet type: {magnet_type}")
     
     # Generate points along the line (in Magpylib coordinates)
-    line_points = np.linspace(start_magpylib, end_magpylib, num_points)
+    line_points_magpylib = np.linspace(start_magpylib, end_magpylib, num_points)
+    # Also generate corresponding UI coordinates for distance calculation
+    line_points_ui = np.linspace(start_ui, end_ui, num_points)
     
     # Calculate B field at each point
     Bx_values = []
@@ -570,14 +572,16 @@ def calculate_line_field(magnet_config):
     Bz_values = []
     distances = []  # Distance from start point along the line
     
-    for point in line_points:
-        B = magpy.getB(magnet, point)
+    for i, point_magpylib in enumerate(line_points_magpylib):
+        B = magpy.getB(magnet, point_magpylib)
         Bx_values.append(float(B[0]))
         By_values.append(float(B[1]))
         Bz_values.append(float(B[2]))
         # Calculate distance from start along the line (in mm for display)
-        # Use UI coordinates for distance calculation so it matches user expectations
-        distances.append(float(np.linalg.norm(point - start_magpylib) * 1000))
+        # IMPORTANT: Use UI coordinates for distance calculation so it matches user expectations
+        # This ensures "distance 1mm" corresponds to z_ui=1mm, not z_magpylib=1mm
+        point_ui = line_points_ui[i]
+        distances.append(float(np.linalg.norm(point_ui - start_ui) * 1000))
     
     # Create matplotlib chart
     fig, ax = plt.subplots(figsize=(10, 6))
