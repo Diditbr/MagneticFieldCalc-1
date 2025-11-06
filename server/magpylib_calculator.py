@@ -22,7 +22,7 @@ def get_polarization_vector(magnetization, magnetization_type='axial', angle_deg
     
     Args:
         magnetization: Magnetization strength in Tesla
-        magnetization_type: 'axial' or 'diametral'
+        magnetization_type: 'axial', 'diametral', or 'radial'
         angle_deg: Angle in degrees (0-360) for diametral magnetization
     
     Returns:
@@ -38,6 +38,11 @@ def get_polarization_vector(magnetization, magnetization_type='axial', angle_deg
         px = magnetization * math.cos(angle_rad)
         pz = magnetization * math.sin(angle_rad)
         return (px, 0, pz)
+    elif magnetization_type == 'radial':
+        # Radial: magnetization in radial direction (perpendicular to axis)
+        # For CylinderSegment, this is handled differently - return marker value
+        # Actual radial polarization must be set in Magpylib using special methods
+        return (magnetization, 0, 0)  # Marker: radial in X-Y plane
     else:
         raise ValueError(f"Unknown magnetization type: {magnetization_type}")
 
@@ -70,7 +75,7 @@ def calculate_field(magnet_config):
         magnet_height = magnet_config.get('height', 0.01)
     elif magnet_type == 'cylindrical':
         magnet_height = magnet_config.get('length', 0.01)
-    elif magnet_type == 'ring':
+    elif magnet_type == 'ring' or magnet_type == 'ring_segment':
         magnet_height = magnet_config.get('thickness', 0.01)
     else:
         magnet_height = 0.01
@@ -122,6 +127,35 @@ def calculate_field(magnet_config):
             polarization=polarization,
             dimension=(inner_diameter, outer_diameter, thickness, 0, 360)
         )
+    
+    elif magnet_type == 'ring_segment':
+        # Create ring segment using CylinderSegment (supports axial, diametral, radial)
+        outer_diameter = magnet_config.get('diameter', 0.01)
+        inner_diameter = magnet_config.get('innerDiameter', 0.005)
+        thickness = magnet_config.get('thickness', 0.01)
+        phi1 = magnet_config.get('phi1', 0)
+        phi2 = magnet_config.get('phi2', 90)
+        
+        if magnetization_type == 'radial':
+            # Radial magnetization: use special 'radial' orientation parameter
+            # For radial: polarization magnitude matters, direction is radial
+            magnet = magpy.magnet.CylinderSegment(
+                polarization=(0, 0, magnetization),  # Magnitude only
+                dimension=(inner_diameter, outer_diameter, thickness, phi1, phi2),
+                orientation='radial'  # Special parameter for radial magnetization
+            )
+        else:
+            # Axial or Diametral magnetization
+            polarization = get_polarization_vector(magnetization, magnetization_type, magnetization_angle)
+            
+            # CRITICAL: CylinderSegment has INVERTED polarization for axial
+            if magnetization_type == 'axial':
+                polarization = (polarization[0], polarization[1], -polarization[2])
+            
+            magnet = magpy.magnet.CylinderSegment(
+                polarization=polarization,
+                dimension=(inner_diameter, outer_diameter, thickness, phi1, phi2)
+            )
     
     else:
         raise ValueError(f"Unknown magnet type: {magnet_type}")
@@ -274,6 +308,33 @@ def generate_field_visualization(magnet_config):
             dimension=(inner_diameter, outer_diameter, thickness, 0, 360)
         )
         # For ring: show side view (X-Z plane) with hollow structure visible
+        mag_width, mag_height = outer_diameter, thickness
+        use_xy_plane = False
+        inner_radius_m = inner_diameter / 2
+        outer_radius_m = outer_diameter / 2
+    elif magnet_type == 'ring_segment':
+        outer_diameter = magnet_config.get('diameter', 0.01)
+        inner_diameter = magnet_config.get('innerDiameter', 0.005)
+        thickness = magnet_config.get('thickness', 0.01)
+        phi1 = magnet_config.get('phi1', 0)
+        phi2 = magnet_config.get('phi2', 90)
+        
+        if magnetization_type == 'radial':
+            magnet = magpy.magnet.CylinderSegment(
+                polarization=(0, 0, magnetization),
+                dimension=(inner_diameter, outer_diameter, thickness, phi1, phi2),
+                orientation='radial'
+            )
+        else:
+            polarization = get_polarization_vector(magnetization, magnetization_type, magnetization_angle)
+            if magnetization_type == 'axial':
+                polarization = (polarization[0], polarization[1], -polarization[2])
+            magnet = magpy.magnet.CylinderSegment(
+                polarization=polarization,
+                dimension=(inner_diameter, outer_diameter, thickness, phi1, phi2)
+            )
+        
+        # Show side view (X-Z plane)
         mag_width, mag_height = outer_diameter, thickness
         use_xy_plane = False
         inner_radius_m = inner_diameter / 2
@@ -558,6 +619,27 @@ def calculate_line_field(magnet_config):
             polarization=polarization,
             dimension=(inner_diameter, outer_diameter, thickness, 0, 360)
         )
+    elif magnet_type == 'ring_segment':
+        outer_diameter = magnet_config.get('diameter', 0.01)
+        inner_diameter = magnet_config.get('innerDiameter', 0.005)
+        thickness = magnet_config.get('thickness', 0.01)
+        phi1 = magnet_config.get('phi1', 0)
+        phi2 = magnet_config.get('phi2', 90)
+        
+        if magnetization_type == 'radial':
+            magnet = magpy.magnet.CylinderSegment(
+                polarization=(0, 0, magnetization),
+                dimension=(inner_diameter, outer_diameter, thickness, phi1, phi2),
+                orientation='radial'
+            )
+        else:
+            polarization = get_polarization_vector(magnetization, magnetization_type, magnetization_angle)
+            if magnetization_type == 'axial':
+                polarization = (polarization[0], polarization[1], -polarization[2])
+            magnet = magpy.magnet.CylinderSegment(
+                polarization=polarization,
+                dimension=(inner_diameter, outer_diameter, thickness, phi1, phi2)
+            )
     else:
         raise ValueError(f"Unknown magnet type: {magnet_type}")
     
