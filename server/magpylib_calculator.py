@@ -294,7 +294,7 @@ def generate_field_visualization(magnet_config):
             polarization=(0, 0, magnetization),
             dimension=(length, width, height)
         )
-        mag_width, mag_height = length, height
+        mag_length, mag_width, mag_height = length, width, height
         inner_r, outer_r = 0, 0
         phi1, phi2 = 0, 360
     elif magnet_type == 'cylindrical':
@@ -305,7 +305,7 @@ def generate_field_visualization(magnet_config):
             polarization=polarization,
             dimension=(diameter, length)
         )
-        mag_width, mag_height = diameter, length
+        mag_length, mag_width, mag_height = diameter, diameter, length
         inner_r, outer_r = 0, 0
         phi1, phi2 = 0, 360
     elif magnet_type == 'ring':
@@ -319,7 +319,7 @@ def generate_field_visualization(magnet_config):
             polarization=polarization,
             dimension=(inner_diameter, outer_diameter, thickness, 0, 360)
         )
-        mag_width, mag_height = outer_diameter, thickness
+        mag_length, mag_width, mag_height = outer_diameter, outer_diameter, thickness
         inner_r, outer_r = inner_diameter / 2, outer_diameter / 2
         phi1, phi2 = 0, 360
     elif magnet_type == 'ring_segment':
@@ -356,7 +356,7 @@ def generate_field_visualization(magnet_config):
                 dimension=(inner_diameter, outer_diameter, thickness, phi1, phi2)
             )
         
-        mag_width, mag_height = outer_diameter, thickness
+        mag_length, mag_width, mag_height = outer_diameter, outer_diameter, thickness
         inner_r, outer_r = inner_diameter / 2, outer_diameter / 2
     else:
         raise ValueError(f"Unknown magnet type: {magnet_type}")
@@ -366,6 +366,7 @@ def generate_field_visualization(magnet_config):
     grid_size = 70 if magnet_type == 'ring_segment' else (75 if magnet_type == 'ring' else 80)
     
     # Convert to mm
+    mag_length_mm = mag_length * 1000
     mag_width_mm = mag_width * 1000
     mag_height_mm = mag_height * 1000
     inner_r_mm = inner_r * 1000
@@ -373,7 +374,7 @@ def generate_field_visualization(magnet_config):
     
     if use_xy_plane:
         # X-Y plane (Z=0, top view)
-        extent_mm = mag_width_mm * padding_factor
+        extent_mm = max(mag_length_mm, mag_width_mm) * padding_factor
         x_mm = np.linspace(-extent_mm/2, extent_mm/2, grid_size)
         y_mm = np.linspace(-extent_mm/2, extent_mm/2, grid_size)
         X_mm, Y_mm = np.meshgrid(x_mm, y_mm)
@@ -414,7 +415,7 @@ def generate_field_visualization(magnet_config):
         skip = max(1, int(grid_size / np.sqrt(target_arrows)))
         
         # Uniform arrow length - only direction matters
-        arrow_length_mm = mag_width_mm * 0.3  # 30% of magnet width
+        arrow_length_mm = max(mag_length_mm, mag_width_mm) * 0.3  # 30% of larger dimension
         
         for i in range(0, grid_size, skip):
             for j in range(0, grid_size, skip):
@@ -468,10 +469,10 @@ def generate_field_visualization(magnet_config):
                 hoverinfo='skip', showlegend=False
             ))
         else:
-            # Rectangle
+            # Rectangle (Cuboid top view)
             fig.add_shape(type="rect",
-                x0=-mag_width_mm/2, y0=-mag_width_mm/2,
-                x1=mag_width_mm/2, y1=mag_width_mm/2,
+                x0=-mag_length_mm/2, y0=-mag_width_mm/2,
+                x1=mag_length_mm/2, y1=mag_width_mm/2,
                 line=dict(color="rgb(239, 68, 68)", width=2),
                 fillcolor="rgba(239, 68, 68, 0.3)")
         
@@ -485,7 +486,7 @@ def generate_field_visualization(magnet_config):
         )
     else:
         # X-Z plane (Y=0, side view)
-        x_extent_mm = mag_width_mm * padding_factor
+        x_extent_mm = max(mag_length_mm, mag_width_mm) * padding_factor
         z_extent_mm = mag_height_mm * padding_factor
         x_mm = np.linspace(-x_extent_mm/2, x_extent_mm/2, grid_size)
         z_mm = np.linspace(-z_extent_mm/2, z_extent_mm/2, grid_size)
@@ -560,9 +561,10 @@ def generate_field_visualization(magnet_config):
                 line=dict(color="rgb(239, 68, 68)", width=2),
                 fillcolor="rgba(239, 68, 68, 0.3)")
         else:
+            # Rectangle (Cuboid side view)
             fig.add_shape(type="rect",
-                x0=-mag_width_mm/2, y0=-mag_height_mm/2,
-                x1=mag_width_mm/2, y1=mag_height_mm/2,
+                x0=-mag_length_mm/2, y0=-mag_height_mm/2,
+                x1=mag_length_mm/2, y1=mag_height_mm/2,
                 line=dict(color="rgb(239, 68, 68)", width=2),
                 fillcolor="rgba(239, 68, 68, 0.3)")
         
