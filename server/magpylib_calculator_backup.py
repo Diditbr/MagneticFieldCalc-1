@@ -10,6 +10,7 @@ import math
 import magpylib as magpy
 import numpy as np
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
 
 def get_polarization_vector(magnetization, magnetization_type='axial', angle_deg=0):
@@ -280,46 +281,54 @@ def generate_field_visualization(magnet_config):
     magnetization_type = magnet_config.get('magnetizationType', 'axial')
     magnetization_angle = magnet_config.get('magnetizationAngle', 0)
     
-    # Determine view plane
-    use_xy_plane = (magnet_type in ['ring', 'ring_segment']) and (magnetization_type in ['radial', 'diametral'])
+    # Initialize variables
+    inner_radius_m = 0
+    outer_radius_m = 0
+    use_xy_plane = False
     
-    # Create magnet (reuse logic from calculate_field)
+    # Create magnet
     if magnet_type == 'rectangular':
         length = magnet_config.get('length', 0.01)
         width = magnet_config.get('width', 0.01)
         height = magnet_config.get('height', 0.01)
         magnet = magpy.magnet.Cuboid(
-            polarization=(0, 0, magnetization),
+            polarization=(0, 0, magnetization),  # Always axial for cuboids
             dimension=(length, width, height)
         )
         mag_width, mag_height = length, height
-        inner_r, outer_r = 0, 0
-        phi1, phi2 = 0, 360
+        use_xy_plane = False
     elif magnet_type == 'cylindrical':
         diameter = magnet_config.get('diameter', 0.01)
         length = magnet_config.get('length', 0.01)
+        
         polarization = get_polarization_vector(magnetization, magnetization_type, magnetization_angle)
         magnet = magpy.magnet.Cylinder(
             polarization=polarization,
             dimension=(diameter, length)
         )
         mag_width, mag_height = diameter, length
-        inner_r, outer_r = 0, 0
-        phi1, phi2 = 0, 360
+        use_xy_plane = False
     elif magnet_type == 'ring':
         outer_diameter = magnet_config.get('diameter', 0.01)
         inner_diameter = magnet_config.get('innerDiameter', 0.005)
         thickness = magnet_config.get('thickness', 0.01)
+        
         polarization = get_polarization_vector(magnetization, magnetization_type, magnetization_angle)
+        
+        # CRITICAL: CylinderSegment has INVERTED polarization for axial
+        # Only invert Z-component for axial magnetization
         if magnetization_type == 'axial':
             polarization = (polarization[0], polarization[1], -polarization[2])
+        
         magnet = magpy.magnet.CylinderSegment(
             polarization=polarization,
             dimension=(inner_diameter, outer_diameter, thickness, 0, 360)
         )
+        # For ring: show side view (X-Z plane) with hollow structure visible
         mag_width, mag_height = outer_diameter, thickness
-        inner_r, outer_r = inner_diameter / 2, outer_diameter / 2
-        phi1, phi2 = 0, 360
+        use_xy_plane = False
+        inner_radius_m = inner_diameter / 2
+        outer_radius_m = outer_diameter / 2
     elif magnet_type == 'ring_segment':
         outer_diameter = magnet_config.get('diameter', 0.01)
         inner_diameter = magnet_config.get('innerDiameter', 0.005)
@@ -328,22 +337,27 @@ def generate_field_visualization(magnet_config):
         phi2 = magnet_config.get('phi2', 90)
         
         if magnetization_type == 'radial':
+            # Radial magnetization: discretize segment into sub-segments
             angle_span = phi2 - phi1
             num_segments = max(4, int(angle_span / 15))
             segment_angle = angle_span / num_segments
+            
             magnets = []
             for i in range(num_segments):
                 sub_phi1 = phi1 + i * segment_angle
                 sub_phi2 = phi1 + (i + 1) * segment_angle
                 mid_angle = (sub_phi1 + sub_phi2) / 2
                 mid_angle_rad = math.radians(mid_angle)
+                
                 px = magnetization * math.cos(mid_angle_rad)
                 py = magnetization * math.sin(mid_angle_rad)
+                
                 sub_magnet = magpy.magnet.CylinderSegment(
                     polarization=(px, py, 0),
                     dimension=(inner_diameter, outer_diameter, thickness, sub_phi1, sub_phi2)
                 )
                 magnets.append(sub_magnet)
+            
             magnet = magpy.Collection(*magnets)
         else:
             polarization = get_polarization_vector(magnetization, magnetization_type, magnetization_angle)
@@ -354,197 +368,218 @@ def generate_field_visualization(magnet_config):
                 dimension=(inner_diameter, outer_diameter, thickness, phi1, phi2)
             )
         
+        # Show side view (X-Z plane)
         mag_width, mag_height = outer_diameter, thickness
-        inner_r, outer_r = inner_diameter / 2, outer_diameter / 2
+        use_xy_plane = False
+        inner_radius_m = inner_diameter / 2
+        outer_radius_m = outer_diameter / 2
     else:
         raise ValueError(f"Unknown magnet type: {magnet_type}")
     
-    # Grid setup
-    padding_factor = 5.0
-    grid_size = 40 if magnet_type == 'ring_segment' else (50 if magnet_type == 'ring' else 60)
+    # Create grid for field calculation - all magnets use X-Z plane (Y=0, side view)
+    # NOTE: mag_width and mag_height are in METERS (frontend converts dimensions to meters)
+    # We work in millimeters for axis display
+    padding_factor = 5.0  # Show field lines with adequate margin
     
-    # Convert to mm
+    # Convert magnet dimensions from meters to mm for display
     mag_width_mm = mag_width * 1000
     mag_height_mm = mag_height * 1000
-    inner_r_mm = inner_r * 1000
-    outer_r_mm = outer_r * 1000
+    x_extent_mm = mag_width_mm * padding_factor
+    z_extent_mm = mag_height_mm * padding_factor
     
-    if use_xy_plane:
-        # X-Y plane (Z=0, top view)
-        extent_mm = mag_width_mm * padding_factor
-        x_mm = np.linspace(-extent_mm/2, extent_mm/2, grid_size)
-        y_mm = np.linspace(-extent_mm/2, extent_mm/2, grid_size)
-        X_mm, Y_mm = np.meshgrid(x_mm, y_mm)
-        X_m, Y_m = X_mm / 1000, Y_mm / 1000
-        
-        Bx = np.zeros_like(X_mm)
-        By = np.zeros_like(Y_mm)
-        B_mag = np.zeros_like(X_mm)
-        
-        for i in range(grid_size):
-            for j in range(grid_size):
-                observer = np.array([X_m[i, j], Y_m[i, j], 0])
-                B = magpy.getB(magnet, observer)
-                Bx[i, j] = B[0]
-                By[i, j] = B[1]
-                B_mag[i, j] = np.sqrt(B[0]**2 + B[1]**2 + B[2]**2)
-        
-        # Create Plotly figure
-        skip = max(1, grid_size // 20)
-        fig = go.Figure()
-        
-        # Add field magnitude as contour/heatmap
-        fig.add_trace(go.Heatmap(
-            x=x_mm,
-            y=y_mm,
-            z=B_mag,
-            colorscale='Viridis',
-            colorbar=dict(title="Flussdichte |B| [T]"),
-            hovertemplate='X: %{x:.2f} mm<br>Y: %{y:.2f} mm<br>|B|: %{z:.4f} T<extra></extra>'
-        ))
-        
-        # Add vector field arrows
-        for i in range(0, grid_size, skip):
-            for j in range(0, grid_size, skip):
-                if B_mag[i, j] > 1e-10:
-                    scale = 3000 * B_mag[i, j] / max(B_mag.max(), 1e-10)
-                    fig.add_annotation(
-                        x=X_mm[i, j], y=Y_mm[i, j],
-                        ax=X_mm[i, j] + Bx[i, j] * scale,
-                        ay=Y_mm[i, j] + By[i, j] * scale,
-                        xref='x', yref='y', axref='x', ayref='y',
-                        showarrow=True, arrowhead=2, arrowsize=1,
-                        arrowwidth=1.5, arrowcolor='rgba(255, 255, 255, 0.7)'
-                    )
-        
-        # Add magnet shape
-        if magnet_type == 'ring_segment':
-            # Create ring segment path
-            num_points = 50
-            angles = np.linspace(math.radians(phi1), math.radians(phi2), num_points)
-            outer_x = outer_r_mm * np.cos(angles)
-            outer_y = outer_r_mm * np.sin(angles)
-            inner_x = inner_r_mm * np.cos(angles[::-1])
-            inner_y = inner_r_mm * np.sin(angles[::-1])
-            x_coords = np.concatenate([outer_x, inner_x, [outer_x[0]]])
-            y_coords = np.concatenate([outer_y, inner_y, [outer_y[0]]])
-            
-            fig.add_trace(go.Scatter(
-                x=x_coords, y=y_coords, fill='toself',
-                fillcolor='rgba(239, 68, 68, 0.3)',
-                line=dict(color='rgb(239, 68, 68)', width=2),
-                hoverinfo='skip', showlegend=False
-            ))
-        elif magnet_type == 'ring':
-            # Full ring - outer circle
-            theta = np.linspace(0, 2*np.pi, 100)
-            fig.add_trace(go.Scatter(
-                x=outer_r_mm * np.cos(theta), y=outer_r_mm * np.sin(theta),
-                fill='toself', fillcolor='rgba(239, 68, 68, 0.3)',
-                line=dict(color='rgb(239, 68, 68)', width=2),
-                hoverinfo='skip', showlegend=False
-            ))
-            # Inner circle (hollow)
-            fig.add_trace(go.Scatter(
-                x=inner_r_mm * np.cos(theta), y=inner_r_mm * np.sin(theta),
-                fill='toself', fillcolor='rgba(255, 255, 255, 1)',
-                line=dict(color='rgb(239, 68, 68)', width=2),
-                hoverinfo='skip', showlegend=False
-            ))
-        else:
-            # Rectangle
-            fig.add_shape(type="rect",
-                x0=-mag_width_mm/2, y0=-mag_width_mm/2,
-                x1=mag_width_mm/2, y1=mag_width_mm/2,
-                line=dict(color="rgb(239, 68, 68)", width=2),
-                fillcolor="rgba(239, 68, 68, 0.3)")
-        
-        fig.update_xaxes(title="X (mm)", range=[-extent_mm/2, extent_mm/2])
-        fig.update_yaxes(title="Y (mm)", range=[-extent_mm/2, extent_mm/2], scaleanchor="x", scaleratio=1)
-        fig.update_layout(
-            title="Magnetfeld (X-Y Ebene, Draufsicht)",
-            width=700, height=700,
-            hovermode='closest',
-            template='plotly_white'
-        )
+    # Use smaller grid for ring magnets and ring segments to speed up computation
+    # Ring segments are slowest, so use smallest grid
+    if magnet_type == 'ring_segment':
+        grid_size = 40
+    elif magnet_type == 'ring':
+        grid_size = 60
     else:
-        # X-Z plane (Y=0, side view)
-        x_extent_mm = mag_width_mm * padding_factor
-        z_extent_mm = mag_height_mm * padding_factor
-        x_mm = np.linspace(-x_extent_mm/2, x_extent_mm/2, grid_size)
-        z_mm = np.linspace(-z_extent_mm/2, z_extent_mm/2, grid_size)
-        X_mm, Z_mm = np.meshgrid(x_mm, z_mm)
-        X_m, Z_m = X_mm / 1000, Z_mm / 1000
-        
-        Bx = np.zeros_like(X_mm)
-        Bz = np.zeros_like(Z_mm)
-        B_mag = np.zeros_like(X_mm)
-        
-        for i in range(grid_size):
-            for j in range(grid_size):
-                observer = np.array([X_m[i, j], 0, Z_m[i, j]])
-                B = magpy.getB(magnet, observer)
-                Bx[i, j] = B[0]
-                Bz[i, j] = B[2]
-                B_mag[i, j] = np.sqrt(B[0]**2 + B[1]**2 + B[2]**2)
-        
-        # Create figure
-        skip = max(1, grid_size // 20)
-        fig = go.Figure()
-        
-        # Add heatmap
-        fig.add_trace(go.Heatmap(
-            x=x_mm, y=z_mm, z=B_mag,
-            colorscale='Viridis',
-            colorbar=dict(title="Flussdichte |B| [T]"),
-            hovertemplate='X: %{x:.2f} mm<br>Z: %{y:.2f} mm<br>|B|: %{z:.4f} T<extra></extra>'
-        ))
-        
-        # Add arrows
-        for i in range(0, grid_size, skip):
-            for j in range(0, grid_size, skip):
-                if B_mag[i, j] > 1e-10:
-                    scale = 3000 * B_mag[i, j] / max(B_mag.max(), 1e-10)
-                    fig.add_annotation(
-                        x=X_mm[i, j], y=Z_mm[i, j],
-                        ax=X_mm[i, j] + Bx[i, j] * scale,
-                        ay=Z_mm[i, j] + Bz[i, j] * scale,
-                        xref='x', yref='y', axref='x', ayref='y',
-                        showarrow=True, arrowhead=2, arrowsize=1,
-                        arrowwidth=1.5, arrowcolor='rgba(255, 255, 255, 0.7)'
-                    )
-        
-        # Add magnet shape
-        if magnet_type in ['ring', 'ring_segment']:
-            # Cross-section view
-            fig.add_shape(type="rect",
-                x0=-outer_r_mm, y0=-mag_height_mm/2,
-                x1=-inner_r_mm, y1=mag_height_mm/2,
-                line=dict(color="rgb(239, 68, 68)", width=2),
-                fillcolor="rgba(239, 68, 68, 0.3)")
-            fig.add_shape(type="rect",
-                x0=inner_r_mm, y0=-mag_height_mm/2,
-                x1=outer_r_mm, y1=mag_height_mm/2,
-                line=dict(color="rgb(239, 68, 68)", width=2),
-                fillcolor="rgba(239, 68, 68, 0.3)")
-        else:
-            fig.add_shape(type="rect",
-                x0=-mag_width_mm/2, y0=-mag_height_mm/2,
-                x1=mag_width_mm/2, y1=mag_height_mm/2,
-                line=dict(color="rgb(239, 68, 68)", width=2),
-                fillcolor="rgba(239, 68, 68, 0.3)")
-        
-        fig.update_xaxes(title="X (mm)", range=[-x_extent_mm/2, x_extent_mm/2])
-        fig.update_yaxes(title="Z (mm)", range=[-z_extent_mm/2, z_extent_mm/2], scaleanchor="x", scaleratio=1)
-        fig.update_layout(
-            title="Magnetfeld (X-Z Ebene, Seitenansicht)",
-            width=700, height=700,
-            hovermode='closest',
-            template='plotly_white'
-        )
+        grid_size = 80
+    # Create grid in mm
+    x_mm = np.linspace(-x_extent_mm/2, x_extent_mm/2, grid_size)
+    z_mm = np.linspace(-z_extent_mm/2, z_extent_mm/2, grid_size)
+    X_mm, Z_mm = np.meshgrid(x_mm, z_mm)
     
-    return {'plotlyJson': fig.to_json()}
-
+    # Convert back to meters for magpylib calculations
+    X_m = X_mm / 1000
+    Z_m = Z_mm / 1000
+    
+    # Calculate field at grid points (X-Z plane, Y=0)
+    Bx = np.zeros_like(X_mm)
+    Bz = np.zeros_like(Z_mm)
+    B_magnitude = np.zeros_like(X_mm)
+    
+    for i in range(grid_size):
+        for j in range(grid_size):
+            observer = np.array([X_m[i, j], 0, Z_m[i, j]])
+            B = magpy.getB(magnet, observer)
+            Bx[i, j] = B[0]
+            Bz[i, j] = B[2]
+            # Calculate magnitude for color coding
+            B_magnitude[i, j] = np.sqrt(B[0]**2 + B[1]**2 + B[2]**2)
+    
+    # Create figure
+    fig, ax = plt.subplots(figsize=(8, 6), dpi=100)
+    
+    # Get density parameter (number of flux lines)
+    num_flux_lines = magnet_config.get('numFluxLines', 15)
+    # Convert to density (matplotlib uses density per plot area)
+    # Higher number = more lines
+    density = num_flux_lines / 10.0
+    
+    # Draw streamplot with color-coded field strength
+    # Linear scale for direct field magnitude visualization
+    # Everything is in mm now, so axes will show correct mm values
+    # Use maxColorScale if provided, otherwise auto-scale
+    from matplotlib.colors import Normalize
+    max_color_scale = magnet_config.get('maxColorScale')
+    if max_color_scale is not None and max_color_scale > 0:
+        vmin, vmax = 0, max_color_scale
+    else:
+        vmin, vmax = 0, B_magnitude.max()
+    
+    stream = ax.streamplot(X_mm, Z_mm, Bx, Bz, color=B_magnitude, 
+                          cmap='viridis', linewidth=1.5,
+                          density=density, arrowsize=0.8, arrowstyle='->',
+                          norm=Normalize(vmin=vmin, vmax=vmax))
+    
+    # Add colorbar with linear scale
+    cbar = plt.colorbar(stream.lines, ax=ax)
+    cbar.set_label('Flussdichte |B| [T]', fontsize=10)
+    
+    # Draw calculation point if provided (convert from m to mm)
+    # NOTE: UI coordinates have z=0 at surface, Magpylib has z=0 at center
+    # We draw in Magpylib coordinates and adjust axis labels later
+    calc_x_ui = magnet_config.get('calcX')
+    calc_z_ui = magnet_config.get('calcZ')
+    if calc_x_ui is not None and calc_z_ui is not None:
+        # Transform z coordinate: UI has z=0 at surface, Magpylib has z=0 at center
+        calc_z_magpylib = calc_z_ui + mag_height / 2
+        ax.plot(calc_x_ui * 1000, calc_z_magpylib * 1000, 'o', color='#22c55e', 
+                markersize=8, markeredgewidth=2, markeredgecolor='white',
+                label='Berechnungspunkt', zorder=10)
+    
+    # Draw line if provided (convert from m to mm)
+    # NOTE: UI coordinates have z=0 at surface, Magpylib has z=0 at center
+    # We draw in Magpylib coordinates and adjust axis labels later
+    line_start_x_ui = magnet_config.get('lineStartX')
+    line_start_z_ui = magnet_config.get('lineStartZ')
+    line_end_x_ui = magnet_config.get('lineEndX')
+    line_end_z_ui = magnet_config.get('lineEndZ')
+    if all(v is not None for v in [line_start_x_ui, line_start_z_ui, line_end_x_ui, line_end_z_ui]):
+        # Transform z coordinates: UI has z=0 at surface, Magpylib has z=0 at center
+        line_start_z_magpylib = line_start_z_ui + mag_height / 2
+        line_end_z_magpylib = line_end_z_ui + mag_height / 2
+        # Convert from meters to mm
+        line_x_mm = [line_start_x_ui * 1000, line_end_x_ui * 1000]
+        line_z_mm = [line_start_z_magpylib * 1000, line_end_z_magpylib * 1000]
+        ax.plot(line_x_mm, line_z_mm, 'o-', color='#3b82f6', 
+                linewidth=2.5, markersize=6, markeredgewidth=1.5, markeredgecolor='white',
+                label='Messlinie', zorder=11)
+    
+    # Draw magnet outline (in mm) - side view (X-Z plane)
+    from matplotlib.patches import Rectangle
+    if magnet_type == 'ring' or magnet_type == 'ring_segment':
+        # Ring magnet in side view: show cross-section with hollow center
+        outer_radius_mm = outer_radius_m * 1000
+        inner_radius_mm = inner_radius_m * 1000
+        rect_h = mag_height_mm
+        
+        # Left rectangle (outer edge to inner edge)
+        left_rect = Rectangle((-outer_radius_mm, -rect_h/2), 
+                             outer_radius_mm - inner_radius_mm, rect_h,
+                             linewidth=2, edgecolor='#ef4444', facecolor='#ef444420', zorder=5)
+        ax.add_patch(left_rect)
+        
+        # Right rectangle (inner edge to outer edge)
+        right_rect = Rectangle((inner_radius_mm, -rect_h/2), 
+                               outer_radius_mm - inner_radius_mm, rect_h,
+                               linewidth=2, edgecolor='#ef4444', facecolor='#ef444420', zorder=5)
+        ax.add_patch(right_rect)
+        
+        # White rectangle in the middle (the hollow center)
+        hollow_rect = Rectangle((-inner_radius_mm, -rect_h/2), 
+                               inner_radius_mm * 2, rect_h,
+                               linewidth=1, edgecolor='#888888', linestyle='--',
+                               facecolor='white', zorder=6)
+        ax.add_patch(hollow_rect)
+        
+        # Add N/S labels - axial magnetization means N at top surface, S at bottom surface
+        # Left side labels
+        ax.text(-(outer_radius_mm + inner_radius_mm)/2, rect_h/2 + rect_h*0.15, 'N', 
+                fontsize=14, fontweight='bold', ha='center', va='center', color='#ef4444')
+        ax.text(-(outer_radius_mm + inner_radius_mm)/2, -rect_h/2 - rect_h*0.15, 'S', 
+                fontsize=14, fontweight='bold', ha='center', va='center', color='#ef4444')
+        # Right side labels
+        ax.text((outer_radius_mm + inner_radius_mm)/2, rect_h/2 + rect_h*0.15, 'N', 
+                fontsize=14, fontweight='bold', ha='center', va='center', color='#ef4444')
+        ax.text((outer_radius_mm + inner_radius_mm)/2, -rect_h/2 - rect_h*0.15, 'S', 
+                fontsize=14, fontweight='bold', ha='center', va='center', color='#ef4444')
+    else:
+        # Draw solid rectangle for other magnet types
+        rect_w, rect_h = mag_width_mm, mag_height_mm
+        rect = Rectangle((-rect_w/2, -rect_h/2), rect_w, rect_h,
+                        linewidth=2, edgecolor='#ef4444', facecolor='#ef444420')
+        ax.add_patch(rect)
+        # Add N/S labels
+        ax.text(0, rect_h/4, 'N', fontsize=14, fontweight='bold',
+                ha='center', va='center', color='#ef4444')
+        ax.text(0, -rect_h/4, 'S', fontsize=14, fontweight='bold',
+                ha='center', va='center', color='#ef4444')
+    
+    # Set axis limits in mm (in Magpylib coordinates: z=0 at center)
+    ax.set_xlim(-x_extent_mm/2, x_extent_mm/2)
+    ax.set_ylim(-z_extent_mm/2, z_extent_mm/2)
+    
+    # Transform Y-axis labels to UI coordinates (z=0 at surface)
+    # In Magpylib: z=0 at center, surface at z=+mag_height/2
+    # In UI: z=0 at surface
+    # Transformation: z_ui = z_magpylib - mag_height_mm/2
+    # We want to ensure 0 is always shown and ticks are symmetric
+    from matplotlib.ticker import MultipleLocator
+    
+    # Calculate appropriate tick spacing in Magpylib coordinates
+    # The surface is at mag_height_mm/2, so we want ticks centered there in UI coords (which is 0)
+    z_range = z_extent_mm
+    # Determine a nice tick spacing (roughly 5-8 ticks)
+    tick_spacing = 2 ** round(np.log2(z_range / 6))  # Power of 2 for nice numbers
+    if tick_spacing < 1:
+        tick_spacing = 1
+    
+    # Set ticks in Magpylib coordinates, centered at mag_height_mm/2 (which is UI z=0)
+    surface_z_magpylib = mag_height_mm / 2
+    # Find the range of ticks needed
+    min_tick = np.floor((-z_extent_mm/2 - surface_z_magpylib) / tick_spacing) * tick_spacing
+    max_tick = np.ceil((z_extent_mm/2 - surface_z_magpylib) / tick_spacing) * tick_spacing
+    # Generate ticks in UI coordinates
+    ui_ticks = np.arange(min_tick, max_tick + tick_spacing/2, tick_spacing)
+    # Convert to Magpylib coordinates for positioning
+    magpylib_ticks = ui_ticks + surface_z_magpylib
+    
+    ax.set_yticks(magpylib_ticks)
+    ax.set_yticklabels([f'{int(tick)}' for tick in ui_ticks])
+    
+    # Labels
+    ax.set_xlabel('X (mm)', fontsize=10)
+    ax.set_ylabel('Z (mm)', fontsize=10)
+    ax.set_title('Magnetfeld-Linien (X-Z Ebene, Seitenansicht)', fontsize=12, fontweight='bold')
+    
+    # Add legend if there are labeled items
+    handles, labels = ax.get_legend_handles_labels()
+    if handles:
+        ax.legend(loc='upper right', fontsize=9, framealpha=0.9)
+    
+    ax.set_aspect('equal')
+    ax.grid(True, alpha=0.2)
+    
+    # Convert plot to base64-encoded PNG
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png', bbox_inches='tight', dpi=100)
+    plt.close(fig)
+    buf.seek(0)
+    img_base64 = base64.b64encode(buf.read()).decode('utf-8')
+    
+    return {'image': img_base64}
 
 
 def calculate_line_field(magnet_config):
