@@ -317,64 +317,6 @@ export default function Calculator() {
               <div className="border-t pt-6">
                 <UnitControls fieldUnit={fieldUnit} onFieldUnitChange={setFieldUnit} />
               </div>
-
-              <div className="border-t pt-6">
-                <div className="space-y-3">
-                  <label className="text-sm font-medium">Anzahl Feldlinien</label>
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="range"
-                      min="4"
-                      max="50"
-                      step="2"
-                      value={numFluxLines}
-                      onChange={(e) => setNumFluxLines(Number(e.target.value))}
-                      className="flex-1"
-                      data-testid="input-num-flux-lines"
-                    />
-                    <span className="text-sm font-mono text-muted-foreground w-12 text-right">
-                      {numFluxLines}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="border-t pt-6">
-                <div className="space-y-3">
-                  <label className="text-sm font-medium">Farbskala Maximum</label>
-                  <div className="flex items-center gap-3 mb-3">
-                    <input
-                      type="checkbox"
-                      id="auto-color-scale"
-                      checked={autoColorScale}
-                      onChange={(e) => setAutoColorScale(e.target.checked)}
-                      className="h-4 w-4"
-                      data-testid="checkbox-auto-color-scale"
-                    />
-                    <label htmlFor="auto-color-scale" className="text-sm text-muted-foreground cursor-pointer">
-                      Automatisch
-                    </label>
-                  </div>
-                  {!autoColorScale && (
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="number"
-                        min="0.001"
-                        max="10"
-                        step="0.01"
-                        value={maxColorScale}
-                        onChange={(e) => setMaxColorScale(Number(e.target.value))}
-                        className="flex-1 px-3 py-2 border rounded-md"
-                        data-testid="input-max-color-scale"
-                      />
-                      <span className="text-sm text-muted-foreground">T</span>
-                    </div>
-                  )}
-                  <p className="text-xs text-muted-foreground">
-                    Minimum ist immer 0 T
-                  </p>
-                </div>
-              </div>
             </div>
           </div>
 
@@ -443,7 +385,7 @@ export default function Calculator() {
 
             <Card className="p-6 space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold">3D Feldvisualisierung</h3>
+                <h3 className="text-lg font-semibold">Feldvisualisierung (2D Schnittebene)</h3>
                 <Button
                   onClick={handleVisualizationToggle}
                   disabled={visualizationLoading}
@@ -464,31 +406,86 @@ export default function Calculator() {
               </div>
 
               {showVisualization && (
-                <FieldVisualization
-                  magnetType={magnetType}
-                  dimensions={dimensions}
-                  magnetization={
-                    selectedMaterial === "Custom"
-                      ? customMagnetization
-                      : materialPresets[selectedMaterial]
-                  }
-                  magnetizationType={magnetizationType}
-                  magnetizationAngle={magnetizationAngle}
-                  calcX={calcPoint.x}
-                  calcY={calcPoint.y}
-                  calcZ={calcPoint.z}
-                  Bx={Number(results.Bx) || 0}
-                  By={Number(results.By) || 0}
-                  Bz={Number(results.Bz) || 0}
-                  numFluxLines={numFluxLines}
-                  maxColorScale={autoColorScale ? undefined : maxColorScale}
-                  lineStartX={lineStart.x}
-                  lineStartY={lineStart.y}
-                  lineStartZ={lineStart.z}
-                  lineEndX={lineEnd.x}
-                  lineEndY={lineEnd.y}
-                  lineEndZ={lineEnd.z}
-                />
+                <>
+                  <div className="grid md:grid-cols-2 gap-4 border-t pt-4">
+                    <div className="space-y-3">
+                      <label className="text-sm font-medium">Anzahl Feldlinien</label>
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="range"
+                          min="4"
+                          max="50"
+                          step="2"
+                          value={numFluxLines}
+                          onChange={(e) => setNumFluxLines(Number(e.target.value))}
+                          className="flex-1"
+                          data-testid="input-num-flux-lines"
+                        />
+                        <span className="text-sm font-mono text-muted-foreground w-12 text-right">
+                          {numFluxLines}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <label className="text-sm font-medium">Farbskala Maximum</label>
+                      <div className="flex items-center gap-3 mb-2">
+                        <input
+                          type="checkbox"
+                          id="auto-color-scale"
+                          checked={autoColorScale}
+                          onChange={(e) => setAutoColorScale(e.target.checked)}
+                          className="h-4 w-4"
+                          data-testid="checkbox-auto-color-scale"
+                        />
+                        <label htmlFor="auto-color-scale" className="text-sm text-muted-foreground cursor-pointer">
+                          Automatisch
+                        </label>
+                      </div>
+                      {!autoColorScale && (
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="number"
+                            min="0.001"
+                            max="10"
+                            step="0.01"
+                            value={maxColorScale}
+                            onChange={(e) => setMaxColorScale(Number(e.target.value))}
+                            className="flex-1 px-3 py-2 border rounded-md"
+                            data-testid="input-max-color-scale"
+                          />
+                          <span className="text-sm text-muted-foreground">T</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <FieldVisualization
+                    magnetType={magnetType}
+                    dimensions={dimensions}
+                    magnetization={
+                      selectedMaterial === "Custom"
+                        ? customMagnetization
+                        : materialPresets[selectedMaterial]
+                    }
+                    magnetizationType={magnetizationType}
+                    magnetizationAngle={magnetizationAngle}
+                    calcX={calcPoint.x}
+                    calcY={calcPoint.y}
+                    calcZ={calcPoint.z}
+                    Bx={Number(results.Bx) || 0}
+                    By={Number(results.By) || 0}
+                    Bz={Number(results.Bz) || 0}
+                    numFluxLines={numFluxLines}
+                    maxColorScale={autoColorScale ? undefined : maxColorScale}
+                    lineStartX={lineStart.x}
+                    lineStartY={lineStart.y}
+                    lineStartZ={lineStart.z}
+                    lineEndX={lineEnd.x}
+                    lineEndY={lineEnd.y}
+                    lineEndZ={lineEnd.z}
+                  />
+                </>
               )}
             </Card>
           </>
