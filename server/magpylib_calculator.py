@@ -280,6 +280,9 @@ def generate_field_visualization(magnet_config):
     magnetization_type = magnet_config.get('magnetizationType', 'axial')
     magnetization_angle = magnet_config.get('magnetizationAngle', 0)
     
+    # Debug: Print received dimensions
+    print(f"DEBUG: Visualization - Type: {magnet_type}, Config: {magnet_config}")
+    
     # Determine view plane
     # X-Y plane (top view) for radial/diametral magnetization to show radial field pattern
     # X-Z plane (side view) for axial magnetization and rectangular magnets
