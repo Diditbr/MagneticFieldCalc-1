@@ -364,8 +364,14 @@ def generate_field_visualization(magnet_config):
     x_extent_mm = mag_width_mm * padding_factor
     z_extent_mm = mag_height_mm * padding_factor
     
-    # Use smaller grid for ring magnets to speed up computation
-    grid_size = 60 if magnet_type == 'ring' else 80
+    # Use smaller grid for ring magnets and ring segments to speed up computation
+    # Ring segments are slowest, so use smallest grid
+    if magnet_type == 'ring_segment':
+        grid_size = 40
+    elif magnet_type == 'ring':
+        grid_size = 60
+    else:
+        grid_size = 80
     # Create grid in mm
     x_mm = np.linspace(-x_extent_mm/2, x_extent_mm/2, grid_size)
     z_mm = np.linspace(-z_extent_mm/2, z_extent_mm/2, grid_size)
@@ -450,7 +456,7 @@ def generate_field_visualization(magnet_config):
     
     # Draw magnet outline (in mm) - side view (X-Z plane)
     from matplotlib.patches import Rectangle
-    if magnet_type == 'ring':
+    if magnet_type == 'ring' or magnet_type == 'ring_segment':
         # Ring magnet in side view: show cross-section with hollow center
         outer_radius_mm = outer_radius_m * 1000
         inner_radius_mm = inner_radius_m * 1000
