@@ -374,9 +374,10 @@ def generate_field_visualization(magnet_config):
     
     if use_xy_plane:
         # X-Y plane (Z=0, top view)
-        extent_mm = max(mag_length_mm, mag_width_mm) * padding_factor
-        x_mm = np.linspace(-extent_mm/2, extent_mm/2, grid_size)
-        y_mm = np.linspace(-extent_mm/2, extent_mm/2, grid_size)
+        x_extent_mm = max(mag_length_mm, mag_width_mm) * padding_factor
+        y_extent_mm = max(mag_length_mm, mag_width_mm) * padding_factor
+        x_mm = np.linspace(-x_extent_mm/2, x_extent_mm/2, grid_size)
+        y_mm = np.linspace(-y_extent_mm/2, y_extent_mm/2, grid_size)
         X_mm, Y_mm = np.meshgrid(x_mm, y_mm)
         X_m, Y_m = X_mm / 1000, Y_mm / 1000
         
@@ -476,8 +477,8 @@ def generate_field_visualization(magnet_config):
                 line=dict(color="rgb(239, 68, 68)", width=2),
                 fillcolor="rgba(239, 68, 68, 0.3)")
         
-        fig.update_xaxes(title="X (mm)", range=[-extent_mm/2, extent_mm/2])
-        fig.update_yaxes(title="Y (mm)", range=[-extent_mm/2, extent_mm/2], scaleanchor="x", scaleratio=1)
+        fig.update_xaxes(title="X (mm)", range=[-x_extent_mm/2, x_extent_mm/2])
+        fig.update_yaxes(title="Y (mm)", range=[-y_extent_mm/2, y_extent_mm/2], scaleanchor="x", scaleratio=1)
         fig.update_layout(
             title="Magnetfeld (X-Y Ebene, Draufsicht)",
             width=700, height=700,
