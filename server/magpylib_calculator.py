@@ -687,35 +687,63 @@ def calculate_line_field(magnet_config):
         point_ui = line_points_ui[i]
         distances.append(float(np.linalg.norm(point_ui - start_ui) * 1000))
     
-    # Create matplotlib chart
-    fig, ax = plt.subplots(figsize=(10, 6))
+    # Create Plotly chart
+    fig = go.Figure()
     
-    # Plot three lines for Bx, By, Bz
-    ax.plot(distances, [b * 1000 for b in Bx_values], 'r-', linewidth=2, label='Bx')
-    ax.plot(distances, [b * 1000 for b in By_values], 'g-', linewidth=2, label='By')
-    ax.plot(distances, [b * 1000 for b in Bz_values], 'b-', linewidth=2, label='Bz')
+    # Convert to mT for display
+    Bx_mT = [b * 1000 for b in Bx_values]
+    By_mT = [b * 1000 for b in By_values]
+    Bz_mT = [b * 1000 for b in Bz_values]
     
-    # Add grid and labels
-    ax.grid(True, alpha=0.3)
-    ax.set_xlabel('Distanz entlang Linie (mm)', fontsize=12)
-    ax.set_ylabel('Magnetische Flussdichte (mT)', fontsize=12)
-    ax.set_title('Feldkomponenten entlang der Linie', fontsize=14, fontweight='bold')
-    ax.legend(loc='best', fontsize=10)
+    # Add traces for Bx, By, Bz
+    fig.add_trace(go.Scatter(
+        x=distances,
+        y=Bx_mT,
+        mode='lines',
+        name='Bx',
+        line=dict(color='rgb(239, 68, 68)', width=2),
+        hovertemplate='Distance: %{x:.2f} mm<br>Bx: %{y:.4f} mT<extra></extra>'
+    ))
+    
+    fig.add_trace(go.Scatter(
+        x=distances,
+        y=By_mT,
+        mode='lines',
+        name='By',
+        line=dict(color='rgb(34, 197, 94)', width=2),
+        hovertemplate='Distance: %{x:.2f} mm<br>By: %{y:.4f} mT<extra></extra>'
+    ))
+    
+    fig.add_trace(go.Scatter(
+        x=distances,
+        y=Bz_mT,
+        mode='lines',
+        name='Bz',
+        line=dict(color='rgb(59, 130, 246)', width=2),
+        hovertemplate='Distance: %{x:.2f} mm<br>Bz: %{y:.4f} mT<extra></extra>'
+    ))
     
     # Add zero line
-    ax.axhline(y=0, color='k', linestyle='--', alpha=0.3, linewidth=0.8)
+    fig.add_hline(y=0, line_dash="dash", line_color="rgba(0, 0, 0, 0.3)", line_width=1)
     
-    plt.tight_layout()
+    # Update layout
+    fig.update_layout(
+        title='Feldkomponenten entlang der Linie',
+        xaxis_title='Distanz entlang Linie (mm)',
+        yaxis_title='Magnetische Flussdichte (mT)',
+        width=800,
+        height=500,
+        template='plotly_white',
+        hovermode='x unified',
+        showlegend=True,
+        legend=dict(x=1.02, y=1, xanchor='left', yanchor='top')
+    )
     
-    # Convert plot to base64 PNG
-    buf = io.BytesIO()
-    plt.savefig(buf, format='png', dpi=100, bbox_inches='tight')
-    buf.seek(0)
-    img_base64 = base64.b64encode(buf.read()).decode('utf-8')
-    plt.close(fig)
+    fig.update_xaxes(showgrid=True, gridcolor='rgba(0, 0, 0, 0.1)')
+    fig.update_yaxes(showgrid=True, gridcolor='rgba(0, 0, 0, 0.1)')
     
     return {
-        'image': img_base64
+        'plotlyJson': fig.to_json()
     }
 
 

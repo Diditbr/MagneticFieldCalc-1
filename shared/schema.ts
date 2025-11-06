@@ -228,9 +228,9 @@ export const lineCalculationRequestSchema = z.object({
 
 export type LineCalculationRequest = z.infer<typeof lineCalculationRequestSchema>;
 
-// Line calculation response - base64 encoded chart image
+// Line calculation response - Plotly JSON chart
 export const lineCalculationResponseSchema = z.object({
-  image: z.string(), // base64 encoded PNG
+  plotlyJson: z.string(), // Plotly JSON format
 });
 
 export type LineCalculationResponse = z.infer<typeof lineCalculationResponseSchema>;

@@ -59,7 +59,7 @@ export default function Calculator() {
 
   const [lineStart, setLineStart] = useState({ x: 0, y: 0, z: 0 });
   const [lineEnd, setLineEnd] = useState({ x: 0, y: 0, z: 5 });
-  const [lineChartImage, setLineChartImage] = useState<string | null>(null);
+  const [lineChartPlotlyData, setLineChartPlotlyData] = useState<any | null>(null);
 
   const calculateMutation = useMutation({
     mutationFn: async (request: FieldCalculationRequest) => {
@@ -88,11 +88,13 @@ export default function Calculator() {
       return data;
     },
     onSuccess: (data) => {
-      setLineChartImage(data.image);
+      if (data.plotlyJson) {
+        setLineChartPlotlyData(JSON.parse(data.plotlyJson));
+      }
     },
     onError: (error) => {
       console.error('Line calculation error:', error);
-      setLineChartImage(null);
+      setLineChartPlotlyData(null);
     },
   });
 
@@ -459,7 +461,7 @@ export default function Calculator() {
             />
             
             <LineFieldChart
-              imageData={lineChartImage}
+              plotlyData={lineChartPlotlyData}
               isLoading={calculateLineMutation.isPending}
               error={calculateLineMutation.isError ? 'Fehler bei der Berechnung' : undefined}
             />

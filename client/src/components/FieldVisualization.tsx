@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import Plot from "react-plotly.js";
 import { Card } from "@/components/ui/card";
 import type { MagnetType, MagnetizationType } from "@shared/schema";
 
@@ -11,6 +12,8 @@ interface FieldVisualizationProps {
     diameter?: number;
     innerDiameter?: number;
     thickness?: number;
+    phi1?: number;
+    phi2?: number;
   };
   magnetization: number;
   magnetizationType: MagnetizationType;
@@ -52,7 +55,7 @@ export function FieldVisualization({
   lineEndY,
   lineEndZ,
 }: FieldVisualizationProps) {
-  const [visualizationImage, setVisualizationImage] = useState<string | null>(null);
+  const [plotlyData, setPlotlyData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   
@@ -69,10 +72,15 @@ export function FieldVisualization({
       setIsLoading(true);
       try {
         // Convert all dimensions from mm to meters for backend
+        // IMPORTANT: phi1 and phi2 are angles in degrees, NOT lengths - do not convert
         const dimensionsInMeters: any = {};
         Object.entries(dimensions).forEach(([key, value]) => {
           if (value !== undefined) {
-            dimensionsInMeters[key] = value / 1000; // mm to m
+            if (key === 'phi1' || key === 'phi2') {
+              dimensionsInMeters[key] = value; // Keep angles in degrees
+            } else {
+              dimensionsInMeters[key] = value / 1000; // mm to m
+            }
           }
         });
         
@@ -111,7 +119,11 @@ export function FieldVisualization({
         
         if (response.ok) {
           const data = await response.json();
-          setVisualizationImage(data.image);
+          // Parse Plotly JSON
+          if (data.plotlyJson) {
+            const plotData = JSON.parse(data.plotlyJson);
+            setPlotlyData(plotData);
+          }
         } else {
           console.error('Failed to fetch visualization');
         }
@@ -133,6 +145,14 @@ export function FieldVisualization({
     };
   }, [magnetType, dimensions, magnetization, magnetizationType, magnetizationAngle, calcX, calcZ, numFluxLines, maxColorScale, lineStartX, lineStartY, lineStartZ, lineEndX, lineEndY, lineEndZ]);
 
+  const getViewDescription = () => {
+    if ((magnetType === 'ring' || magnetType === 'ring_segment') && 
+        (magnetizationType === 'radial' || magnetizationType === 'diametral')) {
+      return 'X-Y Ebene (Draufsicht)';
+    }
+    return 'X-Z Ebene (Seitenansicht)';
+  };
+
   return (
     <Card className="p-4 space-y-3" data-testid="card-field-visualization">
       <div className="space-y-3">
@@ -143,34 +163,37 @@ export function FieldVisualization({
               <div className="w-4 h-2 border-2 border-[#ef4444] bg-[#ef444420]"></div>
               <span className="text-muted-foreground">Magnet</span>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-green-500"></div>
-              <span className="text-muted-foreground">Berechnungspunkt</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-0.5 bg-blue-500"></div>
-              <span className="text-muted-foreground">Messlinie</span>
-            </div>
           </div>
         </div>
         {isLoading ? (
           <div className="w-full h-96 flex items-center justify-center bg-card rounded-md">
-            <p className="text-muted-foreground">Generating visualization...</p>
+            <p className="text-muted-foreground">Visualisierung wird generiert...</p>
           </div>
-        ) : visualizationImage ? (
-          <img
-            src={`data:image/png;base64,${visualizationImage}`}
-            alt="Magnetic field visualization"
-            className="w-full rounded-md bg-card"
-            data-testid="img-field-visualization"
-          />
+        ) : plotlyData ? (
+          <div className="w-full" data-testid="plotly-field-visualization">
+            <Plot
+              data={plotlyData.data}
+              layout={{
+                ...plotlyData.layout,
+                autosize: true,
+                margin: { l: 60, r: 60, t: 60, b: 60 }
+              }}
+              config={{
+                responsive: true,
+                displayModeBar: true,
+                displaylogo: false,
+                modeBarButtonsToRemove: ['lasso2d', 'select2d']
+              }}
+              style={{ width: '100%', height: '600px' }}
+            />
+          </div>
         ) : (
           <div className="w-full h-96 flex items-center justify-center bg-card rounded-md">
-            <p className="text-muted-foreground">Loading visualization...</p>
+            <p className="text-muted-foreground">Visualisierung laden...</p>
           </div>
         )}
         <div className="text-xs text-muted-foreground text-center">
-          2D-Querschnitt mit Feldlinien (X-Z Ebene, Seitenansicht)
+          Interaktive Magnetfeldvisualisierung ({getViewDescription()})
         </div>
       </div>
     </Card>
