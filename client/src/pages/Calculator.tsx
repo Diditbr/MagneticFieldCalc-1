@@ -154,8 +154,8 @@ export default function Calculator() {
       request.diameter = toMeters(dimensions.diameter);
       request.innerDiameter = toMeters(dimensions.innerDiameter);
       request.thickness = toMeters(dimensions.thickness);
-      request.phi1 = dimensions.phi1 || 0;
-      request.phi2 = dimensions.phi2 || 90;
+      request.phi1 = dimensions.phi1 !== undefined ? dimensions.phi1 : 0;
+      request.phi2 = dimensions.phi2 !== undefined ? dimensions.phi2 : 90;
     }
 
     return request;
