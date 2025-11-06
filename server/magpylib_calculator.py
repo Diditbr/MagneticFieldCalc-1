@@ -469,6 +469,16 @@ def generate_field_visualization(magnet_config):
                 line=dict(color='rgb(239, 68, 68)', width=2),
                 hoverinfo='skip', showlegend=False
             ))
+        elif magnet_type == 'cylindrical':
+            # Circle (Cylinder top view)
+            theta = np.linspace(0, 2*np.pi, 100)
+            radius_mm = mag_length_mm / 2  # mag_length_mm stores diameter for cylinders
+            fig.add_trace(go.Scatter(
+                x=radius_mm * np.cos(theta), y=radius_mm * np.sin(theta),
+                fill='toself', fillcolor='rgba(239, 68, 68, 0.3)',
+                line=dict(color='rgb(239, 68, 68)', width=2),
+                hoverinfo='skip', showlegend=False
+            ))
         else:
             # Rectangle (Cuboid top view)
             fig.add_shape(type="rect",
@@ -559,6 +569,14 @@ def generate_field_visualization(magnet_config):
             fig.add_shape(type="rect",
                 x0=inner_r_mm, y0=-mag_height_mm/2,
                 x1=outer_r_mm, y1=mag_height_mm/2,
+                line=dict(color="rgb(239, 68, 68)", width=2),
+                fillcolor="rgba(239, 68, 68, 0.3)")
+        elif magnet_type == 'cylindrical':
+            # Rectangle (Cylinder side view)
+            # mag_length_mm stores diameter, mag_height_mm stores length for cylinders
+            fig.add_shape(type="rect",
+                x0=-mag_length_mm/2, y0=-mag_height_mm/2,
+                x1=mag_length_mm/2, y1=mag_height_mm/2,
                 line=dict(color="rgb(239, 68, 68)", width=2),
                 fillcolor="rgba(239, 68, 68, 0.3)")
         else:
