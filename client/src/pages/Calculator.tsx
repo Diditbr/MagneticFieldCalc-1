@@ -60,6 +60,8 @@ export default function Calculator() {
   const [lineStart, setLineStart] = useState({ x: 0, y: 0, z: 0 });
   const [lineEnd, setLineEnd] = useState({ x: 0, y: 0, z: 5 });
   const [lineChartPlotlyData, setLineChartPlotlyData] = useState<any | null>(null);
+  const [showVisualization, setShowVisualization] = useState(false);
+  const [visualizationLoading, setVisualizationLoading] = useState(false);
 
   const calculateMutation = useMutation({
     mutationFn: async (request: FieldCalculationRequest) => {
@@ -73,6 +75,7 @@ export default function Calculator() {
     },
     onSuccess: (data) => {
       setResults(data);
+      setShowVisualization(false);
       calculateLineMutation.mutate(buildLineRequest());
     },
   });
@@ -243,6 +246,18 @@ export default function Calculator() {
     }
   }, [magnetType]);
 
+  const handleVisualizationToggle = () => {
+    if (!showVisualization) {
+      setVisualizationLoading(true);
+      setTimeout(() => {
+        setShowVisualization(true);
+        setVisualizationLoading(false);
+      }, 100);
+    } else {
+      setShowVisualization(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card">
@@ -254,10 +269,10 @@ export default function Calculator() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-6">
-        <div className="grid lg:grid-cols-2 gap-6">
-          <div className="space-y-6">
-            <Card className="p-6 space-y-6">
+      <main className="max-w-7xl mx-auto px-4 py-6 space-y-6">
+        <Card className="p-6">
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="space-y-6">
               <MagnetTypeSelector value={magnetType} onChange={setMagnetType} />
 
               <div className="border-t pt-6">
@@ -288,15 +303,19 @@ export default function Calculator() {
                   onMagnetizationAngleChange={setMagnetizationAngle}
                 />
               </div>
+            </div>
+
+            <div className="space-y-6">
+              <CalculationPointInputs
+                x={calcPoint.x}
+                y={calcPoint.y}
+                z={calcPoint.z}
+                onChange={handleCalcPointChange}
+                unit={lengthUnit}
+              />
 
               <div className="border-t pt-6">
-                <CalculationPointInputs
-                  x={calcPoint.x}
-                  y={calcPoint.y}
-                  z={calcPoint.z}
-                  onChange={handleCalcPointChange}
-                  unit={lengthUnit}
-                />
+                <UnitControls fieldUnit={fieldUnit} onFieldUnitChange={setFieldUnit} />
               </div>
 
               <div className="border-t pt-6">
@@ -306,14 +325,14 @@ export default function Calculator() {
                     <input
                       type="range"
                       min="4"
-                      max="32"
+                      max="50"
                       step="2"
                       value={numFluxLines}
                       onChange={(e) => setNumFluxLines(Number(e.target.value))}
                       className="flex-1"
                       data-testid="input-num-flux-lines"
                     />
-                    <span className="text-sm font-mono text-muted-foreground w-8 text-right">
+                    <span className="text-sm font-mono text-muted-foreground w-12 text-right">
                       {numFluxLines}
                     </span>
                   </div>
@@ -356,49 +375,95 @@ export default function Calculator() {
                   </p>
                 </div>
               </div>
-
-              <div className="border-t pt-6">
-                <UnitControls fieldUnit={fieldUnit} onFieldUnitChange={setFieldUnit} />
-              </div>
-
-              <Button
-                onClick={handleCalculate}
-                disabled={calculateMutation.isPending}
-                className="w-full"
-                size="lg"
-                data-testid="button-calculate"
-              >
-                {calculateMutation.isPending ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Calculating...
-                  </>
-                ) : (
-                  <>
-                    <CalcIcon className="mr-2 h-4 w-4" />
-                    Calculate Field
-                  </>
-                )}
-              </Button>
-            </Card>
+            </div>
           </div>
 
-          <div className="space-y-6">
-            {results ? (
-              <>
-                <FieldResults
-                  Bx={convertField(Number(results.Bx) || 0, "T", fieldUnit)}
-                  By={convertField(Number(results.By) || 0, "T", fieldUnit)}
-                  Bz={convertField(Number(results.Bz) || 0, "T", fieldUnit)}
-                  magnitude={convertField(Number(results.magnitude) || 0, "T", fieldUnit)}
-                  distance={convertLength(Number(results.distance) || 0, "m", lengthUnit)}
-                  fieldUnit={fieldUnit}
-                  lengthUnit={lengthUnit}
-                  calcX={calcPoint.x}
-                  calcY={calcPoint.y}
-                  calcZ={calcPoint.z}
-                />
+          <div className="md:col-span-2 border-t pt-6">
+            <Button
+              onClick={handleCalculate}
+              disabled={calculateMutation.isPending}
+              className="w-full"
+              size="lg"
+              data-testid="button-calculate"
+            >
+              {calculateMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Berechnung läuft...
+                </>
+              ) : (
+                <>
+                  <CalcIcon className="mr-2 h-4 w-4" />
+                  Feldstärke berechnen
+                </>
+              )}
+            </Button>
+          </div>
+        </Card>
 
+        {results && (
+          <>
+            <FieldResults
+              Bx={convertField(Number(results.Bx) || 0, "T", fieldUnit)}
+              By={convertField(Number(results.By) || 0, "T", fieldUnit)}
+              Bz={convertField(Number(results.Bz) || 0, "T", fieldUnit)}
+              magnitude={convertField(Number(results.magnitude) || 0, "T", fieldUnit)}
+              distance={convertLength(Number(results.distance) || 0, "m", lengthUnit)}
+              fieldUnit={fieldUnit}
+              lengthUnit={lengthUnit}
+              calcX={calcPoint.x}
+              calcY={calcPoint.y}
+              calcZ={calcPoint.z}
+            />
+
+            <Card className="p-6 space-y-4">
+              <h3 className="text-lg font-semibold">Feldverlauf entlang einer Linie</h3>
+              <LineInputs
+                startX={lineStart.x}
+                startY={lineStart.y}
+                startZ={lineStart.z}
+                endX={lineEnd.x}
+                endY={lineEnd.y}
+                endZ={lineEnd.z}
+                onStartXChange={(v) => handleLineStartChange("x", v)}
+                onStartYChange={(v) => handleLineStartChange("y", v)}
+                onStartZChange={(v) => handleLineStartChange("z", v)}
+                onEndXChange={(v) => handleLineEndChange("x", v)}
+                onEndYChange={(v) => handleLineEndChange("y", v)}
+                onEndZChange={(v) => handleLineEndChange("z", v)}
+                lengthUnit={lengthUnit}
+              />
+              
+              <LineFieldChart
+                plotlyData={lineChartPlotlyData}
+                isLoading={calculateLineMutation.isPending}
+                error={calculateLineMutation.isError ? 'Fehler bei der Berechnung' : undefined}
+              />
+            </Card>
+
+            <Card className="p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold">3D Feldvisualisierung</h3>
+                <Button
+                  onClick={handleVisualizationToggle}
+                  disabled={visualizationLoading}
+                  variant={showVisualization ? "secondary" : "default"}
+                  data-testid="button-toggle-visualization"
+                >
+                  {visualizationLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Lädt...
+                    </>
+                  ) : showVisualization ? (
+                    "Visualisierung ausblenden"
+                  ) : (
+                    "Visualisierung anzeigen"
+                  )}
+                </Button>
+              </div>
+
+              {showVisualization && (
                 <FieldVisualization
                   magnetType={magnetType}
                   dimensions={dimensions}
@@ -424,49 +489,12 @@ export default function Calculator() {
                   lineEndY={lineEnd.y}
                   lineEndZ={lineEnd.z}
                 />
-              </>
-            ) : (
-              <Card className="p-12">
-                <div className="text-center space-y-3">
-                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10">
-                    <CalcIcon className="h-8 w-8 text-primary" />
-                  </div>
-                  <h3 className="text-lg font-semibold">Ready to Calculate</h3>
-                  <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-                    Configure your magnet parameters and calculation point, then click Calculate to
-                    see the magnetic field results and visualization.
-                  </p>
-                </div>
-              </Card>
-            )}
+              )}
+            </Card>
+          </>
+        )}
 
-            <FormulaDisplay magnetType={magnetType} />
-          </div>
-
-          <div className="lg:col-span-2 space-y-6">
-            <LineInputs
-              startX={lineStart.x}
-              startY={lineStart.y}
-              startZ={lineStart.z}
-              endX={lineEnd.x}
-              endY={lineEnd.y}
-              endZ={lineEnd.z}
-              onStartXChange={(v) => handleLineStartChange("x", v)}
-              onStartYChange={(v) => handleLineStartChange("y", v)}
-              onStartZChange={(v) => handleLineStartChange("z", v)}
-              onEndXChange={(v) => handleLineEndChange("x", v)}
-              onEndYChange={(v) => handleLineEndChange("y", v)}
-              onEndZChange={(v) => handleLineEndChange("z", v)}
-              lengthUnit={lengthUnit}
-            />
-            
-            <LineFieldChart
-              plotlyData={lineChartPlotlyData}
-              isLoading={calculateLineMutation.isPending}
-              error={calculateLineMutation.isError ? 'Fehler bei der Berechnung' : undefined}
-            />
-          </div>
-        </div>
+        <FormulaDisplay magnetType={magnetType} />
       </main>
     </div>
   );
