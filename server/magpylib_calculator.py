@@ -377,17 +377,13 @@ def generate_field_visualization(magnet_config):
         X_mm, Y_mm = np.meshgrid(x_mm, y_mm)
         X_m, Y_m = X_mm / 1000, Y_mm / 1000
         
-        Bx = np.zeros_like(X_mm)
-        By = np.zeros_like(Y_mm)
-        B_mag = np.zeros_like(X_mm)
-        
-        for i in range(grid_size):
-            for j in range(grid_size):
-                observer = np.array([X_m[i, j], Y_m[i, j], 0])
-                B = magpy.getB(magnet, observer)
-                Bx[i, j] = B[0]
-                By[i, j] = B[1]
-                B_mag[i, j] = np.sqrt(B[0]**2 + B[1]**2 + B[2]**2)
+        # Vectorized field calculation
+        observers = np.stack([X_m.flatten(), Y_m.flatten(), np.zeros(grid_size * grid_size)], axis=-1)
+        B = magpy.getB(magnet, observers)
+        Bx = B[:, 0].reshape(grid_size, grid_size)
+        By = B[:, 1].reshape(grid_size, grid_size)
+        Bz = B[:, 2].reshape(grid_size, grid_size)
+        B_mag = np.sqrt(Bx**2 + By**2 + Bz**2)
         
         # Create Plotly figure
         skip = max(1, grid_size // 20)
@@ -476,17 +472,13 @@ def generate_field_visualization(magnet_config):
         X_mm, Z_mm = np.meshgrid(x_mm, z_mm)
         X_m, Z_m = X_mm / 1000, Z_mm / 1000
         
-        Bx = np.zeros_like(X_mm)
-        Bz = np.zeros_like(Z_mm)
-        B_mag = np.zeros_like(X_mm)
-        
-        for i in range(grid_size):
-            for j in range(grid_size):
-                observer = np.array([X_m[i, j], 0, Z_m[i, j]])
-                B = magpy.getB(magnet, observer)
-                Bx[i, j] = B[0]
-                Bz[i, j] = B[2]
-                B_mag[i, j] = np.sqrt(B[0]**2 + B[1]**2 + B[2]**2)
+        # Vectorized field calculation
+        observers = np.stack([X_m.flatten(), np.zeros(grid_size * grid_size), Z_m.flatten()], axis=-1)
+        B = magpy.getB(magnet, observers)
+        Bx = B[:, 0].reshape(grid_size, grid_size)
+        By = B[:, 1].reshape(grid_size, grid_size)
+        Bz = B[:, 2].reshape(grid_size, grid_size)
+        B_mag = np.sqrt(Bx**2 + By**2 + Bz**2)
         
         # Create figure
         skip = max(1, grid_size // 20)
