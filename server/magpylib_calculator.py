@@ -396,9 +396,10 @@ def generate_field_visualization(magnet_config):
             'x': x_mm,
             'y': y_mm,
             'z': B_mag,
-            'colorscale': 'Viridis',
-            'colorbar': dict(title="Flussdichte |B| [T]"),
-            'hovertemplate': 'X: %{x:.2f} mm<br>Y: %{y:.2f} mm<br>|B|: %{z:.4f} T<extra></extra>'
+            'colorscale': 'Jet',
+            'colorbar': dict(title="Flussdichte |B| [T]", tickformat='.4f'),
+            'hovertemplate': 'X: %{x:.2f} mm<br>Y: %{y:.2f} mm<br>|B|: %{z:.4f} T<extra></extra>',
+            'zauto': True
         }
         if max_color and max_color > 0:
             heatmap_params['zmin'] = 0
@@ -409,7 +410,7 @@ def generate_field_visualization(magnet_config):
         # Add vector field arrows - controlled by numFluxLines parameter
         num_flux_lines = magnet_config.get('numFluxLines', 8)
         # Calculate skip to get approximately the requested number of arrows
-        target_arrows = max(4, min(num_flux_lines * num_flux_lines, 100))  # Between 16 and 100 arrows
+        target_arrows = max(4, min(num_flux_lines * num_flux_lines, 2500))  # Between 16 and 2500 arrows (50x50)
         skip = max(1, int(grid_size / np.sqrt(target_arrows)))
         
         # Uniform arrow length - only direction matters
@@ -508,9 +509,10 @@ def generate_field_visualization(magnet_config):
             'x': x_mm,
             'y': z_mm,
             'z': B_mag,
-            'colorscale': 'Viridis',
-            'colorbar': dict(title="Flussdichte |B| [T]"),
-            'hovertemplate': 'X: %{x:.2f} mm<br>Z: %{y:.2f} mm<br>|B|: %{z:.4f} T<extra></extra>'
+            'colorscale': 'Jet',
+            'colorbar': dict(title="Flussdichte |B| [T]", tickformat='.4f'),
+            'hovertemplate': 'X: %{x:.2f} mm<br>Z: %{y:.2f} mm<br>|B|: %{z:.4f} T<extra></extra>',
+            'zauto': True
         }
         if max_color and max_color > 0:
             heatmap_params['zmin'] = 0
@@ -521,7 +523,7 @@ def generate_field_visualization(magnet_config):
         # Add arrows - controlled by numFluxLines parameter
         num_flux_lines = magnet_config.get('numFluxLines', 8)
         # Calculate skip to get approximately the requested number of arrows
-        target_arrows = max(4, min(num_flux_lines * num_flux_lines, 100))  # Between 16 and 100 arrows
+        target_arrows = max(4, min(num_flux_lines * num_flux_lines, 2500))  # Between 16 and 2500 arrows (50x50)
         skip = max(1, int(grid_size / np.sqrt(target_arrows)))
         
         # Uniform arrow length - only direction matters
