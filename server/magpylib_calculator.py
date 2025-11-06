@@ -281,7 +281,9 @@ def generate_field_visualization(magnet_config):
     magnetization_angle = magnet_config.get('magnetizationAngle', 0)
     
     # Determine view plane
-    use_xy_plane = (magnet_type in ['ring', 'ring_segment']) and (magnetization_type in ['radial', 'diametral'])
+    # X-Y plane (top view) for radial/diametral magnetization to show radial field pattern
+    # X-Z plane (side view) for axial magnetization and rectangular magnets
+    use_xy_plane = (magnet_type in ['ring', 'ring_segment', 'cylindrical']) and (magnetization_type in ['radial', 'diametral'])
     
     # Create magnet (reuse logic from calculate_field)
     if magnet_type == 'rectangular':
@@ -359,9 +361,9 @@ def generate_field_visualization(magnet_config):
     else:
         raise ValueError(f"Unknown magnet type: {magnet_type}")
     
-    # Grid setup  
+    # Grid setup - balanced for quality and performance
     padding_factor = 5.0
-    grid_size = 25 if magnet_type == 'ring_segment' else (30 if magnet_type == 'ring' else 35)
+    grid_size = 35 if magnet_type == 'ring_segment' else (40 if magnet_type == 'ring' else 45)
     
     # Convert to mm
     mag_width_mm = mag_width * 1000

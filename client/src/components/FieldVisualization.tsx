@@ -146,7 +146,7 @@ export function FieldVisualization({
   }, [magnetType, dimensions, magnetization, magnetizationType, magnetizationAngle, calcX, calcZ, numFluxLines, maxColorScale, lineStartX, lineStartY, lineStartZ, lineEndX, lineEndY, lineEndZ]);
 
   const getViewDescription = () => {
-    if ((magnetType === 'ring' || magnetType === 'ring_segment') && 
+    if ((magnetType === 'ring' || magnetType === 'ring_segment' || magnetType === 'cylindrical') && 
         (magnetizationType === 'radial' || magnetizationType === 'diametral')) {
       return 'X-Y Ebene (Draufsicht)';
     }
