@@ -55,11 +55,19 @@ export function CalculationPointInputs({
                   id={`calc-${axis}`}
                   type="number"
                   step="0.1"
-                  value={axis === "x" ? x : axis === "y" ? y : z}
-                  onChange={(e) => {
+                  defaultValue={axis === "x" ? x : axis === "y" ? y : z}
+                  onBlur={(e) => {
                     const value = parseFloat(e.target.value);
+                    const currentValue = axis === "x" ? x : axis === "y" ? y : z;
                     if (!isNaN(value)) {
                       onChange(axis, value);
+                    } else {
+                      e.target.value = String(currentValue);
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.currentTarget.blur();
                     }
                   }}
                   className="font-mono pr-12"

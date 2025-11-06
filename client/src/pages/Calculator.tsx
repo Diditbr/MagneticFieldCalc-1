@@ -55,8 +55,8 @@ export default function Calculator() {
   const [maxColorScale, setMaxColorScale] = useState(0.1);
   const [results, setResults] = useState<FieldCalculationResponse | null>(null);
 
-  const [lineStart, setLineStart] = useState({ x: 0, y: 0, z: 5 });
-  const [lineEnd, setLineEnd] = useState({ x: 0, y: 0, z: 15 });
+  const [lineStart, setLineStart] = useState({ x: 0, y: 0, z: 0 });
+  const [lineEnd, setLineEnd] = useState({ x: 0, y: 0, z: 5 });
   const [lineChartImage, setLineChartImage] = useState<string | null>(null);
 
   const calculateMutation = useMutation({

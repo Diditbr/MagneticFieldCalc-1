@@ -53,8 +53,20 @@ export function LineInputs({
                 id="line-start-x"
                 data-testid="input-line-start-x"
                 type="number"
-                value={startX}
-                onChange={(e) => onStartXChange(parseFloat(e.target.value) || 0)}
+                defaultValue={startX}
+                onBlur={(e) => {
+                  const value = parseFloat(e.target.value);
+                  if (!isNaN(value)) {
+                    onStartXChange(value);
+                  } else {
+                    e.target.value = String(startX);
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.currentTarget.blur();
+                  }
+                }}
                 step="0.1"
                 className="h-8 text-sm"
               />
@@ -67,8 +79,20 @@ export function LineInputs({
                 id="line-start-y"
                 data-testid="input-line-start-y"
                 type="number"
-                value={startY}
-                onChange={(e) => onStartYChange(parseFloat(e.target.value) || 0)}
+                defaultValue={startY}
+                onBlur={(e) => {
+                  const value = parseFloat(e.target.value);
+                  if (!isNaN(value)) {
+                    onStartYChange(value);
+                  } else {
+                    e.target.value = String(startY);
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.currentTarget.blur();
+                  }
+                }}
                 step="0.1"
                 className="h-8 text-sm"
               />
@@ -81,8 +105,20 @@ export function LineInputs({
                 id="line-start-z"
                 data-testid="input-line-start-z"
                 type="number"
-                value={startZ}
-                onChange={(e) => onStartZChange(parseFloat(e.target.value) || 0)}
+                defaultValue={startZ}
+                onBlur={(e) => {
+                  const value = parseFloat(e.target.value);
+                  if (!isNaN(value)) {
+                    onStartZChange(value);
+                  } else {
+                    e.target.value = String(startZ);
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.currentTarget.blur();
+                  }
+                }}
                 step="0.1"
                 className="h-8 text-sm"
               />
@@ -101,8 +137,20 @@ export function LineInputs({
                 id="line-end-x"
                 data-testid="input-line-end-x"
                 type="number"
-                value={endX}
-                onChange={(e) => onEndXChange(parseFloat(e.target.value) || 0)}
+                defaultValue={endX}
+                onBlur={(e) => {
+                  const value = parseFloat(e.target.value);
+                  if (!isNaN(value)) {
+                    onEndXChange(value);
+                  } else {
+                    e.target.value = String(endX);
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.currentTarget.blur();
+                  }
+                }}
                 step="0.1"
                 className="h-8 text-sm"
               />
@@ -115,8 +163,20 @@ export function LineInputs({
                 id="line-end-y"
                 data-testid="input-line-end-y"
                 type="number"
-                value={endY}
-                onChange={(e) => onEndYChange(parseFloat(e.target.value) || 0)}
+                defaultValue={endY}
+                onBlur={(e) => {
+                  const value = parseFloat(e.target.value);
+                  if (!isNaN(value)) {
+                    onEndYChange(value);
+                  } else {
+                    e.target.value = String(endY);
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.currentTarget.blur();
+                  }
+                }}
                 step="0.1"
                 className="h-8 text-sm"
               />
@@ -129,8 +189,20 @@ export function LineInputs({
                 id="line-end-z"
                 data-testid="input-line-end-z"
                 type="number"
-                value={endZ}
-                onChange={(e) => onEndZChange(parseFloat(e.target.value) || 0)}
+                defaultValue={endZ}
+                onBlur={(e) => {
+                  const value = parseFloat(e.target.value);
+                  if (!isNaN(value)) {
+                    onEndZChange(value);
+                  } else {
+                    e.target.value = String(endZ);
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.currentTarget.blur();
+                  }
+                }}
                 step="0.1"
                 className="h-8 text-sm"
               />
