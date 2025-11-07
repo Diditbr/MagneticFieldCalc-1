@@ -335,9 +335,9 @@ export default function Calculator() {
     } else if (magnetType === "ring") {
       setDimensions((prev) => ({ ...prev, diameter: 20, innerDiameter: 10, thickness: 5 }));
     } else if (magnetType === "ring_segment") {
-      setDimensions((prev) => ({ ...prev, diameter: 10, innerDiameter: 5, thickness: 5, phi1: 0, phi2: 90 }));
+      setDimensions((prev) => ({ ...prev, diameter: 20, innerDiameter: 10, thickness: 5, phi1: 0, phi2: 90 }));
     } else if (magnetType === "ring_multi_segment") {
-      setDimensions((prev) => ({ ...prev, diameter: 10, innerDiameter: 5, thickness: 5, numPoles: 4 }));
+      setDimensions((prev) => ({ ...prev, diameter: 20, innerDiameter: 15, thickness: 5, numPoles: 4 }));
     }
   }, [magnetType]);
 
