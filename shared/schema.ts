@@ -284,7 +284,7 @@ export const circleCalculationRequestSchema = z.object({
   centerZ: z.number().default(0), // Circle center Z offset in meters
   
   // Sampling parameters
-  numSamples: z.number().int().min(36).max(720).default(360), // Number of angle samples
+  numSamples: z.number().int().min(36).max(1440).default(360), // Number of angle samples
 });
 
 export type CircleCalculationRequest = z.infer<typeof circleCalculationRequestSchema>;
