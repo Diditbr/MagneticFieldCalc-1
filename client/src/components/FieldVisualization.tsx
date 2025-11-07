@@ -14,6 +14,7 @@ interface FieldVisualizationProps {
     thickness?: number;
     phi1?: number;
     phi2?: number;
+    axisTiltAngle?: number;
   };
   magnetization: number;
   magnetizationType: MagnetizationType;
@@ -84,7 +85,7 @@ export function FieldVisualization({
         const dimensionsInMeters: any = {};
         Object.entries(dimensions).forEach(([key, value]) => {
           if (value !== undefined) {
-            if (key === 'phi1' || key === 'phi2' || key === 'numPoles') {
+            if (key === 'phi1' || key === 'phi2' || key === 'numPoles' || key === 'axisTiltAngle') {
               dimensionsInMeters[key] = value; // Keep angles and counts as-is
             } else {
               dimensionsInMeters[key] = value / 1000; // mm to m

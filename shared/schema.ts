@@ -74,6 +74,7 @@ export const fieldCalculationRequestSchema = z.object({
   magnetization: z.number().positive(),
   magnetizationType: z.enum(magnetizationTypes).default("axial"),
   magnetizationAngle: z.number().min(0).max(360).optional(), // Angle in degrees for diametral
+  axisTiltAngle: z.number().min(-90).max(90).optional().default(0), // Deviation from Z-axis in degrees for cylindrical/ring/ring_segment
   
   // Dimensions in meters
   length: z.number().positive().optional(),
@@ -181,6 +182,7 @@ export const fieldVisualizationRequestSchema = z.object({
   magnetization: z.number().positive(),
   magnetizationType: z.enum(magnetizationTypes).default("axial"),
   magnetizationAngle: z.number().min(0).max(360).optional(), // Angle in degrees for diametral
+  axisTiltAngle: z.number().min(-90).max(90).optional().default(0), // Deviation from Z-axis in degrees for cylindrical/ring/ring_segment
   
   // Dimensions in meters
   length: z.number().positive().optional(),
@@ -218,6 +220,7 @@ export const lineCalculationRequestSchema = z.object({
   magnetization: z.number().positive(),
   magnetizationType: z.enum(magnetizationTypes).default("axial"),
   magnetizationAngle: z.number().min(0).max(360).optional(),
+  axisTiltAngle: z.number().min(-90).max(90).optional().default(0), // Deviation from Z-axis in degrees for cylindrical/ring/ring_segment
   
   // Dimensions in meters
   length: z.number().positive().optional(),
@@ -262,6 +265,7 @@ export const circleCalculationRequestSchema = z.object({
   magnetization: z.number().positive(),
   magnetizationType: z.enum(magnetizationTypes).default("axial"),
   magnetizationAngle: z.number().min(0).max(360).optional(),
+  axisTiltAngle: z.number().min(-90).max(90).optional().default(0), // Deviation from Z-axis in degrees for cylindrical/ring/ring_segment
   
   // Dimensions in meters
   length: z.number().positive().optional(),

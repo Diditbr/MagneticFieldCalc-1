@@ -158,6 +158,7 @@ def calculate_field(magnet_config):
             - dimensions in meters
             - observer position (x, y, z) in meters
               NOTE: z=0 is at the magnet surface (top pole face) in UI coordinates
+            - axisTiltAngle: optional float (degrees) - deviation from Z-axis for cylindrical/ring/ring_segment
     
     Returns:
         Dict with Bx, By, Bz, magnitude, distance
@@ -166,6 +167,7 @@ def calculate_field(magnet_config):
     magnetization = magnet_config['magnetization']
     magnetization_type = magnet_config.get('magnetizationType', 'axial')
     magnetization_angle = magnet_config.get('magnetizationAngle', 0)
+    axis_tilt_angle = magnet_config.get('axisTiltAngle', 0)  # Deviation from Z-axis in degrees
     x_ui = magnet_config['x']
     y_ui = magnet_config['y']
     z_ui = magnet_config['z']
@@ -287,6 +289,12 @@ def calculate_field(magnet_config):
     else:
         raise ValueError(f"Unknown magnet type: {magnet_type}")
     
+    # Apply axis tilt rotation if specified (for cylindrical, ring, ring_segment)
+    if axis_tilt_angle != 0 and magnet_type in ['cylindrical', 'ring', 'ring_segment']:
+        # Rotate magnet around Y-axis by the tilt angle
+        # Positive angle tilts the north pole towards +X direction
+        magnet = magnet.rotate_from_angax(angle=axis_tilt_angle, axis='y', anchor=(0, 0, 0))
+    
     # Calculate B-field at observer position
     B = magpy.getB(magnet, observer)
     
@@ -392,6 +400,7 @@ def generate_field_visualization(input_data):
     magnetization = input_data['magnetization']
     magnetization_type = input_data.get('magnetizationType', 'axial')
     magnetization_angle = input_data.get('magnetizationAngle', 0)
+    axis_tilt_angle = input_data.get('axisTiltAngle', 0)
     
     # Determine view plane
     # X-Y plane (top view) for:
@@ -497,6 +506,10 @@ def generate_field_visualization(input_data):
         phi1, phi2 = 0, 360  # Full ring for visualization
     else:
         raise ValueError(f"Unknown magnet type: {magnet_type}")
+    
+    # Apply axis tilt rotation if specified (for cylindrical, ring, ring_segment)
+    if axis_tilt_angle != 0 and magnet_type in ['cylindrical', 'ring', 'ring_segment']:
+        magnet = magnet.rotate_from_angax(angle=axis_tilt_angle, axis='y', anchor=(0, 0, 0))
     
     # Grid setup - high resolution for best quality
     # Padding factor of 3.3 means magnet fills ~30% of display area (1/3.3 ≈ 0.30)
@@ -930,6 +943,7 @@ def calculate_line_field(magnet_config):
     magnetization = magnet_config['magnetization']
     magnetization_type = magnet_config.get('magnetizationType', 'axial')
     magnetization_angle = magnet_config.get('magnetizationAngle', 0)
+    axis_tilt_angle = magnet_config.get('axisTiltAngle', 0)
     
     # Determine magnet height for coordinate transformation
     if magnet_type == 'rectangular':
@@ -1038,6 +1052,10 @@ def calculate_line_field(magnet_config):
     else:
         raise ValueError(f"Unknown magnet type: {magnet_type}")
     
+    # Apply axis tilt rotation if specified (for cylindrical, ring, ring_segment)
+    if axis_tilt_angle != 0 and magnet_type in ['cylindrical', 'ring', 'ring_segment']:
+        magnet = magnet.rotate_from_angax(angle=axis_tilt_angle, axis='y', anchor=(0, 0, 0))
+    
     # Generate points along the line (in Magpylib coordinates)
     line_points_magpylib = np.linspace(start_magpylib, end_magpylib, num_points)
     # Also generate corresponding UI coordinates for distance calculation
@@ -1139,6 +1157,7 @@ def calculate_circle_field(magnet_config):
     magnetization = magnet_config['magnetization']
     magnetization_type = magnet_config.get('magnetizationType', 'axial')
     magnetization_angle = magnet_config.get('magnetizationAngle', 0)
+    axis_tilt_angle = magnet_config.get('axisTiltAngle', 0)
     
     # Circle parameters
     radius = magnet_config['radius']
@@ -1230,6 +1249,10 @@ def calculate_circle_field(magnet_config):
         magnet = create_multi_segment_ring(magnet_config)
     else:
         raise ValueError(f"Unknown magnet type: {magnet_type}")
+    
+    # Apply axis tilt rotation if specified (for cylindrical, ring, ring_segment)
+    if axis_tilt_angle != 0 and magnet_type in ['cylindrical', 'ring', 'ring_segment']:
+        magnet = magnet.rotate_from_angax(angle=axis_tilt_angle, axis='y', anchor=(0, 0, 0))
     
     # Generate angles and calculate positions on circle
     angles_deg = np.linspace(0, 360, num_samples, endpoint=False)

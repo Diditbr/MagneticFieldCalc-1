@@ -53,6 +53,7 @@ export default function Calculator() {
     phi1: 0,
     phi2: 90,
     numPoles: 4,
+    axisTiltAngle: 0,
   });
 
   const [calcPoint, setCalcPoint] = useState({ x: 0, y: 0, z: 1 });
@@ -167,6 +168,7 @@ export default function Calculator() {
       magnetization: magnetizationValue,
       magnetizationType: magnetizationType,
       magnetizationAngle: magnetizationAngle,
+      axisTiltAngle: dimensions.axisTiltAngle || 0,
       startX: convertLength(lineStart.x, lengthUnit, "m"),
       startY: convertLength(lineStart.y, lengthUnit, "m"),
       startZ: convertLength(lineStart.z, lengthUnit, "m"),
@@ -221,6 +223,7 @@ export default function Calculator() {
       magnetization: magnetizationValue,
       magnetizationType: magnetizationType,
       magnetizationAngle: magnetizationAngle,
+      axisTiltAngle: dimensions.axisTiltAngle || 0,
       // Circle inputs are always in mm (fixed in CircleFieldChart), so convert from mm to m
       radius: convertLength(circleRadius, "mm", "m"),
       centerX: convertLength(circleCenter.x, "mm", "m"),
@@ -296,6 +299,7 @@ export default function Calculator() {
       magnetization: magnetizationValue,
       magnetizationType: magnetizationType,
       magnetizationAngle: magnetizationAngle,
+      axisTiltAngle: dimensions.axisTiltAngle || 0,
       x: convertLength(calcPoint.x, lengthUnit, "m"),
       y: convertLength(calcPoint.y, lengthUnit, "m"),
       z: convertLength(calcPoint.z, lengthUnit, "m"),

@@ -27,6 +27,7 @@ interface DimensionInputsProps {
     phi1?: number;
     phi2?: number;
     numPoles?: number;
+    axisTiltAngle?: number;
   };
   lengthUnit: LengthUnit;
   onDimensionChange: (key: string, value: number) => void;
@@ -44,7 +45,8 @@ export function DimensionInputs({
     key: string,
     label: string,
     tooltip: string,
-    defaultValue: number = 10
+    defaultValue: number = 10,
+    showUnit: boolean = true
   ) => {
     const currentValue = dimensions[key as keyof typeof dimensions] || defaultValue;
     
@@ -67,12 +69,15 @@ export function DimensionInputs({
           <Input
             id={key}
             type="number"
-            step="0.1"
-            min="0.1"
+            step={key === "axisTiltAngle" ? "1" : "0.1"}
+            min={key === "axisTiltAngle" ? "-90" : "0.1"}
+            max={key === "axisTiltAngle" ? "90" : undefined}
             defaultValue={currentValue}
             onBlur={(e) => {
               const value = parseFloat(e.target.value);
-              if (!isNaN(value) && value > 0) {
+              const minValue = key === "axisTiltAngle" ? -90 : 0;
+              const maxValue = key === "axisTiltAngle" ? 90 : Infinity;
+              if (!isNaN(value) && value >= minValue && value <= maxValue) {
                 onDimensionChange(key, value);
               } else {
                 // Reset to current value if invalid
@@ -87,18 +92,23 @@ export function DimensionInputs({
             className="font-mono"
             data-testid={`input-${key}`}
           />
-          <Select value={lengthUnit} onValueChange={(v) => onLengthUnitChange(v as LengthUnit)}>
-            <SelectTrigger className="w-20" data-testid="select-length-unit">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {lengthUnits.map((unit) => (
-                <SelectItem key={unit} value={unit} data-testid={`option-unit-${unit}`}>
-                  {unit}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {showUnit && (
+            <Select value={lengthUnit} onValueChange={(v) => onLengthUnitChange(v as LengthUnit)}>
+              <SelectTrigger className="w-20" data-testid="select-length-unit">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {lengthUnits.map((unit) => (
+                  <SelectItem key={unit} value={unit} data-testid={`option-unit-${unit}`}>
+                    {unit}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          {!showUnit && key === "axisTiltAngle" && (
+            <div className="w-20 flex items-center justify-center text-sm text-muted-foreground">°</div>
+          )}
         </div>
       </div>
     );
@@ -128,6 +138,7 @@ export function DimensionInputs({
         <>
           {renderInput("diameter", "Durchmesser (X-Y Ebene)", "Durchmesser des Zylinders in der X-Y Ebene")}
           {renderInput("length", "Länge (Z-Achse)", "Länge/Höhe des Zylinders entlang der Z-Achse (Magnetisierungsrichtung)")}
+          {renderInput("axisTiltAngle", "Achsenabweichung (°)", "Abweichung der Magnetachse von der Z-Achse in Grad. 0° = parallel zur Z-Achse", 0, false)}
         </>
       )}
 
@@ -136,6 +147,7 @@ export function DimensionInputs({
           {renderInput("diameter", "Außendurchmesser (X-Y Ebene)", "Außendurchmesser des Rings in der X-Y Ebene")}
           {renderInput("innerDiameter", "Innendurchmesser (X-Y Ebene)", "Innendurchmesser des Rings in der X-Y Ebene")}
           {renderInput("thickness", "Dicke (Z-Achse)", "Axiale Dicke des Rings entlang der Z-Achse (Magnetisierungsrichtung)")}
+          {renderInput("axisTiltAngle", "Achsenabweichung (°)", "Abweichung der Magnetachse von der Z-Achse in Grad. 0° = parallel zur Z-Achse", 0, false)}
         </>
       )}
 
@@ -144,8 +156,9 @@ export function DimensionInputs({
           {renderInput("diameter", "Außendurchmesser (X-Y Ebene)", "Außendurchmesser des Ringsegments in der X-Y Ebene")}
           {renderInput("innerDiameter", "Innendurchmesser (X-Y Ebene)", "Innendurchmesser des Ringsegments in der X-Y Ebene")}
           {renderInput("thickness", "Dicke (Z-Achse)", "Axiale Dicke des Ringsegments entlang der Z-Achse")}
-          {renderInput("phi1", "Startwinkel φ₁ (°)", "Startwinkel des Ringsegments in Grad (0-360°)", 0)}
-          {renderInput("phi2", "Endwinkel φ₂ (°)", "Endwinkel des Ringsegments in Grad (0-360°)", 90)}
+          {renderInput("phi1", "Startwinkel φ₁ (°)", "Startwinkel des Ringsegments in Grad (0-360°)", 0, false)}
+          {renderInput("phi2", "Endwinkel φ₂ (°)", "Endwinkel des Ringsegments in Grad (0-360°)", 90, false)}
+          {renderInput("axisTiltAngle", "Achsenabweichung (°)", "Abweichung der Magnetachse von der Z-Achse in Grad. 0° = parallel zur Z-Achse", 0, false)}
         </>
       )}
 
