@@ -170,24 +170,28 @@ export function FieldVisualization({
             <p className="text-xs sm:text-sm text-muted-foreground">Visualisierung wird generiert...</p>
           </div>
         ) : plotlyData ? (
-          <div className="w-full" data-testid="plotly-field-visualization">
-            <Plot
-              data={plotlyData.data}
-              layout={{
-                ...plotlyData.layout,
-                autosize: true,
-                margin: { l: 50, r: 50, t: 50, b: 50 }
-              }}
-              config={{
-                responsive: true,
-                displayModeBar: true,
-                displaylogo: false,
-                modeBarButtonsToRemove: ['lasso2d', 'select2d']
-              }}
-              style={{ width: '100%', height: '400px' }}
-              useResizeHandler={true}
-              className="sm:!h-[600px]"
-            />
+          <div className="w-full overflow-x-auto -mx-3 sm:mx-0 px-3 sm:px-0" data-testid="plotly-field-visualization">
+            <div className="min-w-[600px] sm:min-w-0">
+              <Plot
+                data={plotlyData.data}
+                layout={{
+                  ...plotlyData.layout,
+                  autosize: true,
+                  margin: { l: 50, r: 50, t: 40, b: 50 },
+                  font: { size: 11 }
+                }}
+                config={{
+                  responsive: true,
+                  displayModeBar: true,
+                  displaylogo: false,
+                  modeBarButtonsToRemove: ['lasso2d', 'select2d'],
+                  scrollZoom: true
+                }}
+                style={{ width: '100%', height: '400px' }}
+                useResizeHandler={true}
+                className="sm:!h-[600px]"
+              />
+            </div>
           </div>
         ) : (
           <div className="w-full h-64 sm:h-96 flex items-center justify-center bg-card rounded-md">
