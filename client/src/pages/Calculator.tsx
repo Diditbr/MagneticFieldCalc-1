@@ -88,7 +88,7 @@ export default function Calculator() {
       setShowVisualization(false);
       calculateLineMutation.mutate(buildLineRequest());
       
-      if (magnetType === "ring_multi_segment") {
+      if (magnetType === "ring" || magnetType === "ring_segment" || magnetType === "ring_multi_segment") {
         calculateCircleMutation.mutate(buildCircleRequest());
       }
     },
@@ -338,7 +338,7 @@ export default function Calculator() {
     } else if (magnetType === "cylindrical") {
       setDimensions((prev) => ({ ...prev, diameter: 10, length: 10 }));
     } else if (magnetType === "ring") {
-      setDimensions((prev) => ({ ...prev, diameter: 10, innerDiameter: 5, thickness: 5 }));
+      setDimensions((prev) => ({ ...prev, diameter: 20, innerDiameter: 10, thickness: 5 }));
     } else if (magnetType === "ring_segment") {
       setDimensions((prev) => ({ ...prev, diameter: 10, innerDiameter: 5, thickness: 5, phi1: 0, phi2: 90 }));
     } else if (magnetType === "ring_multi_segment") {
@@ -483,7 +483,7 @@ export default function Calculator() {
               />
             </Card>
 
-            {magnetType === "ring_multi_segment" && (
+            {(magnetType === "ring" || magnetType === "ring_segment" || magnetType === "ring_multi_segment") && (
               <CircleFieldChart
                 plotlyData={circleChartPlotlyData}
                 isLoading={calculateCircleMutation.isPending}
