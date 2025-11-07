@@ -17,12 +17,12 @@ export function MagnetizationControls({
   onMagnetizationTypeChange,
   onMagnetizationAngleChange,
 }: MagnetizationControlsProps) {
-  // Only show for cylindrical, ring, and ring_segment magnets
-  if (magnetType !== "cylindrical" && magnetType !== "ring" && magnetType !== "ring_segment") {
+  // Only show for cylindrical, ring, ring_segment, and ring_multi_segment magnets
+  if (magnetType !== "cylindrical" && magnetType !== "ring" && magnetType !== "ring_segment" && magnetType !== "ring_multi_segment") {
     return null;
   }
 
-  const showRadial = magnetType === "ring_segment";
+  const showRadial = magnetType === "ring_segment" || magnetType === "ring_multi_segment";
 
   return (
     <div className="space-y-4">
