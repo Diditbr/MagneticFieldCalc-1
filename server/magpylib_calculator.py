@@ -588,6 +588,22 @@ def generate_field_visualization(input_data):
                 line=dict(color='rgb(239, 68, 68)', width=2),
                 hoverinfo='skip', showlegend=False
             ))
+        elif magnet_type == 'ring_multi_segment':
+            # Multi-segment ring - show as full ring like normal ring
+            theta = np.linspace(0, 2*np.pi, 100)
+            fig.add_trace(go.Scatter(
+                x=outer_r_mm * np.cos(theta), y=outer_r_mm * np.sin(theta),
+                fill='toself', fillcolor='rgba(239, 68, 68, 0.3)',
+                line=dict(color='rgb(239, 68, 68)', width=2),
+                hoverinfo='skip', showlegend=False
+            ))
+            # Inner circle (hollow)
+            fig.add_trace(go.Scatter(
+                x=inner_r_mm * np.cos(theta), y=inner_r_mm * np.sin(theta),
+                fill='toself', fillcolor='rgba(255, 255, 255, 1)',
+                line=dict(color='rgb(239, 68, 68)', width=2),
+                hoverinfo='skip', showlegend=False
+            ))
         elif magnet_type == 'cylindrical':
             # Circle (Cylinder top view)
             theta = np.linspace(0, 2*np.pi, 100)
@@ -724,6 +740,18 @@ def generate_field_visualization(input_data):
                 fillcolor="rgba(239, 68, 68, 0.3)")
         elif magnet_type == 'ring':
             # Full ring cross-section: two rectangles (left and right)
+            fig.add_shape(type="rect",
+                x0=-outer_r_mm, y0=-mag_height_mm/2,
+                x1=-inner_r_mm, y1=mag_height_mm/2,
+                line=dict(color="rgb(239, 68, 68)", width=2),
+                fillcolor="rgba(239, 68, 68, 0.3)")
+            fig.add_shape(type="rect",
+                x0=inner_r_mm, y0=-mag_height_mm/2,
+                x1=outer_r_mm, y1=mag_height_mm/2,
+                line=dict(color="rgb(239, 68, 68)", width=2),
+                fillcolor="rgba(239, 68, 68, 0.3)")
+        elif magnet_type == 'ring_multi_segment':
+            # Multi-segment ring cross-section: two rectangles (same as normal ring)
             fig.add_shape(type="rect",
                 x0=-outer_r_mm, y0=-mag_height_mm/2,
                 x1=-inner_r_mm, y1=mag_height_mm/2,
