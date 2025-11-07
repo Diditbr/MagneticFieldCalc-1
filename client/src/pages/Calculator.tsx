@@ -65,7 +65,7 @@ export default function Calculator() {
   const [lineEnd, setLineEnd] = useState({ x: 0, y: 0, z: 5 });
   const [lineChartPlotlyData, setLineChartPlotlyData] = useState<any | null>(null);
   
-  const [circleRadius, setCircleRadius] = useState(16);
+  const [circleRadius, setCircleRadius] = useState(11);
   const [circleCenter, setCircleCenter] = useState({ x: 0, y: 0, z: 0 });
   const [circleNumSamples, setCircleNumSamples] = useState(360);
   const [circleChartPlotlyData, setCircleChartPlotlyData] = useState<any | null>(null);

@@ -65,19 +65,18 @@ def create_multi_segment_ring(magnet_config):
             num_subsegments = max(4, int(angle_span / 5))  # Increased resolution: /5 instead of /20
             subsegment_angle = angle_span / num_subsegments
             
-            # Calculate magnetization direction based on segment center (not subsegment centers)
-            segment_center_angle = (phi1 + phi2) / 2
-            segment_center_rad = math.radians(segment_center_angle)
-            
-            # Polarization pointing to segment center (with alternating sign)
-            px = magnetization * mag_mult * math.cos(segment_center_rad)
-            py = magnetization * mag_mult * math.sin(segment_center_rad)
-            
             for j in range(num_subsegments):
                 sub_phi1 = phi1 + j * subsegment_angle
                 sub_phi2 = phi1 + (j + 1) * subsegment_angle
                 
-                # All subsegments use the same polarization direction (segment center)
+                # Each subsegment points radially at its own center angle
+                subseg_center_angle = (sub_phi1 + sub_phi2) / 2
+                subseg_center_rad = math.radians(subseg_center_angle)
+                
+                # Polarization pointing radially at this subsegment's center (with alternating sign)
+                px = magnetization * mag_mult * math.cos(subseg_center_rad)
+                py = magnetization * mag_mult * math.sin(subseg_center_rad)
+                
                 sub_magnet = magpy.magnet.CylinderSegment(
                     polarization=(px, py, 0),
                     dimension=(inner_diameter/2, outer_diameter/2, thickness, sub_phi1, sub_phi2)
