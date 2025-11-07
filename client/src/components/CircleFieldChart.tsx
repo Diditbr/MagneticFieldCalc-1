@@ -59,7 +59,7 @@ export function CircleFieldChart({
             <Input
               id="circleCenterX"
               type="number"
-              step="0.1"
+              step="0.01"
               value={centerX}
               onChange={(e) => onCenterXChange(parseFloat(e.target.value) || 0)}
               className="font-mono text-xs h-8"
@@ -71,7 +71,7 @@ export function CircleFieldChart({
             <Input
               id="circleCenterY"
               type="number"
-              step="0.1"
+              step="0.01"
               value={centerY}
               onChange={(e) => onCenterYChange(parseFloat(e.target.value) || 0)}
               className="font-mono text-xs h-8"
@@ -83,7 +83,7 @@ export function CircleFieldChart({
             <Input
               id="circleCenterZ"
               type="number"
-              step="0.1"
+              step="0.01"
               value={centerZ}
               onChange={(e) => onCenterZChange(parseFloat(e.target.value) || 0)}
               className="font-mono text-xs h-8"
