@@ -102,14 +102,14 @@ export function FieldVisualization({
         }
         
         // Add line coordinates if defined (convert mm to meters)
-        if (lineStartX !== undefined && lineStartZ !== undefined && 
-            lineEndX !== undefined && lineEndZ !== undefined) {
+        // Send line coordinates for both X-Y and X-Z planes
+        if (lineStartX !== undefined && lineEndX !== undefined) {
           requestBody.lineStartX = lineStartX / 1000;
           requestBody.lineStartY = lineStartY !== undefined ? lineStartY / 1000 : 0;
-          requestBody.lineStartZ = lineStartZ / 1000;
+          requestBody.lineStartZ = lineStartZ !== undefined ? lineStartZ / 1000 : 0;
           requestBody.lineEndX = lineEndX / 1000;
           requestBody.lineEndY = lineEndY !== undefined ? lineEndY / 1000 : 0;
-          requestBody.lineEndZ = lineEndZ / 1000;
+          requestBody.lineEndZ = lineEndZ !== undefined ? lineEndZ / 1000 : 0;
         }
         
         const response = await fetch('/api/field-visualization', {

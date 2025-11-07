@@ -476,8 +476,8 @@ def generate_field_visualization(input_data):
     if magnet_type == 'ring_segment':
         grid_size = 70
     elif magnet_type == 'ring_multi_segment':
-        # Lower resolution for multi-segment to avoid timeout
-        grid_size = 45
+        # Medium resolution for multi-segment - balance between quality and performance
+        grid_size = 65
     elif magnet_type == 'ring':
         grid_size = 75
     else:
