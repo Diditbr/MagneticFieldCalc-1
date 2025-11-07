@@ -361,7 +361,7 @@ def calculate_field_grid(magnet_config):
     }
 
 
-def generate_field_visualization(magnet_config):
+def generate_field_visualization(input_data):
     """
     Generate interactive field visualization using Plotly.
     Automatically selects view plane:
@@ -369,10 +369,10 @@ def generate_field_visualization(magnet_config):
     - X-Z plane (side view) for axial magnetization and all other cases
     Returns Plotly JSON for frontend rendering.
     """
-    magnet_type = magnet_config['type']
-    magnetization = magnet_config['magnetization']
-    magnetization_type = magnet_config.get('magnetizationType', 'axial')
-    magnetization_angle = magnet_config.get('magnetizationAngle', 0)
+    magnet_type = input_data['type']
+    magnetization = input_data['magnetization']
+    magnetization_type = input_data.get('magnetizationType', 'axial')
+    magnetization_angle = input_data.get('magnetizationAngle', 0)
     
     # Determine view plane
     # X-Y plane (top view) for radial/diametral magnetization to show radial field pattern
@@ -381,9 +381,9 @@ def generate_field_visualization(magnet_config):
     
     # Create magnet (reuse logic from calculate_field)
     if magnet_type == 'rectangular':
-        length = magnet_config.get('length', 0.01)
-        width = magnet_config.get('width', 0.01)
-        height = magnet_config.get('height', 0.01)
+        length = input_data.get('length', 0.01)
+        width = input_data.get('width', 0.01)
+        height = input_data.get('height', 0.01)
         magnet = magpy.magnet.Cuboid(
             polarization=(0, 0, magnetization),
             dimension=(length, width, height)
@@ -392,8 +392,8 @@ def generate_field_visualization(magnet_config):
         inner_r, outer_r = 0, 0
         phi1, phi2 = 0, 360
     elif magnet_type == 'cylindrical':
-        diameter = magnet_config.get('diameter', 0.01)
-        length = magnet_config.get('length', 0.01)
+        diameter = input_data.get('diameter', 0.01)
+        length = input_data.get('length', 0.01)
         polarization = get_polarization_vector(magnetization, magnetization_type, magnetization_angle)
         magnet = magpy.magnet.Cylinder(
             polarization=polarization,
@@ -403,9 +403,9 @@ def generate_field_visualization(magnet_config):
         inner_r, outer_r = 0, 0
         phi1, phi2 = 0, 360
     elif magnet_type == 'ring':
-        outer_diameter = magnet_config.get('diameter', 0.01)
-        inner_diameter = magnet_config.get('innerDiameter', 0.005)
-        thickness = magnet_config.get('thickness', 0.01)
+        outer_diameter = input_data.get('diameter', 0.01)
+        inner_diameter = input_data.get('innerDiameter', 0.005)
+        thickness = input_data.get('thickness', 0.01)
         polarization = get_polarization_vector(magnetization, magnetization_type, magnetization_angle)
         if magnetization_type == 'axial':
             polarization = (polarization[0], polarization[1], -polarization[2])
@@ -418,11 +418,11 @@ def generate_field_visualization(magnet_config):
         inner_r, outer_r = inner_diameter / 2, outer_diameter / 2
         phi1, phi2 = 0, 360
     elif magnet_type == 'ring_segment':
-        outer_diameter = magnet_config.get('diameter', 0.01)
-        inner_diameter = magnet_config.get('innerDiameter', 0.005)
-        thickness = magnet_config.get('thickness', 0.01)
-        phi1 = magnet_config.get('phi1', 0)
-        phi2 = magnet_config.get('phi2', 90)
+        outer_diameter = input_data.get('diameter', 0.01)
+        inner_diameter = input_data.get('innerDiameter', 0.005)
+        thickness = input_data.get('thickness', 0.01)
+        phi1 = input_data.get('phi1', 0)
+        phi2 = input_data.get('phi2', 90)
         
         if magnetization_type == 'radial':
             angle_span = phi2 - phi1
@@ -457,11 +457,11 @@ def generate_field_visualization(magnet_config):
         inner_r, outer_r = inner_diameter / 2, outer_diameter / 2
     elif magnet_type == 'ring_multi_segment':
         # Create multi-segment ring with alternating magnetization
-        outer_diameter = magnet_config.get('diameter', 0.01)
-        inner_diameter = magnet_config.get('innerDiameter', 0.005)
-        thickness = magnet_config.get('thickness', 0.01)
+        outer_diameter = input_data.get('diameter', 0.01)
+        inner_diameter = input_data.get('innerDiameter', 0.005)
+        thickness = input_data.get('thickness', 0.01)
         
-        magnet = create_multi_segment_ring(magnet_config)
+        magnet = create_multi_segment_ring(input_data)
         
         mag_length, mag_width, mag_height = outer_diameter, outer_diameter, thickness
         inner_r, outer_r = inner_diameter / 2, outer_diameter / 2
@@ -509,7 +509,7 @@ def generate_field_visualization(magnet_config):
         fig = go.Figure()
         
         # Add field magnitude as contour/heatmap
-        max_color = magnet_config.get('maxColorScale')
+        max_color = input_data.get('maxColorScale')
         heatmap_params = {
             'x': x_mm,
             'y': y_mm,
@@ -526,7 +526,7 @@ def generate_field_visualization(magnet_config):
         fig.add_trace(go.Heatmap(**heatmap_params))
         
         # Add vector field arrows - controlled by numFluxLines parameter
-        num_flux_lines = magnet_config.get('numFluxLines', 8)
+        num_flux_lines = input_data.get('numFluxLines', 8)
         # Calculate skip to get approximately the requested number of arrows
         # Limit to 1600 arrows (40x40) to prevent timeout - Plotly annotations are slow!
         target_arrows = max(4, min(num_flux_lines * num_flux_lines, 1600))  # Between 16 and 1600 arrows (40x40)
@@ -605,8 +605,8 @@ def generate_field_visualization(magnet_config):
                 fillcolor="rgba(239, 68, 68, 0.3)")
         
         # Add calculation point marker if provided
-        calc_x = magnet_config.get('calcX')
-        calc_y = magnet_config.get('calcY')
+        calc_x = input_data.get('calcX')
+        calc_y = input_data.get('calcY')
         if calc_x is not None and calc_y is not None:
             calc_x_mm = calc_x * 1000  # Convert m to mm
             # In X-Y plane view, we use actual calcY coordinate
@@ -620,10 +620,10 @@ def generate_field_visualization(magnet_config):
             ))
         
         # Add line if provided
-        line_start_x = magnet_config.get('lineStartX')
-        line_start_y = magnet_config.get('lineStartY')
-        line_end_x = magnet_config.get('lineEndX')
-        line_end_y = magnet_config.get('lineEndY')
+        line_start_x = input_data.get('lineStartX')
+        line_start_y = input_data.get('lineStartY')
+        line_end_x = input_data.get('lineEndX')
+        line_end_y = input_data.get('lineEndY')
         if all(v is not None for v in [line_start_x, line_start_y, line_end_x, line_end_y]):
             line_start_x_mm = line_start_x * 1000
             line_start_y_mm = line_start_y * 1000  # Use actual Y coordinate
@@ -668,7 +668,7 @@ def generate_field_visualization(magnet_config):
         fig = go.Figure()
         
         # Add heatmap
-        max_color = magnet_config.get('maxColorScale')
+        max_color = input_data.get('maxColorScale')
         heatmap_params = {
             'x': x_mm,
             'y': z_mm,
@@ -685,7 +685,7 @@ def generate_field_visualization(magnet_config):
         fig.add_trace(go.Heatmap(**heatmap_params))
         
         # Add arrows - controlled by numFluxLines parameter
-        num_flux_lines = magnet_config.get('numFluxLines', 8)
+        num_flux_lines = input_data.get('numFluxLines', 8)
         # Calculate skip to get approximately the requested number of arrows
         # Limit to 1600 arrows (40x40) to prevent timeout - Plotly annotations are slow!
         target_arrows = max(4, min(num_flux_lines * num_flux_lines, 1600))  # Between 16 and 1600 arrows (40x40)
@@ -749,8 +749,8 @@ def generate_field_visualization(magnet_config):
                 fillcolor="rgba(239, 68, 68, 0.3)")
         
         # Add calculation point marker if provided
-        calc_x = magnet_config.get('calcX')
-        calc_z = magnet_config.get('calcZ')
+        calc_x = input_data.get('calcX')
+        calc_z = input_data.get('calcZ')
         if calc_x is not None and calc_z is not None:
             calc_x_mm = calc_x * 1000  # Convert m to mm
             calc_z_mm = calc_z * 1000
@@ -763,10 +763,10 @@ def generate_field_visualization(magnet_config):
             ))
         
         # Add line if provided
-        line_start_x = magnet_config.get('lineStartX')
-        line_start_z = magnet_config.get('lineStartZ')
-        line_end_x = magnet_config.get('lineEndX')
-        line_end_z = magnet_config.get('lineEndZ')
+        line_start_x = input_data.get('lineStartX')
+        line_start_z = input_data.get('lineStartZ')
+        line_end_x = input_data.get('lineEndX')
+        line_end_z = input_data.get('lineEndZ')
         if all(v is not None for v in [line_start_x, line_start_z, line_end_x, line_end_z]):
             line_start_x_mm = line_start_x * 1000
             line_start_z_mm = line_start_z * 1000
