@@ -82,8 +82,23 @@ def create_multi_segment_ring(magnet_config):
                     dimension=(inner_diameter/2, outer_diameter/2, thickness, sub_phi1, sub_phi2)
                 )
                 magnets.append(sub_magnet)
+        elif magnetization_type == 'diametral':
+            # Diametral: each segment points along its own radial axis (in X-Y plane)
+            # Calculate segment's mid-angle
+            mid_angle = (phi1 + phi2) / 2 + magnetization_angle
+            mid_angle_rad = math.radians(mid_angle)
+            
+            # Polarization in X-Y plane along segment's radial direction
+            px = magnetization * mag_mult * math.cos(mid_angle_rad)
+            py = magnetization * mag_mult * math.sin(mid_angle_rad)
+            
+            magnet_segment = magpy.magnet.CylinderSegment(
+                polarization=(px, py, 0),
+                dimension=(inner_diameter/2, outer_diameter/2, thickness, phi1, phi2)
+            )
+            magnets.append(magnet_segment)
         else:
-            # Axial or Diametral magnetization
+            # Axial magnetization
             polarization = get_polarization_vector(magnetization * mag_mult, magnetization_type, magnetization_angle)
             
             # CRITICAL: CylinderSegment has INVERTED polarization for axial
@@ -117,12 +132,12 @@ def get_polarization_vector(magnetization, magnetization_type='axial', angle_deg
         # Axial: magnetization along Z-axis
         return (0, 0, magnetization)
     elif magnetization_type == 'diametral':
-        # Diametral: magnetization in X-Z plane at specified angle
-        # This way both components are visible in the X-Z visualization plane
+        # Diametral: magnetization in X-Y plane at specified angle
+        # For ring magnets, this creates poles along the radial directions
         angle_rad = math.radians(angle_deg)
         px = magnetization * math.cos(angle_rad)
-        pz = magnetization * math.sin(angle_rad)
-        return (px, 0, pz)
+        py = magnetization * math.sin(angle_rad)
+        return (px, py, 0)
     elif magnetization_type == 'radial':
         # Radial: magnetization in radial direction (perpendicular to axis)
         # For CylinderSegment, this is handled differently - return marker value
