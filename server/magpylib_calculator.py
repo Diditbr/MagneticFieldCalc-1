@@ -60,9 +60,9 @@ def create_multi_segment_ring(magnet_config):
         # Calculate polarization with multiplier
         if magnetization_type == 'radial':
             # Radial magnetization: discretize segment into sub-segments
-            # Use fewer subsegments for visualization to improve performance
+            # Higher resolution for smoother field calculations
             angle_span = phi2 - phi1
-            num_subsegments = max(2, int(angle_span / 20))  # Reduced from /15 to /20
+            num_subsegments = max(4, int(angle_span / 5))  # Increased resolution: /5 instead of /20
             subsegment_angle = angle_span / num_subsegments
             
             for j in range(num_subsegments):
