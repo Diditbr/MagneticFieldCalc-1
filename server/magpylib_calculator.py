@@ -591,17 +591,18 @@ def generate_field_visualization(input_data):
         elif magnet_type == 'ring_multi_segment':
             # Multi-segment ring - show as full ring like normal ring
             theta = np.linspace(0, 2*np.pi, 100)
+            # Outer ring boundary
             fig.add_trace(go.Scatter(
                 x=outer_r_mm * np.cos(theta), y=outer_r_mm * np.sin(theta),
-                fill='toself', fillcolor='rgba(239, 68, 68, 0.3)',
-                line=dict(color='rgb(239, 68, 68)', width=2),
+                mode='lines',
+                line=dict(color='rgb(239, 68, 68)', width=3),
                 hoverinfo='skip', showlegend=False
             ))
-            # Inner circle (hollow)
+            # Inner ring boundary
             fig.add_trace(go.Scatter(
                 x=inner_r_mm * np.cos(theta), y=inner_r_mm * np.sin(theta),
-                fill='toself', fillcolor='rgba(255, 255, 255, 1)',
-                line=dict(color='rgb(239, 68, 68)', width=2),
+                mode='lines',
+                line=dict(color='rgb(239, 68, 68)', width=3),
                 hoverinfo='skip', showlegend=False
             ))
         elif magnet_type == 'cylindrical':
