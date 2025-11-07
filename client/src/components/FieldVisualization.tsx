@@ -91,6 +91,7 @@ export function FieldVisualization({
           magnetizationAngle,
           ...dimensionsInMeters, // Send dimensions in meters
           calcX: calcX / 1000, // Convert mm to meters
+          calcY: calcY / 1000, // Convert mm to meters
           calcZ: calcZ / 1000, // Convert mm to meters
           numFluxLines: numFluxLines, // Pass number of flux lines to backend
         };

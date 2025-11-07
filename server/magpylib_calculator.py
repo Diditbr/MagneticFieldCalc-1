@@ -498,11 +498,11 @@ def generate_field_visualization(magnet_config):
         
         # Add calculation point marker if provided
         calc_x = magnet_config.get('calcX')
-        calc_z = magnet_config.get('calcZ')
-        if calc_x is not None and calc_z is not None:
+        calc_y = magnet_config.get('calcY')
+        if calc_x is not None and calc_y is not None:
             calc_x_mm = calc_x * 1000  # Convert m to mm
-            # In X-Y plane view, we use calcZ as the Y coordinate (viewing from above)
-            calc_y_mm = calc_z * 1000
+            # In X-Y plane view, we use actual calcY coordinate
+            calc_y_mm = calc_y * 1000
             fig.add_trace(go.Scatter(
                 x=[calc_x_mm], y=[calc_y_mm],
                 mode='markers',
@@ -513,14 +513,14 @@ def generate_field_visualization(magnet_config):
         
         # Add line if provided
         line_start_x = magnet_config.get('lineStartX')
-        line_start_z = magnet_config.get('lineStartZ')
+        line_start_y = magnet_config.get('lineStartY')
         line_end_x = magnet_config.get('lineEndX')
-        line_end_z = magnet_config.get('lineEndZ')
-        if all(v is not None for v in [line_start_x, line_start_z, line_end_x, line_end_z]):
+        line_end_y = magnet_config.get('lineEndY')
+        if all(v is not None for v in [line_start_x, line_start_y, line_end_x, line_end_y]):
             line_start_x_mm = line_start_x * 1000
-            line_start_y_mm = line_start_z * 1000  # Z becomes Y in top view
+            line_start_y_mm = line_start_y * 1000  # Use actual Y coordinate
             line_end_x_mm = line_end_x * 1000
-            line_end_y_mm = line_end_z * 1000
+            line_end_y_mm = line_end_y * 1000
             fig.add_trace(go.Scatter(
                 x=[line_start_x_mm, line_end_x_mm],
                 y=[line_start_y_mm, line_end_y_mm],
