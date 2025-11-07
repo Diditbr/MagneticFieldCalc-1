@@ -377,7 +377,7 @@ def generate_field_visualization(magnet_config):
     # Determine view plane
     # X-Y plane (top view) for radial/diametral magnetization to show radial field pattern
     # X-Z plane (side view) for axial magnetization and rectangular magnets
-    use_xy_plane = (magnet_type in ['ring', 'ring_segment', 'cylindrical']) and (magnetization_type in ['radial', 'diametral'])
+    use_xy_plane = (magnet_type in ['ring', 'ring_segment', 'ring_multi_segment', 'cylindrical']) and (magnetization_type in ['radial', 'diametral'])
     
     # Create magnet (reuse logic from calculate_field)
     if magnet_type == 'rectangular':
@@ -455,13 +455,24 @@ def generate_field_visualization(magnet_config):
         
         mag_length, mag_width, mag_height = outer_diameter, outer_diameter, thickness
         inner_r, outer_r = inner_diameter / 2, outer_diameter / 2
+    elif magnet_type == 'ring_multi_segment':
+        # Create multi-segment ring with alternating magnetization
+        outer_diameter = magnet_config.get('diameter', 0.01)
+        inner_diameter = magnet_config.get('innerDiameter', 0.005)
+        thickness = magnet_config.get('thickness', 0.01)
+        
+        magnet = create_multi_segment_ring(magnet_config)
+        
+        mag_length, mag_width, mag_height = outer_diameter, outer_diameter, thickness
+        inner_r, outer_r = inner_diameter / 2, outer_diameter / 2
+        phi1, phi2 = 0, 360  # Full ring for visualization
     else:
         raise ValueError(f"Unknown magnet type: {magnet_type}")
     
     # Grid setup - high resolution for best quality
     # Padding factor of 3.3 means magnet fills ~30% of display area (1/3.3 ≈ 0.30)
     padding_factor = 3.3
-    grid_size = 70 if magnet_type == 'ring_segment' else (75 if magnet_type == 'ring' else 80)
+    grid_size = 70 if magnet_type == 'ring_segment' else (65 if magnet_type == 'ring_multi_segment' else (75 if magnet_type == 'ring' else 80))
     
     # Convert to mm
     mag_length_mm = mag_length * 1000
@@ -801,7 +812,7 @@ def calculate_line_field(magnet_config):
         magnet_height = magnet_config.get('height', 0.01)
     elif magnet_type == 'cylindrical':
         magnet_height = magnet_config.get('length', 0.01)
-    elif magnet_type == 'ring':
+    elif magnet_type in ['ring', 'ring_segment', 'ring_multi_segment']:
         magnet_height = magnet_config.get('thickness', 0.01)
     else:
         magnet_height = 0.01
@@ -895,6 +906,9 @@ def calculate_line_field(magnet_config):
                 polarization=polarization,
                 dimension=(inner_diameter/2, outer_diameter/2, thickness, phi1, phi2)
             )
+    elif magnet_type == 'ring_multi_segment':
+        # Create multi-segment ring with alternating magnetization
+        magnet = create_multi_segment_ring(magnet_config)
     else:
         raise ValueError(f"Unknown magnet type: {magnet_type}")
     
