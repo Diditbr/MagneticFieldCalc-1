@@ -706,7 +706,17 @@ def generate_field_visualization(input_data):
             title="Magnetfeld (X-Y Ebene, Draufsicht)",
             width=700, height=700,
             hovermode='closest',
-            template='plotly_white'
+            template='plotly_white',
+            legend=dict(
+                x=1.02,
+                y=1,
+                xanchor='left',
+                yanchor='top',
+                bgcolor='rgba(255, 255, 255, 0.8)',
+                bordercolor='rgba(0, 0, 0, 0.2)',
+                borderwidth=1,
+                font=dict(size=10)
+            )
         )
     else:
         # X-Z plane (Y=0, side view)
@@ -880,7 +890,17 @@ def generate_field_visualization(input_data):
             title="Magnetfeld (X-Z Ebene, Seitenansicht)",
             width=700, height=700,
             hovermode='closest',
-            template='plotly_white'
+            template='plotly_white',
+            legend=dict(
+                x=1.02,
+                y=1,
+                xanchor='left',
+                yanchor='top',
+                bgcolor='rgba(255, 255, 255, 0.8)',
+                bordercolor='rgba(0, 0, 0, 0.2)',
+                borderwidth=1,
+                font=dict(size=10)
+            )
         )
     
     return {'plotlyJson': fig.to_json()}
