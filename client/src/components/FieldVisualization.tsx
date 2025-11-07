@@ -163,8 +163,9 @@ export function FieldVisualization({
   }, [magnetType, dimensions, magnetization, magnetizationType, magnetizationAngle, calcX, calcZ, numFluxLines, maxColorScale, lineStartX, lineStartY, lineStartZ, lineEndX, lineEndY, lineEndZ, circleRadius, circleCenterX, circleCenterY, circleCenterZ]);
 
   const getViewDescription = () => {
-    if ((magnetType === 'ring' || magnetType === 'ring_segment' || magnetType === 'cylindrical') && 
-        (magnetizationType === 'radial' || magnetizationType === 'diametral')) {
+    if (((magnetType === 'ring' || magnetType === 'ring_segment' || magnetType === 'cylindrical') && 
+         (magnetizationType === 'radial' || magnetizationType === 'diametral')) ||
+        (magnetType === 'ring_multi_segment' && magnetizationType === 'axial')) {
       return 'X-Y Ebene (Draufsicht)';
     }
     return 'X-Z Ebene (Seitenansicht)';

@@ -394,9 +394,14 @@ def generate_field_visualization(input_data):
     magnetization_angle = input_data.get('magnetizationAngle', 0)
     
     # Determine view plane
-    # X-Y plane (top view) for radial/diametral magnetization to show radial field pattern
+    # X-Y plane (top view) for:
+    #   - radial/diametral magnetization on rings/cylinders (to show radial pattern)
+    #   - axial magnetization on multi-segment rings (segments change in Z-direction)
     # X-Z plane (side view) for axial magnetization and rectangular magnets
-    use_xy_plane = (magnet_type in ['ring', 'ring_segment', 'ring_multi_segment', 'cylindrical']) and (magnetization_type in ['radial', 'diametral'])
+    use_xy_plane = (
+        (magnet_type in ['ring', 'ring_segment', 'cylindrical'] and magnetization_type in ['radial', 'diametral']) or
+        (magnet_type == 'ring_multi_segment' and magnetization_type == 'axial')
+    )
     
     # Create magnet (reuse logic from calculate_field)
     if magnet_type == 'rectangular':
