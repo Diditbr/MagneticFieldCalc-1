@@ -60,8 +60,9 @@ def create_multi_segment_ring(magnet_config):
         # Calculate polarization with multiplier
         if magnetization_type == 'radial':
             # Radial magnetization: discretize segment into sub-segments
+            # Use fewer subsegments for visualization to improve performance
             angle_span = phi2 - phi1
-            num_subsegments = max(4, int(angle_span / 15))
+            num_subsegments = max(2, int(angle_span / 20))  # Reduced from /15 to /20
             subsegment_angle = angle_span / num_subsegments
             
             for j in range(num_subsegments):
@@ -475,7 +476,8 @@ def generate_field_visualization(input_data):
     if magnet_type == 'ring_segment':
         grid_size = 70
     elif magnet_type == 'ring_multi_segment':
-        grid_size = 65
+        # Lower resolution for multi-segment to avoid timeout
+        grid_size = 45
     elif magnet_type == 'ring':
         grid_size = 75
     else:
