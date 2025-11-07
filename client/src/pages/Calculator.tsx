@@ -67,6 +67,7 @@ export default function Calculator() {
   
   const [circleRadius, setCircleRadius] = useState(15);
   const [circleCenter, setCircleCenter] = useState({ x: 0, y: 0, z: 0 });
+  const [circleNumSamples, setCircleNumSamples] = useState(360);
   const [circleChartPlotlyData, setCircleChartPlotlyData] = useState<any | null>(null);
   
   const [showVisualization, setShowVisualization] = useState(false);
@@ -228,7 +229,7 @@ export default function Calculator() {
       centerX: convertLength(circleCenter.x, "mm", "m"),
       centerY: convertLength(circleCenter.y, "mm", "m"),
       centerZ: convertLength(circleCenter.z, "mm", "m"),
-      numSamples: 360,
+      numSamples: circleNumSamples,
     };
 
     if (magnetType === "rectangular") {
@@ -491,10 +492,12 @@ export default function Calculator() {
                 centerX={circleCenter.x}
                 centerY={circleCenter.y}
                 centerZ={circleCenter.z}
+                numSamples={circleNumSamples}
                 onRadiusChange={setCircleRadius}
                 onCenterXChange={(v) => setCircleCenter(prev => ({ ...prev, x: v }))}
                 onCenterYChange={(v) => setCircleCenter(prev => ({ ...prev, y: v }))}
                 onCenterZChange={(v) => setCircleCenter(prev => ({ ...prev, z: v }))}
+                onNumSamplesChange={setCircleNumSamples}
               />
             )}
 

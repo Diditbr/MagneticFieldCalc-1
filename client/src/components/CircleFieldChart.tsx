@@ -12,10 +12,12 @@ interface CircleFieldChartProps {
   centerX: number;
   centerY: number;
   centerZ: number;
+  numSamples: number;
   onRadiusChange: (value: number) => void;
   onCenterXChange: (value: number) => void;
   onCenterYChange: (value: number) => void;
   onCenterZChange: (value: number) => void;
+  onNumSamplesChange: (value: number) => void;
 }
 
 export function CircleFieldChart({ 
@@ -26,10 +28,12 @@ export function CircleFieldChart({
   centerX,
   centerY,
   centerZ,
+  numSamples,
   onRadiusChange,
   onCenterXChange,
   onCenterYChange,
-  onCenterZChange
+  onCenterZChange,
+  onNumSamplesChange
 }: CircleFieldChartProps) {
   return (
     <Card>
@@ -37,7 +41,7 @@ export function CircleFieldChart({
         <CardTitle className="text-sm sm:text-base">Kreisförmige Messung (Br, Bt, Bz vs. Winkel)</CardTitle>
       </CardHeader>
       <CardContent className="p-3 sm:p-6 pt-0 space-y-4">
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 sm:gap-4">
           <div className="space-y-1.5">
             <Label htmlFor="circleRadius" className="text-xs font-medium">Radius (mm)</Label>
             <Input
@@ -84,6 +88,20 @@ export function CircleFieldChart({
               onChange={(e) => onCenterZChange(parseFloat(e.target.value) || 0)}
               className="font-mono text-xs h-8"
               data-testid="input-circle-center-z"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="numSamples" className="text-xs font-medium">Auflösung</Label>
+            <Input
+              id="numSamples"
+              type="number"
+              min="36"
+              max="1440"
+              step="36"
+              value={numSamples}
+              onChange={(e) => onNumSamplesChange(parseInt(e.target.value) || 360)}
+              className="font-mono text-xs h-8"
+              data-testid="input-circle-num-samples"
             />
           </div>
         </div>
