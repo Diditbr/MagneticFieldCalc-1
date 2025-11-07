@@ -516,7 +516,7 @@ def generate_field_visualization(input_data):
             'x': x_mm,
             'y': y_mm,
             'z': B_mag,
-            'colorscale': 'Jet',
+            'colorscale': 'Viridis',
             'colorbar': dict(title="Flussdichte |B| [T]", tickformat='.4f'),
             'hovertemplate': 'X: %{x:.2f} mm<br>Y: %{y:.2f} mm<br>|B|: %{z:.4f} T<extra></extra>',
             'zauto': True
@@ -534,8 +534,8 @@ def generate_field_visualization(input_data):
         target_arrows = max(4, min(num_flux_lines * num_flux_lines, 1600))  # Between 16 and 1600 arrows (40x40)
         skip = max(1, int(grid_size / np.sqrt(target_arrows)))
         
-        # Uniform arrow length - only direction matters
-        arrow_length_mm = max(mag_length_mm, mag_width_mm) * 0.3  # 30% of larger dimension
+        # Uniform arrow length - shorter for better visibility
+        arrow_length_mm = max(mag_length_mm, mag_width_mm) * 0.15  # 15% of larger dimension
         
         for i in range(0, grid_size, skip):
             for j in range(0, grid_size, skip):
@@ -675,7 +675,7 @@ def generate_field_visualization(input_data):
             'x': x_mm,
             'y': z_mm,
             'z': B_mag,
-            'colorscale': 'Jet',
+            'colorscale': 'Viridis',
             'colorbar': dict(title="Flussdichte |B| [T]", tickformat='.4f'),
             'hovertemplate': 'X: %{x:.2f} mm<br>Z: %{y:.2f} mm<br>|B|: %{z:.4f} T<extra></extra>',
             'zauto': True
@@ -693,8 +693,8 @@ def generate_field_visualization(input_data):
         target_arrows = max(4, min(num_flux_lines * num_flux_lines, 1600))  # Between 16 and 1600 arrows (40x40)
         skip = max(1, int(grid_size / np.sqrt(target_arrows)))
         
-        # Uniform arrow length - only direction matters
-        arrow_length_mm = max(mag_width_mm, mag_height_mm) * 0.3  # 30% of larger dimension
+        # Uniform arrow length - shorter for better visibility
+        arrow_length_mm = max(mag_width_mm, mag_height_mm) * 0.15  # 15% of larger dimension
         
         for i in range(0, grid_size, skip):
             for j in range(0, grid_size, skip):
