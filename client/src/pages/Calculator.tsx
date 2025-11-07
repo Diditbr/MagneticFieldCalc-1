@@ -600,6 +600,10 @@ export default function Calculator() {
                     lineEndX={lineEnd.x}
                     lineEndY={lineEnd.y}
                     lineEndZ={lineEnd.z}
+                    circleRadius={circleRadius}
+                    circleCenterX={circleCenter.x}
+                    circleCenterY={circleCenter.y}
+                    circleCenterZ={circleCenter.z}
                   />
                 </>
               )}

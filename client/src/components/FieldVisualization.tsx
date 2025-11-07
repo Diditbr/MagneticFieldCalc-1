@@ -32,6 +32,10 @@ interface FieldVisualizationProps {
   lineEndX?: number;
   lineEndY?: number;
   lineEndZ?: number;
+  circleRadius?: number;
+  circleCenterX?: number;
+  circleCenterY?: number;
+  circleCenterZ?: number;
 }
 
 export function FieldVisualization({
@@ -54,6 +58,10 @@ export function FieldVisualization({
   lineEndX,
   lineEndY,
   lineEndZ,
+  circleRadius,
+  circleCenterX,
+  circleCenterY,
+  circleCenterZ,
 }: FieldVisualizationProps) {
   const [plotlyData, setPlotlyData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -112,6 +120,14 @@ export function FieldVisualization({
           requestBody.lineEndZ = lineEndZ !== undefined ? lineEndZ / 1000 : 0;
         }
         
+        // Add circle coordinates if defined (convert mm to meters)
+        if (circleRadius !== undefined && circleCenterX !== undefined) {
+          requestBody.circleRadius = circleRadius / 1000;
+          requestBody.circleCenterX = circleCenterX / 1000;
+          requestBody.circleCenterY = circleCenterY !== undefined ? circleCenterY / 1000 : 0;
+          requestBody.circleCenterZ = circleCenterZ !== undefined ? circleCenterZ / 1000 : 0;
+        }
+        
         const response = await fetch('/api/field-visualization', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -144,7 +160,7 @@ export function FieldVisualization({
         clearTimeout(debounceTimerRef.current);
       }
     };
-  }, [magnetType, dimensions, magnetization, magnetizationType, magnetizationAngle, calcX, calcZ, numFluxLines, maxColorScale, lineStartX, lineStartY, lineStartZ, lineEndX, lineEndY, lineEndZ]);
+  }, [magnetType, dimensions, magnetization, magnetizationType, magnetizationAngle, calcX, calcZ, numFluxLines, maxColorScale, lineStartX, lineStartY, lineStartZ, lineEndX, lineEndY, lineEndZ, circleRadius, circleCenterX, circleCenterY, circleCenterZ]);
 
   const getViewDescription = () => {
     if ((magnetType === 'ring' || magnetType === 'ring_segment' || magnetType === 'cylindrical') && 
