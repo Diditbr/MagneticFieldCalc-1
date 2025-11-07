@@ -47,8 +47,8 @@ export default function Calculator() {
     length: 10,
     width: 5,
     height: 2,
-    diameter: 10,
-    innerDiameter: 5,
+    diameter: 20,
+    innerDiameter: 15,
     thickness: 5,
     phi1: 0,
     phi2: 90,
@@ -65,7 +65,7 @@ export default function Calculator() {
   const [lineEnd, setLineEnd] = useState({ x: 0, y: 0, z: 5 });
   const [lineChartPlotlyData, setLineChartPlotlyData] = useState<any | null>(null);
   
-  const [circleRadius, setCircleRadius] = useState(15);
+  const [circleRadius, setCircleRadius] = useState(16);
   const [circleCenter, setCircleCenter] = useState({ x: 0, y: 0, z: 0 });
   const [circleNumSamples, setCircleNumSamples] = useState(360);
   const [circleChartPlotlyData, setCircleChartPlotlyData] = useState<any | null>(null);
