@@ -86,6 +86,8 @@ export default function Calculator() {
     onSuccess: (data) => {
       setResults(data);
       setShowVisualization(false);
+      setLineChartPlotlyData(null);
+      setCircleChartPlotlyData(null);
     },
   });
 
