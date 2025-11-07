@@ -26,6 +26,7 @@ interface DimensionInputsProps {
     thickness?: number;
     phi1?: number;
     phi2?: number;
+    numPoles?: number;
   };
   lengthUnit: LengthUnit;
   onDimensionChange: (key: string, value: number) => void;
@@ -145,6 +146,51 @@ export function DimensionInputs({
           {renderInput("thickness", "Dicke (Z-Achse)", "Axiale Dicke des Ringsegments entlang der Z-Achse")}
           {renderInput("phi1", "Startwinkel φ₁ (°)", "Startwinkel des Ringsegments in Grad (0-360°)", 0)}
           {renderInput("phi2", "Endwinkel φ₂ (°)", "Endwinkel des Ringsegments in Grad (0-360°)", 90)}
+        </>
+      )}
+
+      {magnetType === "ring_multi_segment" && (
+        <>
+          {renderInput("diameter", "Außendurchmesser (X-Y Ebene)", "Außendurchmesser des Multi-Segment-Rings in der X-Y Ebene")}
+          {renderInput("innerDiameter", "Innendurchmesser (X-Y Ebene)", "Innendurchmesser des Multi-Segment-Rings in der X-Y Ebene")}
+          {renderInput("thickness", "Dicke (Z-Achse)", "Axiale Dicke des Multi-Segment-Rings entlang der Z-Achse")}
+          
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Label htmlFor="numPoles" className="text-sm font-medium">
+                Anzahl der Pole
+              </Label>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="max-w-xs text-xs">
+                    Anzahl der Segmente mit alternierender N-S Magnetisierung. 
+                    4 Pole = 4×90°, 8 Pole = 8×45°, etc.
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
+            <Select 
+              value={String(dimensions.numPoles || 4)} 
+              onValueChange={(v) => onDimensionChange('numPoles', parseInt(v))}
+            >
+              <SelectTrigger className="w-full" data-testid="select-num-poles">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {[2, 4, 6, 8, 10, 12, 16, 20, 24].map((numPoles) => (
+                  <SelectItem key={numPoles} value={String(numPoles)} data-testid={`option-poles-${numPoles}`}>
+                    {numPoles} Pole ({(360 / numPoles).toFixed(1)}° pro Segment)
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Magnetisierung wechselt automatisch: N-S-N-S...
+            </p>
+          </div>
         </>
       )}
     </div>

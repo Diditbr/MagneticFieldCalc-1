@@ -1,8 +1,17 @@
 import { z } from "zod";
 
 // Magnet type enumeration
-export const magnetTypes = ["cylindrical", "rectangular", "ring", "ring_segment"] as const;
+export const magnetTypes = ["cylindrical", "rectangular", "ring", "ring_segment", "ring_multi_segment"] as const;
 export type MagnetType = typeof magnetTypes[number];
+
+// Ring segment definition for multi-segment rings
+export const ringSegmentSchema = z.object({
+  widthDegrees: z.number().positive().max(360), // Segment width in degrees
+  // Optional magnetization override (if not provided, alternates automatically)
+  magnetizationMultiplier: z.number().min(-1).max(1).optional(), // 1 or -1 for N/S
+});
+
+export type RingSegment = z.infer<typeof ringSegmentSchema>;
 
 // Magnetization type enumeration
 export const magnetizationTypes = ["axial", "diametral", "radial"] as const;
@@ -43,6 +52,10 @@ export const magnetConfigSchema = z.object({
   phi1: z.number().min(0).max(360).optional(), // for ring_segment (start angle in degrees)
   phi2: z.number().min(0).max(360).optional(), // for ring_segment (end angle in degrees)
   
+  // Multi-segment ring parameters
+  numPoles: z.number().int().min(2).max(36).optional(), // Number of poles/segments
+  segments: z.array(ringSegmentSchema).optional(), // Custom segment definitions
+  
   // Calculation point (in meters from magnet center)
   calcX: z.number(),
   calcY: z.number(),
@@ -71,6 +84,10 @@ export const fieldCalculationRequestSchema = z.object({
   thickness: z.number().positive().optional(),
   phi1: z.number().min(0).max(360).optional(), // for ring_segment
   phi2: z.number().min(0).max(360).optional(), // for ring_segment
+  
+  // Multi-segment ring parameters
+  numPoles: z.number().int().min(2).max(36).optional(),
+  segments: z.array(ringSegmentSchema).optional(),
   
   // Calculation point in meters
   x: z.number(),
@@ -212,6 +229,10 @@ export const lineCalculationRequestSchema = z.object({
   phi1: z.number().min(0).max(360).optional(), // for ring_segment
   phi2: z.number().min(0).max(360).optional(), // for ring_segment
   
+  // Multi-segment ring parameters
+  numPoles: z.number().int().min(2).max(36).optional(),
+  segments: z.array(ringSegmentSchema).optional(),
+  
   // Line start point in meters
   startX: z.number(),
   startY: z.number(),
@@ -234,3 +255,70 @@ export const lineCalculationResponseSchema = z.object({
 });
 
 export type LineCalculationResponse = z.infer<typeof lineCalculationResponseSchema>;
+
+// Circle calculation request - for computing field along a circular path
+export const circleCalculationRequestSchema = z.object({
+  type: z.enum(magnetTypes),
+  magnetization: z.number().positive(),
+  magnetizationType: z.enum(magnetizationTypes).default("axial"),
+  magnetizationAngle: z.number().min(0).max(360).optional(),
+  
+  // Dimensions in meters
+  length: z.number().positive().optional(),
+  width: z.number().positive().optional(),
+  height: z.number().positive().optional(),
+  diameter: z.number().positive().optional(),
+  innerDiameter: z.number().positive().optional(),
+  thickness: z.number().positive().optional(),
+  phi1: z.number().min(0).max(360).optional(), // for ring_segment
+  phi2: z.number().min(0).max(360).optional(), // for ring_segment
+  
+  // Multi-segment ring parameters
+  numPoles: z.number().int().min(2).max(36).optional(),
+  segments: z.array(ringSegmentSchema).optional(),
+  
+  // Circle parameters
+  radius: z.number().positive(), // Circle radius in meters
+  centerX: z.number().default(0), // Circle center X offset in meters
+  centerY: z.number().default(0), // Circle center Y offset in meters
+  centerZ: z.number().default(0), // Circle center Z offset in meters
+  
+  // Sampling parameters
+  numSamples: z.number().int().min(36).max(720).default(360), // Number of angle samples
+});
+
+export type CircleCalculationRequest = z.infer<typeof circleCalculationRequestSchema>;
+
+// Circle calculation response - Plotly JSON chart showing Br, Bt, Bz vs angle
+export const circleCalculationResponseSchema = z.object({
+  plotlyJson: z.string(), // Plotly JSON format
+});
+
+export type CircleCalculationResponse = z.infer<typeof circleCalculationResponseSchema>;
+
+// Helper function to validate segment angles sum to 360 or less
+export function validateSegmentAngles(segments: RingSegment[]): { valid: boolean; totalDegrees: number; lastSegmentDegrees: number } {
+  if (segments.length === 0) {
+    return { valid: false, totalDegrees: 0, lastSegmentDegrees: 0 };
+  }
+  
+  // Sum all segments except the last one
+  const totalExceptLast = segments.slice(0, -1).reduce((sum, seg) => sum + seg.widthDegrees, 0);
+  const lastSegmentDegrees = 360 - totalExceptLast;
+  const totalDegrees = totalExceptLast + segments[segments.length - 1].widthDegrees;
+  
+  return {
+    valid: totalExceptLast <= 360 && lastSegmentDegrees > 0 && lastSegmentDegrees <= 360,
+    totalDegrees,
+    lastSegmentDegrees
+  };
+}
+
+// Helper function to generate equal segments for a given number of poles
+export function generateEqualSegments(numPoles: number): RingSegment[] {
+  const segmentWidth = 360 / numPoles;
+  return Array.from({ length: numPoles }, (_, i) => ({
+    widthDegrees: segmentWidth,
+    magnetizationMultiplier: i % 2 === 0 ? 1 : -1, // Alternate N/S
+  }));
+}

@@ -13,6 +13,8 @@ import {
   type FieldGridResponse,
   lineCalculationRequestSchema,
   type LineCalculationResponse,
+  circleCalculationRequestSchema,
+  type CircleCalculationResponse,
 } from "@shared/schema";
 import { calculateFieldEnhanced } from "./calculations";
 
@@ -207,6 +209,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } catch (error) {
         console.error('Line calculation failed:', error);
         res.status(500).json({ error: 'Line calculation failed' });
+      }
+    } catch (error) {
+      if (error instanceof ZodError) {
+        res.status(400).json({ error: error.message });
+      } else {
+        console.error('Unexpected error:', error);
+        res.status(500).json({ error: 'Internal server error' });
+      }
+    }
+  });
+
+  // Circle calculation endpoint - calculates field along a circular path with cylindrical coordinates
+  app.post("/api/circle-calculation", async (req, res) => {
+    try {
+      // Validate request body
+      const validatedData = circleCalculationRequestSchema.parse(req.body);
+      
+      // Build circle calculation request for Python script
+      const circleRequest = {
+        ...validatedData,
+        mode: 'circle', // Signal to Python script to calculate along circle
+      };
+      
+      try {
+        const result = await calculateWithMagpylib(circleRequest) as unknown as CircleCalculationResponse;
+        res.json(result);
+      } catch (error) {
+        console.error('Circle calculation failed:', error);
+        res.status(500).json({ error: 'Circle calculation failed' });
       }
     } catch (error) {
       if (error instanceof ZodError) {

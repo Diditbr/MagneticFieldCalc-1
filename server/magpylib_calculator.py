@@ -12,6 +12,92 @@ import numpy as np
 import plotly.graph_objects as go
 
 
+def create_multi_segment_ring(magnet_config):
+    """
+    Create a multi-segment ring magnet with alternating magnetization.
+    
+    Args:
+        magnet_config: Dict with keys:
+            - diameter, innerDiameter, thickness: Ring dimensions in meters
+            - magnetization: Base magnetization strength in Tesla
+            - magnetizationType: Type of magnetization for each segment
+            - magnetizationAngle: Angle for diametral magnetization
+            - numPoles: Number of poles (if segments not provided)
+            - segments: Optional list of segment definitions with widthDegrees and magnetizationMultiplier
+    
+    Returns:
+        magpy.Collection of CylinderSegment magnets
+    """
+    outer_diameter = magnet_config.get('diameter', 0.01)
+    inner_diameter = magnet_config.get('innerDiameter', 0.005)
+    thickness = magnet_config.get('thickness', 0.01)
+    magnetization = magnet_config['magnetization']
+    magnetization_type = magnet_config.get('magnetizationType', 'axial')
+    magnetization_angle = magnet_config.get('magnetizationAngle', 0)
+    
+    # Generate or use provided segments
+    segments = magnet_config.get('segments')
+    if not segments:
+        # Generate equal segments based on numPoles
+        num_poles = magnet_config.get('numPoles', 4)
+        segment_width = 360 / num_poles
+        segments = [{'widthDegrees': segment_width, 'magnetizationMultiplier': 1 if i % 2 == 0 else -1} 
+                   for i in range(num_poles)]
+    
+    # Create magnet collection
+    magnets = []
+    current_angle = 0
+    
+    for i, segment in enumerate(segments):
+        phi1 = current_angle
+        phi2 = current_angle + segment['widthDegrees']
+        
+        # Get magnetization multiplier (default to alternating if not specified)
+        mag_mult = segment.get('magnetizationMultiplier')
+        if mag_mult is None:
+            mag_mult = 1 if i % 2 == 0 else -1
+        
+        # Calculate polarization with multiplier
+        if magnetization_type == 'radial':
+            # Radial magnetization: discretize segment into sub-segments
+            angle_span = phi2 - phi1
+            num_subsegments = max(4, int(angle_span / 15))
+            subsegment_angle = angle_span / num_subsegments
+            
+            for j in range(num_subsegments):
+                sub_phi1 = phi1 + j * subsegment_angle
+                sub_phi2 = phi1 + (j + 1) * subsegment_angle
+                mid_angle = (sub_phi1 + sub_phi2) / 2
+                mid_angle_rad = math.radians(mid_angle)
+                
+                # Polarization pointing radially (with alternating sign)
+                px = magnetization * mag_mult * math.cos(mid_angle_rad)
+                py = magnetization * mag_mult * math.sin(mid_angle_rad)
+                
+                sub_magnet = magpy.magnet.CylinderSegment(
+                    polarization=(px, py, 0),
+                    dimension=(inner_diameter/2, outer_diameter/2, thickness, sub_phi1, sub_phi2)
+                )
+                magnets.append(sub_magnet)
+        else:
+            # Axial or Diametral magnetization
+            polarization = get_polarization_vector(magnetization * mag_mult, magnetization_type, magnetization_angle)
+            
+            # CRITICAL: CylinderSegment has INVERTED polarization for axial
+            if magnetization_type == 'axial':
+                polarization = (polarization[0], polarization[1], -polarization[2])
+            
+            magnet_segment = magpy.magnet.CylinderSegment(
+                polarization=polarization,
+                dimension=(inner_diameter/2, outer_diameter/2, thickness, phi1, phi2)
+            )
+            magnets.append(magnet_segment)
+        
+        current_angle = phi2
+    
+    return magpy.Collection(*magnets)
+
+
 def get_polarization_vector(magnetization, magnetization_type='axial', angle_deg=0):
     """
     Calculate polarization vector based on magnetization type and angle.
@@ -174,6 +260,10 @@ def calculate_field(magnet_config):
                 polarization=polarization,
                 dimension=(inner_diameter/2, outer_diameter/2, thickness, phi1, phi2)
             )
+    
+    elif magnet_type == 'ring_multi_segment':
+        # Create multi-segment ring with alternating magnetization
+        magnet = create_multi_segment_ring(magnet_config)
     
     else:
         raise ValueError(f"Unknown magnet type: {magnet_type}")
@@ -890,6 +980,200 @@ def calculate_line_field(magnet_config):
     }
 
 
+def calculate_circle_field(magnet_config):
+    """
+    Calculate magnetic field along a circular path and decompose into cylindrical coordinates.
+    Returns Plotly JSON showing Br (radial), Bt (tangential), Bz (axial) vs angle.
+    
+    Args:
+        magnet_config: Dict with keys:
+            - type, magnetization, dimensions (as in calculate_field)
+            - radius: Circle radius in meters
+            - centerX, centerY, centerZ: Circle center offset in meters
+            - numSamples: Number of angle samples (default: 360)
+    
+    Returns:
+        Dict with Plotly JSON
+    """
+    magnet_type = magnet_config['type']
+    magnetization = magnet_config['magnetization']
+    magnetization_type = magnet_config.get('magnetizationType', 'axial')
+    magnetization_angle = magnet_config.get('magnetizationAngle', 0)
+    
+    # Circle parameters
+    radius = magnet_config['radius']
+    center_x = magnet_config.get('centerX', 0)
+    center_y = magnet_config.get('centerY', 0)
+    center_z_ui = magnet_config.get('centerZ', 0)
+    num_samples = magnet_config.get('numSamples', 360)
+    
+    # Determine magnet height for coordinate transformation
+    if magnet_type == 'rectangular':
+        magnet_height = magnet_config.get('height', 0.01)
+    elif magnet_type == 'cylindrical':
+        magnet_height = magnet_config.get('length', 0.01)
+    elif magnet_type in ['ring', 'ring_segment', 'ring_multi_segment']:
+        magnet_height = magnet_config.get('thickness', 0.01)
+    else:
+        magnet_height = 0.01
+    
+    # Transform Z coordinate: UI has z=0 at surface, Magpylib has z=0 at center
+    center_z_magpylib = center_z_ui + magnet_height / 2
+    
+    # Create magnet (reuse logic from calculate_field)
+    if magnet_type == 'rectangular':
+        length = magnet_config.get('length', 0.01)
+        width = magnet_config.get('width', 0.01)
+        height = magnet_config.get('height', 0.01)
+        magnet = magpy.magnet.Cuboid(
+            polarization=(0, 0, magnetization),
+            dimension=(length, width, height)
+        )
+    elif magnet_type == 'cylindrical':
+        diameter = magnet_config.get('diameter', 0.01)
+        length = magnet_config.get('length', 0.01)
+        polarization = get_polarization_vector(magnetization, magnetization_type, magnetization_angle)
+        magnet = magpy.magnet.Cylinder(
+            polarization=polarization,
+            dimension=(diameter, length)
+        )
+    elif magnet_type == 'ring':
+        outer_diameter = magnet_config.get('diameter', 0.01)
+        inner_diameter = magnet_config.get('innerDiameter', 0.005)
+        thickness = magnet_config.get('thickness', 0.01)
+        polarization = get_polarization_vector(magnetization, magnetization_type, magnetization_angle)
+        if magnetization_type == 'axial':
+            polarization = (polarization[0], polarization[1], -polarization[2])
+        magnet = magpy.magnet.CylinderSegment(
+            polarization=polarization,
+            dimension=(inner_diameter/2, outer_diameter/2, thickness, 0, 360)
+        )
+    elif magnet_type == 'ring_segment':
+        outer_diameter = magnet_config.get('diameter', 0.01)
+        inner_diameter = magnet_config.get('innerDiameter', 0.005)
+        thickness = magnet_config.get('thickness', 0.01)
+        phi1 = magnet_config.get('phi1', 0)
+        phi2 = magnet_config.get('phi2', 90)
+        
+        if magnetization_type == 'radial':
+            angle_span = phi2 - phi1
+            num_segments = max(4, int(angle_span / 15))
+            segment_angle = angle_span / num_segments
+            magnets = []
+            for i in range(num_segments):
+                sub_phi1 = phi1 + i * segment_angle
+                sub_phi2 = phi1 + (i + 1) * segment_angle
+                mid_angle = (sub_phi1 + sub_phi2) / 2
+                mid_angle_rad = math.radians(mid_angle)
+                px = magnetization * math.cos(mid_angle_rad)
+                py = magnetization * math.sin(mid_angle_rad)
+                sub_magnet = magpy.magnet.CylinderSegment(
+                    polarization=(px, py, 0),
+                    dimension=(inner_diameter/2, outer_diameter/2, thickness, sub_phi1, sub_phi2)
+                )
+                magnets.append(sub_magnet)
+            magnet = magpy.Collection(*magnets)
+        else:
+            polarization = get_polarization_vector(magnetization, magnetization_type, magnetization_angle)
+            if magnetization_type == 'axial':
+                polarization = (polarization[0], polarization[1], -polarization[2])
+            magnet = magpy.magnet.CylinderSegment(
+                polarization=polarization,
+                dimension=(inner_diameter/2, outer_diameter/2, thickness, phi1, phi2)
+            )
+    elif magnet_type == 'ring_multi_segment':
+        magnet = create_multi_segment_ring(magnet_config)
+    else:
+        raise ValueError(f"Unknown magnet type: {magnet_type}")
+    
+    # Generate angles and calculate positions on circle
+    angles_deg = np.linspace(0, 360, num_samples, endpoint=False)
+    Br_values = []
+    Bt_values = []
+    Bz_values = []
+    
+    for angle_deg in angles_deg:
+        angle_rad = math.radians(angle_deg)
+        
+        # Position on circle (in X-Y plane, offset by center)
+        x = center_x + radius * math.cos(angle_rad)
+        y = center_y + radius * math.sin(angle_rad)
+        z = center_z_magpylib
+        
+        # Calculate B field
+        observer = np.array([x, y, z])
+        B = magpy.getB(magnet, observer)
+        Bx, By, Bz_cart = float(B[0]), float(B[1]), float(B[2])
+        
+        # Convert to cylindrical coordinates
+        # Radial unit vector at this angle
+        r_hat_x = math.cos(angle_rad)
+        r_hat_y = math.sin(angle_rad)
+        # Tangential unit vector (perpendicular to radial, in X-Y plane)
+        t_hat_x = -math.sin(angle_rad)
+        t_hat_y = math.cos(angle_rad)
+        
+        # Project B field onto cylindrical basis
+        Br = Bx * r_hat_x + By * r_hat_y  # Radial component
+        Bt = Bx * t_hat_x + By * t_hat_y  # Tangential component
+        Bz = Bz_cart  # Axial component (unchanged)
+        
+        Br_values.append(Br * 1000)  # Convert to mT
+        Bt_values.append(Bt * 1000)
+        Bz_values.append(Bz * 1000)
+    
+    # Create Plotly chart
+    fig = go.Figure()
+    
+    fig.add_trace(go.Scatter(
+        x=angles_deg,
+        y=Br_values,
+        mode='lines',
+        name='Br (radial)',
+        line=dict(color='rgb(239, 68, 68)', width=2),
+        hovertemplate='Winkel: %{x:.1f}°<br>Br: %{y:.4f} mT<extra></extra>'
+    ))
+    
+    fig.add_trace(go.Scatter(
+        x=angles_deg,
+        y=Bt_values,
+        mode='lines',
+        name='Bt (tangential)',
+        line=dict(color='rgb(34, 197, 94)', width=2),
+        hovertemplate='Winkel: %{x:.1f}°<br>Bt: %{y:.4f} mT<extra></extra>'
+    ))
+    
+    fig.add_trace(go.Scatter(
+        x=angles_deg,
+        y=Bz_values,
+        mode='lines',
+        name='Bz (axial)',
+        line=dict(color='rgb(59, 130, 246)', width=2),
+        hovertemplate='Winkel: %{x:.1f}°<br>Bz: %{y:.4f} mT<extra></extra>'
+    ))
+    
+    # Add zero line
+    fig.add_hline(y=0, line_dash="dash", line_color="rgba(0, 0, 0, 0.3)", line_width=1)
+    
+    # Update layout
+    fig.update_layout(
+        title='Feldkomponenten auf konzentrischem Kreis',
+        xaxis_title='Winkel (Grad)',
+        yaxis_title='Magnetische Flussdichte (mT)',
+        width=800,
+        height=500,
+        template='plotly_white',
+        hovermode='x unified',
+        showlegend=True,
+        legend=dict(x=1.02, y=1, xanchor='left', yanchor='top')
+    )
+    
+    fig.update_xaxes(showgrid=True, gridcolor='rgba(0, 0, 0, 0.1)', range=[0, 360])
+    fig.update_yaxes(showgrid=True, gridcolor='rgba(0, 0, 0, 0.1)')
+    
+    return {'plotlyJson': fig.to_json()}
+
+
 def main():
     """Main entry point - read JSON from stdin, calculate, output JSON."""
     try:
@@ -904,6 +1188,8 @@ def main():
             result = generate_field_visualization(input_data)
         elif mode == 'line':
             result = calculate_line_field(input_data)
+        elif mode == 'circle':
+            result = calculate_circle_field(input_data)
         else:
             result = calculate_field(input_data)
         

@@ -14,6 +14,7 @@ import { FieldVisualization } from "@/components/FieldVisualization";
 import { FormulaDisplay } from "@/components/FormulaDisplay";
 import { LineInputs } from "@/components/LineInputs";
 import { LineFieldChart } from "@/components/LineFieldChart";
+import { CircleFieldChart } from "@/components/CircleFieldChart";
 import { convertLength, convertField } from "@/lib/units";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -27,6 +28,8 @@ import type {
   FieldCalculationResponse,
   LineCalculationRequest,
   LineCalculationResponse,
+  CircleCalculationRequest,
+  CircleCalculationResponse,
 } from "@shared/schema";
 import { materialPresets } from "@shared/schema";
 
@@ -49,6 +52,7 @@ export default function Calculator() {
     thickness: 5,
     phi1: 0,
     phi2: 90,
+    numPoles: 4,
   });
 
   const [calcPoint, setCalcPoint] = useState({ x: 0, y: 0, z: 1 });
@@ -60,6 +64,11 @@ export default function Calculator() {
   const [lineStart, setLineStart] = useState({ x: 0, y: 0, z: 0 });
   const [lineEnd, setLineEnd] = useState({ x: 0, y: 0, z: 5 });
   const [lineChartPlotlyData, setLineChartPlotlyData] = useState<any | null>(null);
+  
+  const [circleRadius, setCircleRadius] = useState(15);
+  const [circleCenter, setCircleCenter] = useState({ x: 0, y: 0, z: 0 });
+  const [circleChartPlotlyData, setCircleChartPlotlyData] = useState<any | null>(null);
+  
   const [showVisualization, setShowVisualization] = useState(false);
   const [visualizationLoading, setVisualizationLoading] = useState(false);
 
@@ -77,6 +86,10 @@ export default function Calculator() {
       setResults(data);
       setShowVisualization(false);
       calculateLineMutation.mutate(buildLineRequest());
+      
+      if (magnetType === "ring_multi_segment") {
+        calculateCircleMutation.mutate(buildCircleRequest());
+      }
     },
   });
 
@@ -98,6 +111,27 @@ export default function Calculator() {
     onError: (error) => {
       console.error('Line calculation error:', error);
       setLineChartPlotlyData(null);
+    },
+  });
+
+  const calculateCircleMutation = useMutation({
+    mutationFn: async (request: CircleCalculationRequest) => {
+      const response = await apiRequest(
+        "POST",
+        "/api/circle-calculation",
+        request
+      );
+      const data = await response.json() as CircleCalculationResponse;
+      return data;
+    },
+    onSuccess: (data) => {
+      if (data.plotlyJson) {
+        setCircleChartPlotlyData(JSON.parse(data.plotlyJson));
+      }
+    },
+    onError: (error) => {
+      console.error('Circle calculation error:', error);
+      setCircleChartPlotlyData(null);
     },
   });
 
@@ -161,13 +195,71 @@ export default function Calculator() {
       request.thickness = toMeters(dimensions.thickness);
       request.phi1 = dimensions.phi1 !== undefined ? dimensions.phi1 : 0;
       request.phi2 = dimensions.phi2 !== undefined ? dimensions.phi2 : 90;
+    } else if (magnetType === "ring_multi_segment") {
+      request.diameter = toMeters(dimensions.diameter);
+      request.innerDiameter = toMeters(dimensions.innerDiameter);
+      request.thickness = toMeters(dimensions.thickness);
+      request.numPoles = dimensions.numPoles !== undefined ? dimensions.numPoles : 4;
+    }
+
+    return request;
+  };
+
+  const buildCircleRequest = (): CircleCalculationRequest => {
+    const magnetizationValue =
+      selectedMaterial === "Custom"
+        ? customMagnetization
+        : materialPresets[selectedMaterial];
+
+    const toMeters = (val: number | undefined) => {
+      if (typeof val !== 'number' || isNaN(val) || val <= 0) {
+        return 0.01;
+      }
+      return convertLength(val, lengthUnit, "m");
+    };
+
+    const request: CircleCalculationRequest = {
+      type: magnetType,
+      magnetization: magnetizationValue,
+      magnetizationType: magnetizationType,
+      magnetizationAngle: magnetizationAngle,
+      // Circle inputs are always in mm (fixed in CircleFieldChart), so convert from mm to m
+      radius: convertLength(circleRadius, "mm", "m"),
+      centerX: convertLength(circleCenter.x, "mm", "m"),
+      centerY: convertLength(circleCenter.y, "mm", "m"),
+      centerZ: convertLength(circleCenter.z, "mm", "m"),
+      numSamples: 360,
+    };
+
+    if (magnetType === "rectangular") {
+      request.length = toMeters(dimensions.length);
+      request.width = toMeters(dimensions.width);
+      request.height = toMeters(dimensions.height);
+    } else if (magnetType === "cylindrical") {
+      request.diameter = toMeters(dimensions.diameter);
+      request.length = toMeters(dimensions.length);
+    } else if (magnetType === "ring") {
+      request.diameter = toMeters(dimensions.diameter);
+      request.innerDiameter = toMeters(dimensions.innerDiameter);
+      request.thickness = toMeters(dimensions.thickness);
+    } else if (magnetType === "ring_segment") {
+      request.diameter = toMeters(dimensions.diameter);
+      request.innerDiameter = toMeters(dimensions.innerDiameter);
+      request.thickness = toMeters(dimensions.thickness);
+      request.phi1 = dimensions.phi1 !== undefined ? dimensions.phi1 : 0;
+      request.phi2 = dimensions.phi2 !== undefined ? dimensions.phi2 : 90;
+    } else if (magnetType === "ring_multi_segment") {
+      request.diameter = toMeters(dimensions.diameter);
+      request.innerDiameter = toMeters(dimensions.innerDiameter);
+      request.thickness = toMeters(dimensions.thickness);
+      request.numPoles = dimensions.numPoles !== undefined ? dimensions.numPoles : 4;
     }
 
     return request;
   };
 
   const handleCalculate = () => {
-    if ((magnetType === "ring" || magnetType === "ring_segment") && dimensions.innerDiameter && dimensions.diameter) {
+    if ((magnetType === "ring" || magnetType === "ring_segment" || magnetType === "ring_multi_segment") && dimensions.innerDiameter && dimensions.diameter) {
       if (dimensions.innerDiameter >= dimensions.diameter) {
         toast({
           title: "Ungültige Ringabmessungen",
@@ -228,6 +320,11 @@ export default function Calculator() {
       request.thickness = toMeters(dimensions.thickness);
       request.phi1 = dimensions.phi1 || 0;
       request.phi2 = dimensions.phi2 || 90;
+    } else if (magnetType === "ring_multi_segment") {
+      request.diameter = toMeters(dimensions.diameter);
+      request.innerDiameter = toMeters(dimensions.innerDiameter);
+      request.thickness = toMeters(dimensions.thickness);
+      request.numPoles = dimensions.numPoles || 4;
     }
 
     calculateMutation.mutate(request);
@@ -236,13 +333,15 @@ export default function Calculator() {
   useEffect(() => {
     if (magnetType === "rectangular") {
       setDimensions((prev) => ({ ...prev, length: 10, width: 8, height: 3 }));
-      setMagnetizationType("axial"); // Reset to axial for non-cylindrical magnets
+      setMagnetizationType("axial");
     } else if (magnetType === "cylindrical") {
       setDimensions((prev) => ({ ...prev, diameter: 10, length: 10 }));
     } else if (magnetType === "ring") {
       setDimensions((prev) => ({ ...prev, diameter: 10, innerDiameter: 5, thickness: 5 }));
     } else if (magnetType === "ring_segment") {
       setDimensions((prev) => ({ ...prev, diameter: 10, innerDiameter: 5, thickness: 5, phi1: 0, phi2: 90 }));
+    } else if (magnetType === "ring_multi_segment") {
+      setDimensions((prev) => ({ ...prev, diameter: 10, innerDiameter: 5, thickness: 5, numPoles: 4 }));
     }
   }, [magnetType]);
 
@@ -382,6 +481,22 @@ export default function Calculator() {
                 error={calculateLineMutation.isError ? 'Fehler bei der Berechnung' : undefined}
               />
             </Card>
+
+            {magnetType === "ring_multi_segment" && (
+              <CircleFieldChart
+                plotlyData={circleChartPlotlyData}
+                isLoading={calculateCircleMutation.isPending}
+                error={calculateCircleMutation.isError ? 'Kreismessung fehlgeschlagen' : undefined}
+                radius={circleRadius}
+                centerX={circleCenter.x}
+                centerY={circleCenter.y}
+                centerZ={circleCenter.z}
+                onRadiusChange={setCircleRadius}
+                onCenterXChange={(v) => setCircleCenter(prev => ({ ...prev, x: v }))}
+                onCenterYChange={(v) => setCircleCenter(prev => ({ ...prev, y: v }))}
+                onCenterZChange={(v) => setCircleCenter(prev => ({ ...prev, z: v }))}
+              />
+            )}
 
             <Card className="p-4 sm:p-6 space-y-3 sm:space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
