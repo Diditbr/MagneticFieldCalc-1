@@ -496,6 +496,41 @@ def generate_field_visualization(magnet_config):
                 line=dict(color="rgb(239, 68, 68)", width=2),
                 fillcolor="rgba(239, 68, 68, 0.3)")
         
+        # Add calculation point marker if provided
+        calc_x = magnet_config.get('calcX')
+        calc_z = magnet_config.get('calcZ')
+        if calc_x is not None and calc_z is not None:
+            calc_x_mm = calc_x * 1000  # Convert m to mm
+            # In X-Y plane view, we use calcZ as the Y coordinate (viewing from above)
+            calc_y_mm = calc_z * 1000
+            fig.add_trace(go.Scatter(
+                x=[calc_x_mm], y=[calc_y_mm],
+                mode='markers',
+                marker=dict(size=10, color='blue', symbol='x'),
+                name='Messpunkt',
+                hovertemplate='Messpunkt<br>X: %{x:.2f} mm<br>Y: %{y:.2f} mm<extra></extra>'
+            ))
+        
+        # Add line if provided
+        line_start_x = magnet_config.get('lineStartX')
+        line_start_z = magnet_config.get('lineStartZ')
+        line_end_x = magnet_config.get('lineEndX')
+        line_end_z = magnet_config.get('lineEndZ')
+        if all(v is not None for v in [line_start_x, line_start_z, line_end_x, line_end_z]):
+            line_start_x_mm = line_start_x * 1000
+            line_start_y_mm = line_start_z * 1000  # Z becomes Y in top view
+            line_end_x_mm = line_end_x * 1000
+            line_end_y_mm = line_end_z * 1000
+            fig.add_trace(go.Scatter(
+                x=[line_start_x_mm, line_end_x_mm],
+                y=[line_start_y_mm, line_end_y_mm],
+                mode='lines+markers',
+                line=dict(color='green', width=2, dash='dash'),
+                marker=dict(size=8, color='green'),
+                name='Messlinie',
+                hovertemplate='Messlinie<extra></extra>'
+            ))
+        
         fig.update_xaxes(title="X (mm)", range=[-x_extent_mm/2, x_extent_mm/2])
         fig.update_yaxes(title="Y (mm)", range=[-y_extent_mm/2, y_extent_mm/2], scaleanchor="x", scaleratio=1)
         fig.update_layout(
@@ -604,6 +639,40 @@ def generate_field_visualization(magnet_config):
                 x1=mag_length_mm/2, y1=mag_height_mm/2,
                 line=dict(color="rgb(239, 68, 68)", width=2),
                 fillcolor="rgba(239, 68, 68, 0.3)")
+        
+        # Add calculation point marker if provided
+        calc_x = magnet_config.get('calcX')
+        calc_z = magnet_config.get('calcZ')
+        if calc_x is not None and calc_z is not None:
+            calc_x_mm = calc_x * 1000  # Convert m to mm
+            calc_z_mm = calc_z * 1000
+            fig.add_trace(go.Scatter(
+                x=[calc_x_mm], y=[calc_z_mm],
+                mode='markers',
+                marker=dict(size=10, color='blue', symbol='x'),
+                name='Messpunkt',
+                hovertemplate='Messpunkt<br>X: %{x:.2f} mm<br>Z: %{y:.2f} mm<extra></extra>'
+            ))
+        
+        # Add line if provided
+        line_start_x = magnet_config.get('lineStartX')
+        line_start_z = magnet_config.get('lineStartZ')
+        line_end_x = magnet_config.get('lineEndX')
+        line_end_z = magnet_config.get('lineEndZ')
+        if all(v is not None for v in [line_start_x, line_start_z, line_end_x, line_end_z]):
+            line_start_x_mm = line_start_x * 1000
+            line_start_z_mm = line_start_z * 1000
+            line_end_x_mm = line_end_x * 1000
+            line_end_z_mm = line_end_z * 1000
+            fig.add_trace(go.Scatter(
+                x=[line_start_x_mm, line_end_x_mm],
+                y=[line_start_z_mm, line_end_z_mm],
+                mode='lines+markers',
+                line=dict(color='green', width=2, dash='dash'),
+                marker=dict(size=8, color='green'),
+                name='Messlinie',
+                hovertemplate='Messlinie<extra></extra>'
+            ))
         
         fig.update_xaxes(title="X (mm)", range=[-x_extent_mm/2, x_extent_mm/2])
         fig.update_yaxes(title="Z (mm)", range=[-z_extent_mm/2, z_extent_mm/2], scaleanchor="x", scaleratio=1)
