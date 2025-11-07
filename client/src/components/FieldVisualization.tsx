@@ -72,12 +72,12 @@ export function FieldVisualization({
       setIsLoading(true);
       try {
         // Convert all dimensions from mm to meters for backend
-        // IMPORTANT: phi1 and phi2 are angles in degrees, NOT lengths - do not convert
+        // IMPORTANT: phi1, phi2, and numPoles are NOT lengths - do not convert
         const dimensionsInMeters: any = {};
         Object.entries(dimensions).forEach(([key, value]) => {
           if (value !== undefined) {
-            if (key === 'phi1' || key === 'phi2') {
-              dimensionsInMeters[key] = value; // Keep angles in degrees
+            if (key === 'phi1' || key === 'phi2' || key === 'numPoles') {
+              dimensionsInMeters[key] = value; // Keep angles and counts as-is
             } else {
               dimensionsInMeters[key] = value / 1000; // mm to m
             }
