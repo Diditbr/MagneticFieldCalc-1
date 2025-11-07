@@ -472,7 +472,14 @@ def generate_field_visualization(magnet_config):
     # Grid setup - high resolution for best quality
     # Padding factor of 3.3 means magnet fills ~30% of display area (1/3.3 ≈ 0.30)
     padding_factor = 3.3
-    grid_size = 70 if magnet_type == 'ring_segment' else (65 if magnet_type == 'ring_multi_segment' else (75 if magnet_type == 'ring' else 80))
+    if magnet_type == 'ring_segment':
+        grid_size = 70
+    elif magnet_type == 'ring_multi_segment':
+        grid_size = 65
+    elif magnet_type == 'ring':
+        grid_size = 75
+    else:
+        grid_size = 80
     
     # Convert to mm
     mag_length_mm = mag_length * 1000

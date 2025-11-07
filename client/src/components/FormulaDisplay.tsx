@@ -47,6 +47,31 @@ export function FormulaDisplay({ magnetType }: FormulaDisplayProps) {
       docsUrl: "https://magpylib.readthedocs.io/en/stable/",
       multipoleNote: "Hinweis: Mehrpolige Magnetisierung am Umfang ist mit Magpylib möglich, aber nicht direkt unterstützt. Man kann mehrere Segmente zu einem Halbach-Array zusammensetzen.",
     },
+    ring_segment: {
+      title: "Magpylib Magnet-Simulation (Ringsegment)",
+      description:
+        "Präzise Berechnung mit Magpylib. Verwendet CylinderSegment-Modell für partiellen Ring. Unterstützt axiale, diametrale und radiale Magnetisierung.",
+      equations: [
+        "Magnet-Typ: magpy.magnet.CylinderSegment (φ₁ bis φ₂)",
+        "Axial: Magnetisierung entlang Z-Achse",
+        "Diametral: Magnetisierung in X-Z-Ebene",
+        "Radial: Magnetisierung radial nach außen (diskretisiert)",
+      ],
+      docsUrl: "https://magpylib.readthedocs.io/en/stable/",
+    },
+    ring_multi_segment: {
+      title: "Magpylib Magnet-Simulation (Multi-Segment-Ring)",
+      description:
+        "Präzise Berechnung mit Magpylib. Verwendet Collection aus mehreren CylinderSegments mit alternierenden N-S-Polen. Ideal für Halbach-Arrays und Motormagnete.",
+      equations: [
+        "Magnet-Typ: magpy.Collection aus CylinderSegments",
+        "Polarisierung: Automatisch alternierend Nord-Süd",
+        "Segmentanzahl: Einstellbar (2-24 Pole)",
+        "Radial: Jedes Segment diskretisiert für glatte Feldverteilung",
+      ],
+      docsUrl: "https://magpylib.readthedocs.io/en/stable/",
+      multipoleNote: "Hinweis: Multi-Segment-Ringe eignen sich perfekt für Halbach-Arrays, bürstenlose Motoren und andere Anwendungen mit mehrpoliger Magnetisierung.",
+    },
   };
 
   const formula = formulas[magnetType];
