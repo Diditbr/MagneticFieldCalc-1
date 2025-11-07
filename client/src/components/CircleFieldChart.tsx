@@ -36,11 +36,8 @@ export function CircleFieldChart({
   onNumSamplesChange
 }: CircleFieldChartProps) {
   return (
-    <Card>
-      <CardHeader className="p-3 sm:p-6">
-        <CardTitle className="text-sm sm:text-base">Kreisförmige Messung (Br, Bt, Bz vs. Winkel)</CardTitle>
-      </CardHeader>
-      <CardContent className="p-3 sm:p-6 pt-0 space-y-4">
+    <>
+      <CardContent className="p-0 space-y-4">
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 sm:gap-4">
           <div className="space-y-1.5">
             <Label htmlFor="circleRadius" className="text-xs font-medium">Radius (mm)</Label>
@@ -156,6 +153,6 @@ export function CircleFieldChart({
           </div>
         )}
       </CardContent>
-    </Card>
+    </>
   );
 }

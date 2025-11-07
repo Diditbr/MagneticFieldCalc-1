@@ -86,11 +86,6 @@ export default function Calculator() {
     onSuccess: (data) => {
       setResults(data);
       setShowVisualization(false);
-      calculateLineMutation.mutate(buildLineRequest());
-      
-      if (magnetType === "ring" || magnetType === "ring_segment" || magnetType === "ring_multi_segment") {
-        calculateCircleMutation.mutate(buildCircleRequest());
-      }
     },
   });
 
@@ -459,7 +454,25 @@ export default function Calculator() {
             />
 
             <Card className="p-4 sm:p-6 space-y-3 sm:space-y-4">
-              <h3 className="text-base sm:text-lg font-semibold">Feldverlauf entlang einer Linie</h3>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <h3 className="text-base sm:text-lg font-semibold">Feldverlauf entlang einer Linie</h3>
+                <Button
+                  onClick={() => calculateLineMutation.mutate(buildLineRequest())}
+                  disabled={calculateLineMutation.isPending}
+                  variant="default"
+                  className="w-full sm:w-auto"
+                  data-testid="button-calculate-line"
+                >
+                  {calculateLineMutation.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Berechnet...
+                    </>
+                  ) : (
+                    "Linie berechnen"
+                  )}
+                </Button>
+              </div>
               <LineInputs
                 startX={lineStart.x}
                 startY={lineStart.y}
@@ -484,21 +497,42 @@ export default function Calculator() {
             </Card>
 
             {(magnetType === "ring" || magnetType === "ring_segment" || magnetType === "ring_multi_segment") && (
-              <CircleFieldChart
-                plotlyData={circleChartPlotlyData}
-                isLoading={calculateCircleMutation.isPending}
-                error={calculateCircleMutation.isError ? 'Kreismessung fehlgeschlagen' : undefined}
-                radius={circleRadius}
-                centerX={circleCenter.x}
-                centerY={circleCenter.y}
-                centerZ={circleCenter.z}
-                numSamples={circleNumSamples}
-                onRadiusChange={setCircleRadius}
-                onCenterXChange={(v) => setCircleCenter(prev => ({ ...prev, x: v }))}
-                onCenterYChange={(v) => setCircleCenter(prev => ({ ...prev, y: v }))}
-                onCenterZChange={(v) => setCircleCenter(prev => ({ ...prev, z: v }))}
-                onNumSamplesChange={setCircleNumSamples}
-              />
+              <Card className="p-4 sm:p-6 space-y-3 sm:space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <h3 className="text-base sm:text-lg font-semibold">Kreisförmige Messung (Br, Bt, Bz vs. Winkel)</h3>
+                  <Button
+                    onClick={() => calculateCircleMutation.mutate(buildCircleRequest())}
+                    disabled={calculateCircleMutation.isPending}
+                    variant="default"
+                    className="w-full sm:w-auto"
+                    data-testid="button-calculate-circle"
+                  >
+                    {calculateCircleMutation.isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Berechnet...
+                      </>
+                    ) : (
+                      "Kreis berechnen"
+                    )}
+                  </Button>
+                </div>
+                <CircleFieldChart
+                  plotlyData={circleChartPlotlyData}
+                  isLoading={calculateCircleMutation.isPending}
+                  error={calculateCircleMutation.isError ? 'Kreismessung fehlgeschlagen' : undefined}
+                  radius={circleRadius}
+                  centerX={circleCenter.x}
+                  centerY={circleCenter.y}
+                  centerZ={circleCenter.z}
+                  numSamples={circleNumSamples}
+                  onRadiusChange={setCircleRadius}
+                  onCenterXChange={(v) => setCircleCenter(prev => ({ ...prev, x: v }))}
+                  onCenterYChange={(v) => setCircleCenter(prev => ({ ...prev, y: v }))}
+                  onCenterZChange={(v) => setCircleCenter(prev => ({ ...prev, z: v }))}
+                  onNumSamplesChange={setCircleNumSamples}
+                />
+              </Card>
             )}
 
             <Card className="p-4 sm:p-6 space-y-3 sm:space-y-4">
