@@ -589,20 +589,20 @@ def generate_field_visualization(input_data):
                 hoverinfo='skip', showlegend=False
             ))
         elif magnet_type == 'ring_multi_segment':
-            # Multi-segment ring - show as full ring like normal ring
+            # Multi-segment ring - show as full ring with white outline for visibility
             theta = np.linspace(0, 2*np.pi, 100)
-            # Outer ring boundary
+            # Outer ring boundary - white for visibility on dark heatmap
             fig.add_trace(go.Scatter(
                 x=outer_r_mm * np.cos(theta), y=outer_r_mm * np.sin(theta),
                 mode='lines',
-                line=dict(color='rgb(239, 68, 68)', width=3),
+                line=dict(color='white', width=4),
                 hoverinfo='skip', showlegend=False
             ))
-            # Inner ring boundary
+            # Inner ring boundary - white for visibility on dark heatmap
             fig.add_trace(go.Scatter(
                 x=inner_r_mm * np.cos(theta), y=inner_r_mm * np.sin(theta),
                 mode='lines',
-                line=dict(color='rgb(239, 68, 68)', width=3),
+                line=dict(color='white', width=4),
                 hoverinfo='skip', showlegend=False
             ))
         elif magnet_type == 'cylindrical':
@@ -652,8 +652,8 @@ def generate_field_visualization(input_data):
                 x=[line_start_x_mm, line_end_x_mm],
                 y=[line_start_y_mm, line_end_y_mm],
                 mode='lines+markers',
-                line=dict(color='green', width=2, dash='dash'),
-                marker=dict(size=8, color='green'),
+                line=dict(color='yellow', width=3, dash='dash'),
+                marker=dict(size=10, color='yellow'),
                 name='Messlinie',
                 hovertemplate='Messlinie<extra></extra>'
             ))
@@ -807,8 +807,8 @@ def generate_field_visualization(input_data):
                 x=[line_start_x_mm, line_end_x_mm],
                 y=[line_start_z_mm, line_end_z_mm],
                 mode='lines+markers',
-                line=dict(color='green', width=2, dash='dash'),
-                marker=dict(size=8, color='green'),
+                line=dict(color='yellow', width=3, dash='dash'),
+                marker=dict(size=10, color='yellow'),
                 name='Messlinie',
                 hovertemplate='Messlinie<extra></extra>'
             ))
