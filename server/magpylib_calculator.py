@@ -1195,13 +1195,24 @@ def calculate_circle_field(magnet_config):
         B = magpy.getB(magnet, observer)
         Bx, By, Bz_cart = float(B[0]), float(B[1]), float(B[2])
         
-        # Convert to cylindrical coordinates
-        # Radial unit vector at this angle
-        r_hat_x = math.cos(angle_rad)
-        r_hat_y = math.sin(angle_rad)
-        # Tangential unit vector (perpendicular to radial, in X-Y plane)
-        t_hat_x = -math.sin(angle_rad)
-        t_hat_y = math.cos(angle_rad)
+        # Convert to cylindrical coordinates relative to circle center
+        # Position relative to circle center
+        dx = x - center_x
+        dy = y - center_y
+        
+        # Radial direction: from circle center to sample point
+        r_mag = math.sqrt(dx**2 + dy**2)
+        if r_mag > 1e-10:  # Avoid division by zero
+            r_hat_x = dx / r_mag
+            r_hat_y = dy / r_mag
+        else:
+            # Fallback for center point (shouldn't happen for circle)
+            r_hat_x = math.cos(angle_rad)
+            r_hat_y = math.sin(angle_rad)
+        
+        # Tangential direction: perpendicular to radial, in X-Y plane (90° counterclockwise)
+        t_hat_x = -r_hat_y
+        t_hat_y = r_hat_x
         
         # Project B field onto cylindrical basis
         Br = Bx * r_hat_x + By * r_hat_y  # Radial component
