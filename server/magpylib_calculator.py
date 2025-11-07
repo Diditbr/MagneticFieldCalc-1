@@ -65,16 +65,19 @@ def create_multi_segment_ring(magnet_config):
             num_subsegments = max(4, int(angle_span / 5))  # Increased resolution: /5 instead of /20
             subsegment_angle = angle_span / num_subsegments
             
+            # Calculate magnetization direction based on segment center (not subsegment centers)
+            segment_center_angle = (phi1 + phi2) / 2
+            segment_center_rad = math.radians(segment_center_angle)
+            
+            # Polarization pointing to segment center (with alternating sign)
+            px = magnetization * mag_mult * math.cos(segment_center_rad)
+            py = magnetization * mag_mult * math.sin(segment_center_rad)
+            
             for j in range(num_subsegments):
                 sub_phi1 = phi1 + j * subsegment_angle
                 sub_phi2 = phi1 + (j + 1) * subsegment_angle
-                mid_angle = (sub_phi1 + sub_phi2) / 2
-                mid_angle_rad = math.radians(mid_angle)
                 
-                # Polarization pointing radially (with alternating sign)
-                px = magnetization * mag_mult * math.cos(mid_angle_rad)
-                py = magnetization * mag_mult * math.sin(mid_angle_rad)
-                
+                # All subsegments use the same polarization direction (segment center)
                 sub_magnet = magpy.magnet.CylinderSegment(
                     polarization=(px, py, 0),
                     dimension=(inner_diameter/2, outer_diameter/2, thickness, sub_phi1, sub_phi2)
@@ -222,23 +225,24 @@ def calculate_field(magnet_config):
         
         if magnetization_type == 'radial':
             # Radial magnetization: discretize segment into sub-segments
-            # Each sub-segment has polarization pointing radially outward at its mid-angle
+            # All sub-segments point to the segment center angle
             angle_span = phi2 - phi1
             num_segments = max(4, int(angle_span / 15))  # At least 4 segments, or one per 15 degrees
             segment_angle = angle_span / num_segments
+            
+            # Calculate magnetization direction based on overall segment center
+            segment_center_angle = (phi1 + phi2) / 2
+            segment_center_rad = math.radians(segment_center_angle)
+            px = magnetization * math.cos(segment_center_rad)
+            py = magnetization * math.sin(segment_center_rad)
             
             # Create collection of sub-segments
             magnets = []
             for i in range(num_segments):
                 sub_phi1 = phi1 + i * segment_angle
                 sub_phi2 = phi1 + (i + 1) * segment_angle
-                mid_angle = (sub_phi1 + sub_phi2) / 2
-                mid_angle_rad = math.radians(mid_angle)
                 
-                # Polarization pointing radially outward at this sub-segment's mid-angle
-                px = magnetization * math.cos(mid_angle_rad)
-                py = magnetization * math.sin(mid_angle_rad)
-                
+                # All subsegments use the same polarization direction (segment center)
                 # CylinderSegment expects RADII not DIAMETERS!
                 sub_magnet = magpy.magnet.CylinderSegment(
                     polarization=(px, py, 0),
@@ -429,14 +433,19 @@ def generate_field_visualization(input_data):
             angle_span = phi2 - phi1
             num_segments = max(4, int(angle_span / 15))
             segment_angle = angle_span / num_segments
+            
+            # Calculate magnetization direction based on overall segment center
+            segment_center_angle = (phi1 + phi2) / 2
+            segment_center_rad = math.radians(segment_center_angle)
+            px = magnetization * math.cos(segment_center_rad)
+            py = magnetization * math.sin(segment_center_rad)
+            
             magnets = []
             for i in range(num_segments):
                 sub_phi1 = phi1 + i * segment_angle
                 sub_phi2 = phi1 + (i + 1) * segment_angle
-                mid_angle = (sub_phi1 + sub_phi2) / 2
-                mid_angle_rad = math.radians(mid_angle)
-                px = magnetization * math.cos(mid_angle_rad)
-                py = magnetization * math.sin(mid_angle_rad)
+                
+                # All subsegments use the same polarization direction (segment center)
                 # CylinderSegment expects RADII not DIAMETERS!
                 sub_magnet = magpy.magnet.CylinderSegment(
                     polarization=(px, py, 0),
@@ -955,16 +964,18 @@ def calculate_line_field(magnet_config):
             num_segments = max(4, int(angle_span / 15))
             segment_angle = angle_span / num_segments
             
+            # Calculate magnetization direction based on overall segment center
+            segment_center_angle = (phi1 + phi2) / 2
+            segment_center_rad = math.radians(segment_center_angle)
+            px = magnetization * math.cos(segment_center_rad)
+            py = magnetization * math.sin(segment_center_rad)
+            
             magnets = []
             for i in range(num_segments):
                 sub_phi1 = phi1 + i * segment_angle
                 sub_phi2 = phi1 + (i + 1) * segment_angle
-                mid_angle = (sub_phi1 + sub_phi2) / 2
-                mid_angle_rad = math.radians(mid_angle)
                 
-                px = magnetization * math.cos(mid_angle_rad)
-                py = magnetization * math.sin(mid_angle_rad)
-                
+                # All subsegments use the same polarization direction (segment center)
                 # CylinderSegment expects RADII not DIAMETERS!
                 sub_magnet = magpy.magnet.CylinderSegment(
                     polarization=(px, py, 0),
@@ -1149,14 +1160,19 @@ def calculate_circle_field(magnet_config):
             angle_span = phi2 - phi1
             num_segments = max(4, int(angle_span / 15))
             segment_angle = angle_span / num_segments
+            
+            # Calculate magnetization direction based on overall segment center
+            segment_center_angle = (phi1 + phi2) / 2
+            segment_center_rad = math.radians(segment_center_angle)
+            px = magnetization * math.cos(segment_center_rad)
+            py = magnetization * math.sin(segment_center_rad)
+            
             magnets = []
             for i in range(num_segments):
                 sub_phi1 = phi1 + i * segment_angle
                 sub_phi2 = phi1 + (i + 1) * segment_angle
-                mid_angle = (sub_phi1 + sub_phi2) / 2
-                mid_angle_rad = math.radians(mid_angle)
-                px = magnetization * math.cos(mid_angle_rad)
-                py = magnetization * math.sin(mid_angle_rad)
+                
+                # All subsegments use the same polarization direction (segment center)
                 sub_magnet = magpy.magnet.CylinderSegment(
                     polarization=(px, py, 0),
                     dimension=(inner_diameter/2, outer_diameter/2, thickness, sub_phi1, sub_phi2)
