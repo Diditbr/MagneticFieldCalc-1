@@ -261,21 +261,21 @@ export default function Calculator() {
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <h1 className="text-2xl font-bold">Magnetic Field Calculator</h1>
-          <p className="text-sm text-muted-foreground mt-1">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-3 sm:py-4">
+          <h1 className="text-xl sm:text-2xl font-bold">Magnetic Field Calculator</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
             Calculate magnetic fields from permanent magnets
           </p>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-6 space-y-6">
-        <Card className="p-6">
-          <div className="grid md:grid-cols-2 gap-6">
-            <div className="space-y-6">
+      <main className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6">
+        <Card className="p-4 sm:p-6">
+          <div className="grid md:grid-cols-2 gap-4 sm:gap-6">
+            <div className="space-y-4 sm:space-y-6">
               <MagnetTypeSelector value={magnetType} onChange={setMagnetType} />
 
-              <div className="border-t pt-6">
+              <div className="border-t pt-4 sm:pt-6">
                 <MaterialSelector
                   selectedMaterial={selectedMaterial}
                   customMagnetization={customMagnetization}
@@ -284,7 +284,7 @@ export default function Calculator() {
                 />
               </div>
 
-              <div className="border-t pt-6">
+              <div className="border-t pt-4 sm:pt-6">
                 <DimensionInputs
                   magnetType={magnetType}
                   dimensions={dimensions}
@@ -294,7 +294,7 @@ export default function Calculator() {
                 />
               </div>
 
-              <div className="border-t pt-6">
+              <div className="border-t pt-4 sm:pt-6">
                 <MagnetizationControls
                   magnetType={magnetType}
                   magnetizationType={magnetizationType}
@@ -305,7 +305,7 @@ export default function Calculator() {
               </div>
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
               <CalculationPointInputs
                 x={calcPoint.x}
                 y={calcPoint.y}
@@ -314,13 +314,13 @@ export default function Calculator() {
                 unit={lengthUnit}
               />
 
-              <div className="border-t pt-6">
+              <div className="border-t pt-4 sm:pt-6">
                 <UnitControls fieldUnit={fieldUnit} onFieldUnitChange={setFieldUnit} />
               </div>
             </div>
           </div>
 
-          <div className="md:col-span-2 border-t pt-6">
+          <div className="md:col-span-2 border-t pt-4 sm:pt-6">
             <Button
               onClick={handleCalculate}
               disabled={calculateMutation.isPending}
@@ -358,8 +358,8 @@ export default function Calculator() {
               calcZ={calcPoint.z}
             />
 
-            <Card className="p-6 space-y-4">
-              <h3 className="text-lg font-semibold">Feldverlauf entlang einer Linie</h3>
+            <Card className="p-4 sm:p-6 space-y-3 sm:space-y-4">
+              <h3 className="text-base sm:text-lg font-semibold">Feldverlauf entlang einer Linie</h3>
               <LineInputs
                 startX={lineStart.x}
                 startY={lineStart.y}
@@ -383,13 +383,14 @@ export default function Calculator() {
               />
             </Card>
 
-            <Card className="p-6 space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold">Feldvisualisierung (2D Schnittebene)</h3>
+            <Card className="p-4 sm:p-6 space-y-3 sm:space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <h3 className="text-base sm:text-lg font-semibold">Feldvisualisierung (2D Schnittebene)</h3>
                 <Button
                   onClick={handleVisualizationToggle}
                   disabled={visualizationLoading}
                   variant={showVisualization ? "secondary" : "default"}
+                  className="w-full sm:w-auto"
                   data-testid="button-toggle-visualization"
                 >
                   {visualizationLoading ? (
@@ -407,7 +408,7 @@ export default function Calculator() {
 
               {showVisualization && (
                 <>
-                  <div className="grid md:grid-cols-2 gap-4 border-t pt-4">
+                  <div className="grid sm:grid-cols-2 gap-3 sm:gap-4 border-t pt-3 sm:pt-4">
                     <div className="space-y-3">
                       <label className="text-sm font-medium">Anzahl Feldlinien</label>
                       <div className="flex items-center gap-3">

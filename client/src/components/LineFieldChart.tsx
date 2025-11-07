@@ -11,22 +11,22 @@ interface LineFieldChartProps {
 export function LineFieldChart({ plotlyData, isLoading, error }: LineFieldChartProps) {
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="text-base">Feldkomponenten entlang Linie</CardTitle>
+      <CardHeader className="p-3 sm:p-6">
+        <CardTitle className="text-sm sm:text-base">Feldkomponenten entlang Linie</CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-3 sm:p-6 pt-0">
         {isLoading && (
           <div className="space-y-3">
-            <Skeleton className="h-[300px] w-full" data-testid="skeleton-line-chart" />
-            <p className="text-sm text-muted-foreground text-center">
+            <Skeleton className="h-[250px] sm:h-[300px] w-full" data-testid="skeleton-line-chart" />
+            <p className="text-xs sm:text-sm text-muted-foreground text-center">
               Berechnung läuft...
             </p>
           </div>
         )}
         
         {error && (
-          <div className="p-4 bg-destructive/10 text-destructive rounded-md" data-testid="error-line-chart">
-            <p className="text-sm font-medium">Fehler bei der Berechnung</p>
+          <div className="p-3 sm:p-4 bg-destructive/10 text-destructive rounded-md" data-testid="error-line-chart">
+            <p className="text-xs sm:text-sm font-medium">Fehler bei der Berechnung</p>
             <p className="text-xs mt-1">{error}</p>
           </div>
         )}
@@ -38,7 +38,7 @@ export function LineFieldChart({ plotlyData, isLoading, error }: LineFieldChartP
               layout={{
                 ...plotlyData.layout,
                 autosize: true,
-                margin: { l: 60, r: 60, t: 60, b: 60 }
+                margin: { l: 50, r: 40, t: 40, b: 50 }
               }}
               config={{
                 responsive: true,
@@ -46,14 +46,16 @@ export function LineFieldChart({ plotlyData, isLoading, error }: LineFieldChartP
                 displaylogo: false,
                 modeBarButtonsToRemove: ['lasso2d', 'select2d']
               }}
-              style={{ width: '100%', height: '500px' }}
+              style={{ width: '100%', height: '350px' }}
+              useResizeHandler={true}
+              className="sm:!h-[500px]"
             />
           </div>
         )}
         
         {!isLoading && !error && !plotlyData && (
-          <div className="p-6 text-center text-muted-foreground" data-testid="placeholder-line-chart">
-            <p className="text-sm">
+          <div className="p-4 sm:p-6 text-center text-muted-foreground" data-testid="placeholder-line-chart">
+            <p className="text-xs sm:text-sm">
               Geben Sie Start- und Endpunkt ein, um die Feldkomponenten entlang einer Linie zu berechnen.
             </p>
           </div>

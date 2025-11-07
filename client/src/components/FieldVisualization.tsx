@@ -154,20 +154,20 @@ export function FieldVisualization({
   };
 
   return (
-    <Card className="p-4 space-y-3" data-testid="card-field-visualization">
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="font-semibold">Feldvisualisierung</h3>
-          <div className="flex items-center gap-4 text-sm flex-wrap">
+    <Card className="p-3 sm:p-4 space-y-2 sm:space-y-3" data-testid="card-field-visualization">
+      <div className="space-y-2 sm:space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <h3 className="text-sm sm:text-base font-semibold">Feldvisualisierung</h3>
+          <div className="flex items-center gap-3 sm:gap-4 text-xs sm:text-sm">
             <div className="flex items-center gap-2">
-              <div className="w-4 h-2 border-2 border-[#ef4444] bg-[#ef444420]"></div>
+              <div className="w-3 h-2 sm:w-4 sm:h-2 border-2 border-[#ef4444] bg-[#ef444420]"></div>
               <span className="text-muted-foreground">Magnet</span>
             </div>
           </div>
         </div>
         {isLoading ? (
-          <div className="w-full h-96 flex items-center justify-center bg-card rounded-md">
-            <p className="text-muted-foreground">Visualisierung wird generiert...</p>
+          <div className="w-full h-64 sm:h-96 flex items-center justify-center bg-card rounded-md">
+            <p className="text-xs sm:text-sm text-muted-foreground">Visualisierung wird generiert...</p>
           </div>
         ) : plotlyData ? (
           <div className="w-full" data-testid="plotly-field-visualization">
@@ -176,7 +176,7 @@ export function FieldVisualization({
               layout={{
                 ...plotlyData.layout,
                 autosize: true,
-                margin: { l: 60, r: 60, t: 60, b: 60 }
+                margin: { l: 50, r: 50, t: 50, b: 50 }
               }}
               config={{
                 responsive: true,
@@ -184,12 +184,14 @@ export function FieldVisualization({
                 displaylogo: false,
                 modeBarButtonsToRemove: ['lasso2d', 'select2d']
               }}
-              style={{ width: '100%', height: '600px' }}
+              style={{ width: '100%', height: '400px' }}
+              useResizeHandler={true}
+              className="sm:!h-[600px]"
             />
           </div>
         ) : (
-          <div className="w-full h-96 flex items-center justify-center bg-card rounded-md">
-            <p className="text-muted-foreground">Visualisierung laden...</p>
+          <div className="w-full h-64 sm:h-96 flex items-center justify-center bg-card rounded-md">
+            <p className="text-xs sm:text-sm text-muted-foreground">Visualisierung laden...</p>
           </div>
         )}
         <div className="text-xs text-muted-foreground text-center">
