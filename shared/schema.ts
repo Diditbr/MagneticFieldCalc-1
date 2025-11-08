@@ -246,6 +246,14 @@ export const lineCalculationRequestSchema = z.object({
   endY: z.number(),
   endZ: z.number(),
   
+  // Optional second line start/end points in meters
+  line2StartX: z.number().optional(),
+  line2StartY: z.number().optional(),
+  line2StartZ: z.number().optional(),
+  line2EndX: z.number().optional(),
+  line2EndY: z.number().optional(),
+  line2EndZ: z.number().optional(),
+  
   // Number of points along the line
   numPoints: z.number().int().min(10).max(200).default(100),
 });
@@ -286,6 +294,12 @@ export const circleCalculationRequestSchema = z.object({
   centerX: z.number().default(0), // Circle center X offset in meters
   centerY: z.number().default(0), // Circle center Y offset in meters
   centerZ: z.number().default(0), // Circle center Z offset in meters
+  
+  // Optional second circle parameters
+  circle2Radius: z.number().positive().optional(),
+  circle2CenterX: z.number().optional(),
+  circle2CenterY: z.number().optional(),
+  circle2CenterZ: z.number().optional(),
   
   // Sampling parameters
   numSamples: z.number().int().min(36).max(1440).default(360), // Number of angle samples

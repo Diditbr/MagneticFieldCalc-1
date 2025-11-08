@@ -1,6 +1,9 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Calculator as CalcIcon, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { MagnetTypeSelector } from "@/components/MagnetTypeSelector";
@@ -66,10 +69,18 @@ export default function Calculator() {
   const [lineEnd, setLineEnd] = useState({ x: 0, y: 0, z: 5 });
   const [lineChartPlotlyData, setLineChartPlotlyData] = useState<any | null>(null);
   
+  const [enableLine2, setEnableLine2] = useState(false);
+  const [line2Start, setLine2Start] = useState({ x: 5, y: 0, z: 0 });
+  const [line2End, setLine2End] = useState({ x: 5, y: 0, z: 5 });
+  
   const [circleRadius, setCircleRadius] = useState(11);
   const [circleCenter, setCircleCenter] = useState({ x: 0, y: 0, z: 0 });
   const [circleNumSamples, setCircleNumSamples] = useState(360);
   const [circleChartPlotlyData, setCircleChartPlotlyData] = useState<any | null>(null);
+  
+  const [enableCircle2, setEnableCircle2] = useState(false);
+  const [circle2Radius, setCircle2Radius] = useState(15);
+  const [circle2Center, setCircle2Center] = useState({ x: 0, y: 0, z: 0 });
   
   const [showVisualization, setShowVisualization] = useState(false);
   const [visualizationLoading, setVisualizationLoading] = useState(false);
@@ -178,6 +189,15 @@ export default function Calculator() {
       numPoints: 100,
     };
 
+    if (enableLine2) {
+      request.line2StartX = convertLength(line2Start.x, lengthUnit, "m");
+      request.line2StartY = convertLength(line2Start.y, lengthUnit, "m");
+      request.line2StartZ = convertLength(line2Start.z, lengthUnit, "m");
+      request.line2EndX = convertLength(line2End.x, lengthUnit, "m");
+      request.line2EndY = convertLength(line2End.y, lengthUnit, "m");
+      request.line2EndZ = convertLength(line2End.z, lengthUnit, "m");
+    }
+
     if (magnetType === "rectangular") {
       request.length = toMeters(dimensions.length);
       request.width = toMeters(dimensions.width);
@@ -231,6 +251,13 @@ export default function Calculator() {
       centerZ: convertLength(circleCenter.z, "mm", "m"),
       numSamples: circleNumSamples,
     };
+
+    if (enableCircle2) {
+      request.circle2Radius = convertLength(circle2Radius, "mm", "m");
+      request.circle2CenterX = convertLength(circle2Center.x, "mm", "m");
+      request.circle2CenterY = convertLength(circle2Center.y, "mm", "m");
+      request.circle2CenterZ = convertLength(circle2Center.z, "mm", "m");
+    }
 
     if (magnetType === "rectangular") {
       request.length = toMeters(dimensions.length);
@@ -498,6 +525,110 @@ export default function Calculator() {
                 onEndZChange={(v) => handleLineEndChange("z", v)}
                 lengthUnit={lengthUnit}
               />
+
+              <Card>
+                <CardContent className="p-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="enableLine2"
+                      checked={enableLine2}
+                      onCheckedChange={(checked) => setEnableLine2(checked === true)}
+                      data-testid="checkbox-enable-line2"
+                    />
+                    <Label htmlFor="enableLine2" className="text-sm cursor-pointer">
+                      Zweite Linie hinzufügen
+                    </Label>
+                  </div>
+
+                  {enableLine2 && (
+                    <div className="space-y-3 pt-2">
+                      <div className="space-y-2">
+                        <div className="text-sm font-medium">Linie 2: Startpunkt ({lengthUnit})</div>
+                        <div className="grid grid-cols-3 gap-2">
+                          <div className="space-y-1">
+                            <Label htmlFor="line2-start-x" className="text-xs">X</Label>
+                            <Input
+                              id="line2-start-x"
+                              type="number"
+                              value={line2Start.x}
+                              onChange={(e) => setLine2Start(prev => ({ ...prev, x: parseFloat(e.target.value) || 0 }))}
+                              step="0.1"
+                              className="h-8 text-sm"
+                              data-testid="input-line2-start-x"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label htmlFor="line2-start-y" className="text-xs">Y</Label>
+                            <Input
+                              id="line2-start-y"
+                              type="number"
+                              value={line2Start.y}
+                              onChange={(e) => setLine2Start(prev => ({ ...prev, y: parseFloat(e.target.value) || 0 }))}
+                              step="0.1"
+                              className="h-8 text-sm"
+                              data-testid="input-line2-start-y"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label htmlFor="line2-start-z" className="text-xs">Z</Label>
+                            <Input
+                              id="line2-start-z"
+                              type="number"
+                              value={line2Start.z}
+                              onChange={(e) => setLine2Start(prev => ({ ...prev, z: parseFloat(e.target.value) || 0 }))}
+                              step="0.1"
+                              className="h-8 text-sm"
+                              data-testid="input-line2-start-z"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="text-sm font-medium">Linie 2: Endpunkt ({lengthUnit})</div>
+                        <div className="grid grid-cols-3 gap-2">
+                          <div className="space-y-1">
+                            <Label htmlFor="line2-end-x" className="text-xs">X</Label>
+                            <Input
+                              id="line2-end-x"
+                              type="number"
+                              value={line2End.x}
+                              onChange={(e) => setLine2End(prev => ({ ...prev, x: parseFloat(e.target.value) || 0 }))}
+                              step="0.1"
+                              className="h-8 text-sm"
+                              data-testid="input-line2-end-x"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label htmlFor="line2-end-y" className="text-xs">Y</Label>
+                            <Input
+                              id="line2-end-y"
+                              type="number"
+                              value={line2End.y}
+                              onChange={(e) => setLine2End(prev => ({ ...prev, y: parseFloat(e.target.value) || 0 }))}
+                              step="0.1"
+                              className="h-8 text-sm"
+                              data-testid="input-line2-end-y"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label htmlFor="line2-end-z" className="text-xs">Z</Label>
+                            <Input
+                              id="line2-end-z"
+                              type="number"
+                              value={line2End.z}
+                              onChange={(e) => setLine2End(prev => ({ ...prev, z: parseFloat(e.target.value) || 0 }))}
+                              step="0.1"
+                              className="h-8 text-sm"
+                              data-testid="input-line2-end-z"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
               
               <LineFieldChart
                 plotlyData={lineChartPlotlyData}

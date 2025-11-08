@@ -1056,63 +1056,118 @@ def calculate_line_field(magnet_config):
     if axis_tilt_angle != 0 and magnet_type in ['cylindrical', 'ring', 'ring_segment']:
         magnet = magnet.rotate_from_angax(angle=axis_tilt_angle, axis='y', anchor=(0, 0, 0))
     
-    # Generate points along the line (in Magpylib coordinates)
-    line_points_magpylib = np.linspace(start_magpylib, end_magpylib, num_points)
-    # Also generate corresponding UI coordinates for distance calculation
-    line_points_ui = np.linspace(start_ui, end_ui, num_points)
+    # Check if second line is provided
+    has_line2 = all([
+        magnet_config.get('line2StartX') is not None,
+        magnet_config.get('line2StartY') is not None,
+        magnet_config.get('line2StartZ') is not None,
+        magnet_config.get('line2EndX') is not None,
+        magnet_config.get('line2EndY') is not None,
+        magnet_config.get('line2EndZ') is not None
+    ])
     
-    # Calculate B field at each point
-    Bx_values = []
-    By_values = []
-    Bz_values = []
-    distances = []  # Distance from start point along the line
+    # Collect line configurations
+    lines_config = [
+        {
+            'name': '',
+            'start_ui': start_ui,
+            'end_ui': end_ui,
+            'start_magpylib': start_magpylib,
+            'end_magpylib': end_magpylib
+        }
+    ]
     
-    for i, point_magpylib in enumerate(line_points_magpylib):
-        B = magpy.getB(magnet, point_magpylib)
-        Bx_values.append(float(B[0]))
-        By_values.append(float(B[1]))
-        Bz_values.append(float(B[2]))
-        # Calculate distance from start along the line (in mm for display)
-        # IMPORTANT: Use UI coordinates for distance calculation so it matches user expectations
-        # This ensures "distance 1mm" corresponds to z_ui=1mm, not z_magpylib=1mm
-        point_ui = line_points_ui[i]
-        distances.append(float(np.linalg.norm(point_ui - start_ui) * 1000))
+    if has_line2:
+        line2_start_ui = np.array([
+            magnet_config['line2StartX'],
+            magnet_config['line2StartY'],
+            magnet_config['line2StartZ']
+        ])
+        line2_end_ui = np.array([
+            magnet_config['line2EndX'],
+            magnet_config['line2EndY'],
+            magnet_config['line2EndZ']
+        ])
+        line2_start_magpylib = line2_start_ui.copy()
+        line2_start_magpylib[2] += magnet_height / 2
+        line2_end_magpylib = line2_end_ui.copy()
+        line2_end_magpylib[2] += magnet_height / 2
+        
+        lines_config.append({
+            'name': ' (Linie 2)',
+            'start_ui': line2_start_ui,
+            'end_ui': line2_end_ui,
+            'start_magpylib': line2_start_magpylib,
+            'end_magpylib': line2_end_magpylib
+        })
     
     # Create Plotly chart
     fig = go.Figure()
     
-    # Convert to mT for display
-    Bx_mT = [b * 1000 for b in Bx_values]
-    By_mT = [b * 1000 for b in By_values]
-    Bz_mT = [b * 1000 for b in Bz_values]
-    
-    # Add traces for Bx, By, Bz
-    fig.add_trace(go.Scatter(
-        x=distances,
-        y=Bx_mT,
-        mode='lines',
-        name='Bx',
-        line=dict(color='rgb(239, 68, 68)', width=2),
-        hovertemplate='Distance: %{x:.2f} mm<br>Bx: %{y:.4f} mT<extra></extra>'
-    ))
-    
-    fig.add_trace(go.Scatter(
-        x=distances,
-        y=By_mT,
-        mode='lines',
-        name='By',
-        line=dict(color='rgb(34, 197, 94)', width=2),
-        hovertemplate='Distance: %{x:.2f} mm<br>By: %{y:.4f} mT<extra></extra>'
-    ))
-    
-    fig.add_trace(go.Scatter(
-        x=distances,
-        y=Bz_mT,
-        mode='lines',
-        name='Bz',
-        line=dict(color='rgb(59, 130, 246)', width=2),
-        hovertemplate='Distance: %{x:.2f} mm<br>Bz: %{y:.4f} mT<extra></extra>'
-    ))
+    # Process each line
+    for line_cfg in lines_config:
+        # Generate points along the line (in Magpylib coordinates)
+        line_points_magpylib = np.linspace(line_cfg['start_magpylib'], line_cfg['end_magpylib'], num_points)
+        line_points_ui = np.linspace(line_cfg['start_ui'], line_cfg['end_ui'], num_points)
+        
+        # Calculate B field at each point
+        Bx_values = []
+        By_values = []
+        Bz_values = []
+        distances = []
+        
+        for i, point_magpylib in enumerate(line_points_magpylib):
+            B = magpy.getB(magnet, point_magpylib)
+            Bx_values.append(float(B[0]))
+            By_values.append(float(B[1]))
+            Bz_values.append(float(B[2]))
+            point_ui = line_points_ui[i]
+            distances.append(float(np.linalg.norm(point_ui - line_cfg['start_ui']) * 1000))
+        
+        # Convert to mT for display
+        Bx_mT = [b * 1000 for b in Bx_values]
+        By_mT = [b * 1000 for b in By_values]
+        Bz_mT = [b * 1000 for b in Bz_values]
+        
+        # Use different colors/styles for second line
+        if line_cfg['name']:  # Second line
+            bx_color = 'rgb(251, 113, 133)'  # lighter red
+            by_color = 'rgb(134, 239, 172)'  # lighter green
+            bz_color = 'rgb(147, 197, 253)'  # lighter blue
+            dash = 'dash'
+        else:  # First line
+            bx_color = 'rgb(239, 68, 68)'
+            by_color = 'rgb(34, 197, 94)'
+            bz_color = 'rgb(59, 130, 246)'
+            dash = 'solid'
+        
+        # Add traces for Bx, By, Bz
+        fig.add_trace(go.Scatter(
+            x=distances,
+            y=Bx_mT,
+            mode='lines',
+            name=f'Bx{line_cfg["name"]}',
+            line=dict(color=bx_color, width=2, dash=dash),
+            hovertemplate=f'Distance: %{{x:.2f}} mm<br>Bx: %{{y:.4f}} mT<extra></extra>'
+        ))
+        
+        fig.add_trace(go.Scatter(
+            x=distances,
+            y=By_mT,
+            mode='lines',
+            name=f'By{line_cfg["name"]}',
+            line=dict(color=by_color, width=2, dash=dash),
+            hovertemplate=f'Distance: %{{x:.2f}} mm<br>By: %{{y:.4f}} mT<extra></extra>'
+        ))
+        
+        fig.add_trace(go.Scatter(
+            x=distances,
+            y=Bz_mT,
+            mode='lines',
+            name=f'Bz{line_cfg["name"]}',
+            line=dict(color=bz_color, width=2, dash=dash),
+            hovertemplate=f'Distance: %{{x:.2f}} mm<br>Bz: %{{y:.4f}} mT<extra></extra>'
+        ))
     
     # Add zero line
     fig.add_hline(y=0, line_dash="dash", line_color="rgba(0, 0, 0, 0.3)", line_width=1)
