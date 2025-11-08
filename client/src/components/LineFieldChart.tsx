@@ -20,9 +20,10 @@ export function LineFieldChart({ plotlyData, isLoading, error }: LineFieldChartP
     if (!plotlyData || !plotlyData.data) return null;
     
     const filtered = plotlyData.data.filter((trace: any) => {
-      if (trace.name === 'Bx') return showBx;
-      if (trace.name === 'By') return showBy;
-      if (trace.name === 'Bz') return showBz;
+      const name = trace.name || '';
+      if (name.startsWith('Bx')) return showBx;
+      if (name.startsWith('By')) return showBy;
+      if (name.startsWith('Bz')) return showBz;
       return true;
     });
     

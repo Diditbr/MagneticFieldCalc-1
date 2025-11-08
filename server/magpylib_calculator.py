@@ -1309,82 +1309,131 @@ def calculate_circle_field(magnet_config):
     if axis_tilt_angle != 0 and magnet_type in ['cylindrical', 'ring', 'ring_segment']:
         magnet = magnet.rotate_from_angax(angle=axis_tilt_angle, axis='y', anchor=(0, 0, 0))
     
-    # Generate angles and calculate positions on circle
-    angles_deg = np.linspace(0, 360, num_samples, endpoint=False)
-    Br_values = []
-    Bt_values = []
-    Bz_values = []
+    # Check if second circle is provided
+    has_circle2 = all([
+        magnet_config.get('circle2Radius') is not None,
+        magnet_config.get('circle2CenterX') is not None,
+        magnet_config.get('circle2CenterY') is not None,
+        magnet_config.get('circle2CenterZ') is not None
+    ])
     
-    for angle_deg in angles_deg:
-        angle_rad = math.radians(angle_deg)
+    # Collect circle configurations
+    circles_config = [
+        {
+            'name': '',
+            'radius': radius,
+            'center_x': center_x,
+            'center_y': center_y,
+            'center_z_magpylib': center_z_magpylib
+        }
+    ]
+    
+    if has_circle2:
+        circle2_radius = magnet_config['circle2Radius']
+        circle2_center_x = magnet_config.get('circle2CenterX', 0)
+        circle2_center_y = magnet_config.get('circle2CenterY', 0)
+        circle2_center_z_ui = magnet_config.get('circle2CenterZ', 0)
+        circle2_center_z_magpylib = circle2_center_z_ui + magnet_height / 2
         
-        # Position on circle (in X-Y plane, offset by center)
-        x = center_x + radius * math.cos(angle_rad)
-        y = center_y + radius * math.sin(angle_rad)
-        z = center_z_magpylib
-        
-        # Calculate B field
-        observer = np.array([x, y, z])
-        B = magpy.getB(magnet, observer)
-        Bx, By, Bz_cart = float(B[0]), float(B[1]), float(B[2])
-        
-        # Convert to cylindrical coordinates relative to circle center
-        # Position relative to circle center
-        dx = x - center_x
-        dy = y - center_y
-        
-        # Radial direction: from circle center to sample point
-        r_mag = math.sqrt(dx**2 + dy**2)
-        if r_mag > 1e-10:  # Avoid division by zero
-            r_hat_x = dx / r_mag
-            r_hat_y = dy / r_mag
-        else:
-            # Fallback for center point (shouldn't happen for circle)
-            r_hat_x = math.cos(angle_rad)
-            r_hat_y = math.sin(angle_rad)
-        
-        # Tangential direction: perpendicular to radial, in X-Y plane (90° counterclockwise)
-        t_hat_x = -r_hat_y
-        t_hat_y = r_hat_x
-        
-        # Project B field onto cylindrical basis
-        Br = Bx * r_hat_x + By * r_hat_y  # Radial component
-        Bt = Bx * t_hat_x + By * t_hat_y  # Tangential component
-        Bz = Bz_cart  # Axial component (unchanged)
-        
-        Br_values.append(Br * 1000)  # Convert to mT
-        Bt_values.append(Bt * 1000)
-        Bz_values.append(Bz * 1000)
+        circles_config.append({
+            'name': ' (Kreis 2)',
+            'radius': circle2_radius,
+            'center_x': circle2_center_x,
+            'center_y': circle2_center_y,
+            'center_z_magpylib': circle2_center_z_magpylib
+        })
     
     # Create Plotly chart
     fig = go.Figure()
     
-    fig.add_trace(go.Scatter(
-        x=angles_deg,
-        y=Br_values,
-        mode='lines',
-        name='Br (radial)',
-        line=dict(color='rgb(239, 68, 68)', width=2),
-        hovertemplate='Winkel: %{x:.1f}°<br>Br: %{y:.4f} mT<extra></extra>'
-    ))
+    # Generate angles
+    angles_deg = np.linspace(0, 360, num_samples, endpoint=False)
     
-    fig.add_trace(go.Scatter(
-        x=angles_deg,
-        y=Bt_values,
-        mode='lines',
-        name='Bt (tangential)',
-        line=dict(color='rgb(34, 197, 94)', width=2),
-        hovertemplate='Winkel: %{x:.1f}°<br>Bt: %{y:.4f} mT<extra></extra>'
-    ))
-    
-    fig.add_trace(go.Scatter(
-        x=angles_deg,
-        y=Bz_values,
-        mode='lines',
-        name='Bz (axial)',
-        line=dict(color='rgb(59, 130, 246)', width=2),
-        hovertemplate='Winkel: %{x:.1f}°<br>Bz: %{y:.4f} mT<extra></extra>'
-    ))
+    # Process each circle
+    for circle_cfg in circles_config:
+        Br_values = []
+        Bt_values = []
+        Bz_values = []
+        
+        for angle_deg in angles_deg:
+            angle_rad = math.radians(angle_deg)
+            
+            # Position on circle (in X-Y plane, offset by center)
+            x = circle_cfg['center_x'] + circle_cfg['radius'] * math.cos(angle_rad)
+            y = circle_cfg['center_y'] + circle_cfg['radius'] * math.sin(angle_rad)
+            z = circle_cfg['center_z_magpylib']
+            
+            # Calculate B field
+            observer = np.array([x, y, z])
+            B = magpy.getB(magnet, observer)
+            Bx, By, Bz_cart = float(B[0]), float(B[1]), float(B[2])
+            
+            # Convert to cylindrical coordinates relative to circle center
+            # Position relative to circle center
+            dx = x - circle_cfg['center_x']
+            dy = y - circle_cfg['center_y']
+            
+            # Radial direction: from circle center to sample point
+            r_mag = math.sqrt(dx**2 + dy**2)
+            if r_mag > 1e-10:  # Avoid division by zero
+                r_hat_x = dx / r_mag
+                r_hat_y = dy / r_mag
+            else:
+                # Fallback for center point (shouldn't happen for circle)
+                r_hat_x = math.cos(angle_rad)
+                r_hat_y = math.sin(angle_rad)
+            
+            # Tangential direction: perpendicular to radial, in X-Y plane (90° counterclockwise)
+            t_hat_x = -r_hat_y
+            t_hat_y = r_hat_x
+            
+            # Project B field onto cylindrical basis
+            Br = Bx * r_hat_x + By * r_hat_y  # Radial component
+            Bt = Bx * t_hat_x + By * t_hat_y  # Tangential component
+            Bz = Bz_cart  # Axial component (unchanged)
+            
+            Br_values.append(Br * 1000)  # Convert to mT
+            Bt_values.append(Bt * 1000)
+            Bz_values.append(Bz * 1000)
+        
+        # Use different colors/styles for second circle
+        if circle_cfg['name']:  # Second circle
+            br_color = 'rgb(251, 113, 133)'  # lighter red
+            bt_color = 'rgb(134, 239, 172)'  # lighter green
+            bz_color = 'rgb(147, 197, 253)'  # lighter blue
+            dash = 'dash'
+        else:  # First circle
+            br_color = 'rgb(239, 68, 68)'
+            bt_color = 'rgb(34, 197, 94)'
+            bz_color = 'rgb(59, 130, 246)'
+            dash = 'solid'
+        
+        fig.add_trace(go.Scatter(
+            x=angles_deg,
+            y=Br_values,
+            mode='lines',
+            name=f'Br{circle_cfg["name"]}',
+            line=dict(color=br_color, width=2, dash=dash),
+            hovertemplate=f'Winkel: %{{x:.1f}}°<br>Br: %{{y:.4f}} mT<extra></extra>'
+        ))
+        
+        fig.add_trace(go.Scatter(
+            x=angles_deg,
+            y=Bt_values,
+            mode='lines',
+            name=f'Bt{circle_cfg["name"]}',
+            line=dict(color=bt_color, width=2, dash=dash),
+            hovertemplate=f'Winkel: %{{x:.1f}}°<br>Bt: %{{y:.4f}} mT<extra></extra>'
+        ))
+        
+        fig.add_trace(go.Scatter(
+            x=angles_deg,
+            y=Bz_values,
+            mode='lines',
+            name=f'Bz{circle_cfg["name"]}',
+            line=dict(color=bz_color, width=2, dash=dash),
+            hovertemplate=f'Winkel: %{{x:.1f}}°<br>Bz: %{{y:.4f}} mT<extra></extra>'
+        ))
     
     # Add zero line
     fig.add_hline(y=0, line_dash="dash", line_color="rgba(0, 0, 0, 0.3)", line_width=1)

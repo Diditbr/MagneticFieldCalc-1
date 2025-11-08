@@ -20,6 +20,16 @@ interface CircleFieldChartProps {
   onCenterYChange: (value: number) => void;
   onCenterZChange: (value: number) => void;
   onNumSamplesChange: (value: number) => void;
+  enableCircle2?: boolean;
+  circle2Radius?: number;
+  circle2CenterX?: number;
+  circle2CenterY?: number;
+  circle2CenterZ?: number;
+  onEnableCircle2Change?: (value: boolean) => void;
+  onCircle2RadiusChange?: (value: number) => void;
+  onCircle2CenterXChange?: (value: number) => void;
+  onCircle2CenterYChange?: (value: number) => void;
+  onCircle2CenterZChange?: (value: number) => void;
 }
 
 export function CircleFieldChart({ 
@@ -35,7 +45,17 @@ export function CircleFieldChart({
   onCenterXChange,
   onCenterYChange,
   onCenterZChange,
-  onNumSamplesChange
+  onNumSamplesChange,
+  enableCircle2 = false,
+  circle2Radius = 15,
+  circle2CenterX = 0,
+  circle2CenterY = 0,
+  circle2CenterZ = 0,
+  onEnableCircle2Change,
+  onCircle2RadiusChange,
+  onCircle2CenterXChange,
+  onCircle2CenterYChange,
+  onCircle2CenterZChange
 }: CircleFieldChartProps) {
   const [showBr, setShowBr] = useState(true);
   const [showBt, setShowBt] = useState(true);
@@ -45,9 +65,10 @@ export function CircleFieldChart({
     if (!plotlyData || !plotlyData.data) return null;
     
     const filtered = plotlyData.data.filter((trace: any) => {
-      if (trace.name === 'Br') return showBr;
-      if (trace.name === 'Bt') return showBt;
-      if (trace.name === 'Bz') return showBz;
+      const name = trace.name || '';
+      if (name.startsWith('Br')) return showBr;
+      if (name.startsWith('Bt')) return showBt;
+      if (name.startsWith('Bz')) return showBz;
       return true;
     });
     
@@ -151,6 +172,79 @@ export function CircleFieldChart({
             />
           </div>
         </div>
+
+        {onEnableCircle2Change && (
+          <Card>
+            <CardContent className="p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="enableCircle2"
+                  checked={enableCircle2}
+                  onCheckedChange={(checked) => onEnableCircle2Change(checked === true)}
+                  data-testid="checkbox-enable-circle2"
+                />
+                <Label htmlFor="enableCircle2" className="text-sm cursor-pointer">
+                  Zweiten Kreis hinzufügen
+                </Label>
+              </div>
+
+              {enableCircle2 && (
+                <div className="space-y-3 pt-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="circle2Radius" className="text-xs font-medium">Radius 2 (mm)</Label>
+                      <Input
+                        id="circle2Radius"
+                        type="number"
+                        step="0.01"
+                        value={circle2Radius}
+                        onChange={(e) => onCircle2RadiusChange?.(parseFloat(e.target.value) || 0)}
+                        className="font-mono text-xs h-8"
+                        data-testid="input-circle2-radius"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="circle2CenterX" className="text-xs font-medium">X2 (mm)</Label>
+                      <Input
+                        id="circle2CenterX"
+                        type="number"
+                        step="0.01"
+                        value={circle2CenterX}
+                        onChange={(e) => onCircle2CenterXChange?.(parseFloat(e.target.value) || 0)}
+                        className="font-mono text-xs h-8"
+                        data-testid="input-circle2-center-x"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="circle2CenterY" className="text-xs font-medium">Y2 (mm)</Label>
+                      <Input
+                        id="circle2CenterY"
+                        type="number"
+                        step="0.01"
+                        value={circle2CenterY}
+                        onChange={(e) => onCircle2CenterYChange?.(parseFloat(e.target.value) || 0)}
+                        className="font-mono text-xs h-8"
+                        data-testid="input-circle2-center-y"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="circle2CenterZ" className="text-xs font-medium">Z2 (mm)</Label>
+                      <Input
+                        id="circle2CenterZ"
+                        type="number"
+                        step="0.01"
+                        value={circle2CenterZ}
+                        onChange={(e) => onCircle2CenterZChange?.(parseFloat(e.target.value) || 0)}
+                        className="font-mono text-xs h-8"
+                        data-testid="input-circle2-center-z"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
         
         {isLoading && (
           <div className="space-y-3">

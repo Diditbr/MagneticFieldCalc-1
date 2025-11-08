@@ -672,6 +672,16 @@ export default function Calculator() {
                   onCenterYChange={(v) => setCircleCenter(prev => ({ ...prev, y: v }))}
                   onCenterZChange={(v) => setCircleCenter(prev => ({ ...prev, z: v }))}
                   onNumSamplesChange={setCircleNumSamples}
+                  enableCircle2={enableCircle2}
+                  circle2Radius={circle2Radius}
+                  circle2CenterX={circle2Center.x}
+                  circle2CenterY={circle2Center.y}
+                  circle2CenterZ={circle2Center.z}
+                  onEnableCircle2Change={setEnableCircle2}
+                  onCircle2RadiusChange={setCircle2Radius}
+                  onCircle2CenterXChange={(v) => setCircle2Center(prev => ({ ...prev, x: v }))}
+                  onCircle2CenterYChange={(v) => setCircle2Center(prev => ({ ...prev, y: v }))}
+                  onCircle2CenterZChange={(v) => setCircle2Center(prev => ({ ...prev, z: v }))}
                 />
               </Card>
             )}
