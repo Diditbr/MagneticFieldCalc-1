@@ -1,8 +1,10 @@
+import { useState, useMemo } from "react";
 import Plot from "react-plotly.js";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface CircleFieldChartProps {
   plotlyData: any | null;
@@ -35,9 +37,56 @@ export function CircleFieldChart({
   onCenterZChange,
   onNumSamplesChange
 }: CircleFieldChartProps) {
+  const [showBr, setShowBr] = useState(true);
+  const [showBt, setShowBt] = useState(true);
+  const [showBz, setShowBz] = useState(true);
+
+  const filteredData = useMemo(() => {
+    if (!plotlyData || !plotlyData.data) return null;
+    
+    const filtered = plotlyData.data.filter((trace: any) => {
+      if (trace.name === 'Br') return showBr;
+      if (trace.name === 'Bt') return showBt;
+      if (trace.name === 'Bz') return showBz;
+      return true;
+    });
+    
+    return { ...plotlyData, data: filtered };
+  }, [plotlyData, showBr, showBt, showBz]);
+
   return (
     <>
       <CardContent className="p-0 space-y-4">
+        <div className="flex items-center justify-end gap-3 sm:gap-4 pt-2">
+          <div className="flex items-center gap-1.5">
+            <Checkbox
+              id="showBr"
+              checked={showBr}
+              onCheckedChange={(checked) => setShowBr(checked === true)}
+              data-testid="checkbox-show-br"
+            />
+            <Label htmlFor="showBr" className="text-xs font-normal cursor-pointer">Br</Label>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Checkbox
+              id="showBt"
+              checked={showBt}
+              onCheckedChange={(checked) => setShowBt(checked === true)}
+              data-testid="checkbox-show-bt"
+            />
+            <Label htmlFor="showBt" className="text-xs font-normal cursor-pointer">Bt</Label>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Checkbox
+              id="showBz"
+              checked={showBz}
+              onCheckedChange={(checked) => setShowBz(checked === true)}
+              data-testid="checkbox-show-bz"
+            />
+            <Label htmlFor="showBz" className="text-xs font-normal cursor-pointer">Bz</Label>
+          </div>
+        </div>
+        
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 sm:gap-4">
           <div className="space-y-1.5">
             <Label htmlFor="circleRadius" className="text-xs font-medium">Radius (mm)</Label>
@@ -119,13 +168,13 @@ export function CircleFieldChart({
           </div>
         )}
         
-        {!isLoading && !error && plotlyData && (
+        {!isLoading && !error && filteredData && (
           <div className="w-full overflow-x-auto -mx-3 sm:mx-0 px-3 sm:px-0" data-testid="plotly-circle-chart">
             <div className="min-w-[600px] sm:min-w-0">
               <Plot
-                data={plotlyData.data}
+                data={filteredData.data}
                 layout={{
-                  ...plotlyData.layout,
+                  ...filteredData.layout,
                   autosize: true,
                   margin: { l: 50, r: 30, t: 30, b: 50 },
                   font: { size: 11 }
