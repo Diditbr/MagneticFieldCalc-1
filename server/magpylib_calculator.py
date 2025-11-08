@@ -512,8 +512,9 @@ def generate_field_visualization(input_data):
         magnet = magnet.rotate_from_angax(angle=axis_tilt_angle, axis='y', anchor=(0, 0, 0))
     
     # Grid setup - high resolution for best quality
-    # Padding factor of 3.3 means magnet fills ~30% of display area (1/3.3 ≈ 0.30)
-    padding_factor = 3.3
+    # Padding factor of 2.2 means magnet fills ~45% of display area (1/2.2 ≈ 0.45)
+    # This is 1.5x larger than the previous 3.3 padding factor
+    padding_factor = 2.2
     if magnet_type == 'ring_segment':
         grid_size = 70
     elif magnet_type == 'ring_multi_segment':
