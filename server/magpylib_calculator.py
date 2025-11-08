@@ -718,6 +718,45 @@ def generate_field_visualization(input_data):
                 hovertemplate='Messkreis<extra></extra>'
             ))
         
+        # Add second line if provided
+        line2_start_x = input_data.get('line2StartX')
+        line2_start_y = input_data.get('line2StartY')
+        line2_end_x = input_data.get('line2EndX')
+        line2_end_y = input_data.get('line2EndY')
+        if all(v is not None for v in [line2_start_x, line2_start_y, line2_end_x, line2_end_y]):
+            line2_start_x_mm = line2_start_x * 1000
+            line2_start_y_mm = line2_start_y * 1000
+            line2_end_x_mm = line2_end_x * 1000
+            line2_end_y_mm = line2_end_y * 1000
+            fig.add_trace(go.Scatter(
+                x=[line2_start_x_mm, line2_end_x_mm],
+                y=[line2_start_y_mm, line2_end_y_mm],
+                mode='lines+markers',
+                line=dict(color='orange', width=3, dash='dot'),
+                marker=dict(size=10, color='orange'),
+                name='Messlinie 2',
+                hovertemplate='Messlinie 2<extra></extra>'
+            ))
+        
+        # Add second circle if provided
+        circle2_radius = input_data.get('circle2Radius')
+        circle2_center_x = input_data.get('circle2CenterX')
+        circle2_center_y = input_data.get('circle2CenterY')
+        if circle2_radius is not None and circle2_center_x is not None:
+            circle2_radius_mm = circle2_radius * 1000
+            circle2_center_x_mm = circle2_center_x * 1000
+            circle2_center_y_mm = circle2_center_y * 1000 if circle2_center_y is not None else 0
+            theta = np.linspace(0, 2*np.pi, 100)
+            circle2_x = circle2_center_x_mm + circle2_radius_mm * np.cos(theta)
+            circle2_y = circle2_center_y_mm + circle2_radius_mm * np.sin(theta)
+            fig.add_trace(go.Scatter(
+                x=circle2_x, y=circle2_y,
+                mode='lines',
+                line=dict(color='magenta', width=3, dash='dot'),
+                name='Messkreis 2',
+                hovertemplate='Messkreis 2<extra></extra>'
+            ))
+        
         fig.update_xaxes(title="X (mm)", range=[-x_extent_mm/2, x_extent_mm/2])
         fig.update_yaxes(title="Y (mm)", range=[-y_extent_mm/2, y_extent_mm/2], scaleanchor="x", scaleratio=1)
         fig.update_layout(
@@ -900,6 +939,45 @@ def generate_field_visualization(input_data):
                 line=dict(color='cyan', width=3, dash='dash'),
                 name='Messkreis',
                 hovertemplate='Messkreis<extra></extra>'
+            ))
+        
+        # Add second line if provided
+        line2_start_x = input_data.get('line2StartX')
+        line2_start_z = input_data.get('line2StartZ')
+        line2_end_x = input_data.get('line2EndX')
+        line2_end_z = input_data.get('line2EndZ')
+        if all(v is not None for v in [line2_start_x, line2_start_z, line2_end_x, line2_end_z]):
+            line2_start_x_mm = line2_start_x * 1000
+            line2_start_z_mm = line2_start_z * 1000
+            line2_end_x_mm = line2_end_x * 1000
+            line2_end_z_mm = line2_end_z * 1000
+            fig.add_trace(go.Scatter(
+                x=[line2_start_x_mm, line2_end_x_mm],
+                y=[line2_start_z_mm, line2_end_z_mm],
+                mode='lines+markers',
+                line=dict(color='orange', width=3, dash='dot'),
+                marker=dict(size=10, color='orange'),
+                name='Messlinie 2',
+                hovertemplate='Messlinie 2<extra></extra>'
+            ))
+        
+        # Add second circle if provided
+        circle2_radius = input_data.get('circle2Radius')
+        circle2_center_x = input_data.get('circle2CenterX')
+        circle2_center_z = input_data.get('circle2CenterZ')
+        if circle2_radius is not None and circle2_center_x is not None:
+            circle2_radius_mm = circle2_radius * 1000
+            circle2_center_x_mm = circle2_center_x * 1000
+            circle2_center_z_mm = circle2_center_z * 1000 if circle2_center_z is not None else 0
+            theta = np.linspace(0, 2*np.pi, 100)
+            circle2_x = circle2_center_x_mm + circle2_radius_mm * np.cos(theta)
+            circle2_z = circle2_center_z_mm + circle2_radius_mm * np.sin(theta)
+            fig.add_trace(go.Scatter(
+                x=circle2_x, y=circle2_z,
+                mode='lines',
+                line=dict(color='magenta', width=3, dash='dot'),
+                name='Messkreis 2',
+                hovertemplate='Messkreis 2<extra></extra>'
             ))
         
         fig.update_xaxes(title="X (mm)", range=[-x_extent_mm/2, x_extent_mm/2])

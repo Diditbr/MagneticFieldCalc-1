@@ -116,7 +116,10 @@ export function CircleFieldChart({
               type="number"
               step="0.1"
               value={radius}
-              onChange={(e) => onRadiusChange(parseFloat(e.target.value) || 0)}
+              onChange={(e) => {
+                const val = e.target.value;
+                onRadiusChange(val === '' ? 0 : parseFloat(val));
+              }}
               className="font-mono text-xs h-8"
               data-testid="input-circle-radius"
             />
@@ -128,7 +131,10 @@ export function CircleFieldChart({
               type="number"
               step="0.01"
               value={centerX}
-              onChange={(e) => onCenterXChange(parseFloat(e.target.value) || 0)}
+              onChange={(e) => {
+                const val = e.target.value;
+                onCenterXChange(val === '' ? 0 : parseFloat(val));
+              }}
               className="font-mono text-xs h-8"
               data-testid="input-circle-center-x"
             />
@@ -140,7 +146,10 @@ export function CircleFieldChart({
               type="number"
               step="0.01"
               value={centerY}
-              onChange={(e) => onCenterYChange(parseFloat(e.target.value) || 0)}
+              onChange={(e) => {
+                const val = e.target.value;
+                onCenterYChange(val === '' ? 0 : parseFloat(val));
+              }}
               className="font-mono text-xs h-8"
               data-testid="input-circle-center-y"
             />
@@ -152,7 +161,10 @@ export function CircleFieldChart({
               type="number"
               step="0.01"
               value={centerZ}
-              onChange={(e) => onCenterZChange(parseFloat(e.target.value) || 0)}
+              onChange={(e) => {
+                const val = e.target.value;
+                onCenterZChange(val === '' ? 0 : parseFloat(val));
+              }}
               className="font-mono text-xs h-8"
               data-testid="input-circle-center-z"
             />
@@ -198,7 +210,10 @@ export function CircleFieldChart({
                         type="number"
                         step="0.01"
                         value={circle2Radius}
-                        onChange={(e) => onCircle2RadiusChange?.(parseFloat(e.target.value) || 0)}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          onCircle2RadiusChange?.(val === '' ? 0 : parseFloat(val));
+                        }}
                         className="font-mono text-xs h-8"
                         data-testid="input-circle2-radius"
                       />
@@ -210,7 +225,10 @@ export function CircleFieldChart({
                         type="number"
                         step="0.01"
                         value={circle2CenterX}
-                        onChange={(e) => onCircle2CenterXChange?.(parseFloat(e.target.value) || 0)}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          onCircle2CenterXChange?.(val === '' ? 0 : parseFloat(val));
+                        }}
                         className="font-mono text-xs h-8"
                         data-testid="input-circle2-center-x"
                       />
@@ -222,7 +240,10 @@ export function CircleFieldChart({
                         type="number"
                         step="0.01"
                         value={circle2CenterY}
-                        onChange={(e) => onCircle2CenterYChange?.(parseFloat(e.target.value) || 0)}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          onCircle2CenterYChange?.(val === '' ? 0 : parseFloat(val));
+                        }}
                         className="font-mono text-xs h-8"
                         data-testid="input-circle2-center-y"
                       />
@@ -234,7 +255,10 @@ export function CircleFieldChart({
                         type="number"
                         step="0.01"
                         value={circle2CenterZ}
-                        onChange={(e) => onCircle2CenterZChange?.(parseFloat(e.target.value) || 0)}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          onCircle2CenterZChange?.(val === '' ? 0 : parseFloat(val));
+                        }}
                         className="font-mono text-xs h-8"
                         data-testid="input-circle2-center-z"
                       />
