@@ -664,9 +664,6 @@ def generate_field_visualization(input_data):
                 line=dict(color="rgb(239, 68, 68)", width=2),
                 fillcolor="rgba(239, 68, 68, 0.3)")
         
-        # Build legend items list
-        legend_items = []
-        
         # Add calculation point marker if provided
         calc_x = input_data.get('calcX')
         calc_y = input_data.get('calcY')
@@ -679,10 +676,8 @@ def generate_field_visualization(input_data):
                 mode='markers',
                 marker=dict(size=10, color='blue', symbol='x'),
                 name='Messpunkt',
-                showlegend=False,
                 hovertemplate='Messpunkt<br>X: %{x:.2f} mm<br>Y: %{y:.2f} mm<extra></extra>'
             ))
-            legend_items.append('Messpunkt')
         
         # Add line if provided
         line_start_x = input_data.get('lineStartX')
@@ -701,10 +696,8 @@ def generate_field_visualization(input_data):
                 line=dict(color='yellow', width=3, dash='dash'),
                 marker=dict(size=10, color='yellow'),
                 name='Messlinie',
-                showlegend=False,
                 hovertemplate='Messlinie<extra></extra>'
             ))
-            legend_items.append('Messlinie')
         
         # Add circle if provided
         circle_radius = input_data.get('circleRadius')
@@ -722,10 +715,8 @@ def generate_field_visualization(input_data):
                 mode='lines',
                 line=dict(color='cyan', width=3, dash='dash'),
                 name='Messkreis',
-                showlegend=False,
                 hovertemplate='Messkreis<extra></extra>'
             ))
-            legend_items.append('Messkreis')
         
         # Add second line if provided
         line2_start_x = input_data.get('line2StartX')
@@ -744,10 +735,8 @@ def generate_field_visualization(input_data):
                 line=dict(color='orange', width=3, dash='dot'),
                 marker=dict(size=10, color='orange'),
                 name='Messlinie 2',
-                showlegend=False,
                 hovertemplate='Messlinie 2<extra></extra>'
             ))
-            legend_items.append('Messlinie 2')
         
         # Add second circle if provided
         circle2_radius = input_data.get('circle2Radius')
@@ -765,23 +754,28 @@ def generate_field_visualization(input_data):
                 mode='lines',
                 line=dict(color='magenta', width=3, dash='dot'),
                 name='Messkreis 2',
-                showlegend=False,
                 hovertemplate='Messkreis 2<extra></extra>'
             ))
-            legend_items.append('Messkreis 2')
-        
-        # Build title with inline legend
-        legend_text = ' / '.join(legend_items) if legend_items else ''
-        title_text = f"Magnetfeld (X-Y Ebene, Draufsicht)<br><sub>{legend_text}</sub>" if legend_text else "Magnetfeld (X-Y Ebene, Draufsicht)"
         
         fig.update_xaxes(title="X (mm)", range=[-x_extent_mm/2, x_extent_mm/2])
         fig.update_yaxes(title="Y (mm)", range=[-y_extent_mm/2, y_extent_mm/2], scaleanchor="x", scaleratio=1)
         fig.update_layout(
-            title=title_text,
+            title="Magnetfeld (X-Y Ebene, Draufsicht)",
             width=700, height=700,
             hovermode='closest',
             template='plotly_white',
-            showlegend=False
+            showlegend=True,
+            legend=dict(
+                orientation='h',
+                yanchor='top',
+                y=-0.15,
+                xanchor='center',
+                x=0.5,
+                bgcolor='rgba(255, 255, 255, 0.8)',
+                bordercolor='rgba(0, 0, 0, 0.2)',
+                borderwidth=1,
+                font=dict(size=10)
+            )
         )
     else:
         # X-Z plane (Y=0, side view)
@@ -896,9 +890,6 @@ def generate_field_visualization(input_data):
                 line=dict(color="rgb(239, 68, 68)", width=2),
                 fillcolor="rgba(239, 68, 68, 0.3)")
         
-        # Build legend items list
-        legend_items = []
-        
         # Add calculation point marker if provided
         calc_x = input_data.get('calcX')
         calc_z = input_data.get('calcZ')
@@ -910,10 +901,8 @@ def generate_field_visualization(input_data):
                 mode='markers',
                 marker=dict(size=10, color='blue', symbol='x'),
                 name='Messpunkt',
-                showlegend=False,
                 hovertemplate='Messpunkt<br>X: %{x:.2f} mm<br>Z: %{y:.2f} mm<extra></extra>'
             ))
-            legend_items.append('Messpunkt')
         
         # Add line if provided
         line_start_x = input_data.get('lineStartX')
@@ -932,10 +921,8 @@ def generate_field_visualization(input_data):
                 line=dict(color='yellow', width=3, dash='dash'),
                 marker=dict(size=10, color='yellow'),
                 name='Messlinie',
-                showlegend=False,
                 hovertemplate='Messlinie<extra></extra>'
             ))
-            legend_items.append('Messlinie')
         
         # Add circle if provided (projected onto X-Z plane)
         circle_radius = input_data.get('circleRadius')
@@ -953,10 +940,8 @@ def generate_field_visualization(input_data):
                 mode='lines',
                 line=dict(color='cyan', width=3, dash='dash'),
                 name='Messkreis',
-                showlegend=False,
                 hovertemplate='Messkreis<extra></extra>'
             ))
-            legend_items.append('Messkreis')
         
         # Add second line if provided
         line2_start_x = input_data.get('line2StartX')
@@ -975,10 +960,8 @@ def generate_field_visualization(input_data):
                 line=dict(color='orange', width=3, dash='dot'),
                 marker=dict(size=10, color='orange'),
                 name='Messlinie 2',
-                showlegend=False,
                 hovertemplate='Messlinie 2<extra></extra>'
             ))
-            legend_items.append('Messlinie 2')
         
         # Add second circle if provided
         circle2_radius = input_data.get('circle2Radius')
@@ -996,23 +979,28 @@ def generate_field_visualization(input_data):
                 mode='lines',
                 line=dict(color='magenta', width=3, dash='dot'),
                 name='Messkreis 2',
-                showlegend=False,
                 hovertemplate='Messkreis 2<extra></extra>'
             ))
-            legend_items.append('Messkreis 2')
-        
-        # Build title with inline legend
-        legend_text = ' / '.join(legend_items) if legend_items else ''
-        title_text = f"Magnetfeld (X-Z Ebene, Seitenansicht)<br><sub>{legend_text}</sub>" if legend_text else "Magnetfeld (X-Z Ebene, Seitenansicht)"
         
         fig.update_xaxes(title="X (mm)", range=[-x_extent_mm/2, x_extent_mm/2])
         fig.update_yaxes(title="Z (mm)", range=[-z_extent_mm/2, z_extent_mm/2], scaleanchor="x", scaleratio=1)
         fig.update_layout(
-            title=title_text,
+            title="Magnetfeld (X-Z Ebene, Seitenansicht)",
             width=700, height=700,
             hovermode='closest',
             template='plotly_white',
-            showlegend=False
+            showlegend=True,
+            legend=dict(
+                orientation='h',
+                yanchor='top',
+                y=-0.15,
+                xanchor='center',
+                x=0.5,
+                bgcolor='rgba(255, 255, 255, 0.8)',
+                bordercolor='rgba(0, 0, 0, 0.2)',
+                borderwidth=1,
+                font=dict(size=10)
+            )
         )
     
     return {'plotlyJson': fig.to_json()}
