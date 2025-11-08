@@ -765,6 +765,7 @@ def generate_field_visualization(input_data):
             hovermode='closest',
             template='plotly_white',
             legend=dict(
+                orientation='v',
                 x=1.02,
                 y=1,
                 xanchor='left',
@@ -988,6 +989,7 @@ def generate_field_visualization(input_data):
             hovermode='closest',
             template='plotly_white',
             legend=dict(
+                orientation='v',
                 x=1.02,
                 y=1,
                 xanchor='left',
