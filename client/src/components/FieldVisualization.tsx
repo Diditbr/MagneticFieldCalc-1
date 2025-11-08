@@ -37,6 +37,18 @@ interface FieldVisualizationProps {
   circleCenterX?: number;
   circleCenterY?: number;
   circleCenterZ?: number;
+  enableLine2?: boolean;
+  line2StartX?: number;
+  line2StartY?: number;
+  line2StartZ?: number;
+  line2EndX?: number;
+  line2EndY?: number;
+  line2EndZ?: number;
+  enableCircle2?: boolean;
+  circle2Radius?: number;
+  circle2CenterX?: number;
+  circle2CenterY?: number;
+  circle2CenterZ?: number;
 }
 
 export function FieldVisualization({
@@ -63,6 +75,18 @@ export function FieldVisualization({
   circleCenterX,
   circleCenterY,
   circleCenterZ,
+  enableLine2 = false,
+  line2StartX,
+  line2StartY,
+  line2StartZ,
+  line2EndX,
+  line2EndY,
+  line2EndZ,
+  enableCircle2 = false,
+  circle2Radius,
+  circle2CenterX,
+  circle2CenterY,
+  circle2CenterZ,
 }: FieldVisualizationProps) {
   const [plotlyData, setPlotlyData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -129,6 +153,24 @@ export function FieldVisualization({
           requestBody.circleCenterZ = circleCenterZ !== undefined ? circleCenterZ / 1000 : 0;
         }
         
+        // Add second line if enabled
+        if (enableLine2 && line2StartX !== undefined && line2EndX !== undefined) {
+          requestBody.line2StartX = line2StartX / 1000;
+          requestBody.line2StartY = line2StartY !== undefined ? line2StartY / 1000 : 0;
+          requestBody.line2StartZ = line2StartZ !== undefined ? line2StartZ / 1000 : 0;
+          requestBody.line2EndX = line2EndX / 1000;
+          requestBody.line2EndY = line2EndY !== undefined ? line2EndY / 1000 : 0;
+          requestBody.line2EndZ = line2EndZ !== undefined ? line2EndZ / 1000 : 0;
+        }
+        
+        // Add second circle if enabled
+        if (enableCircle2 && circle2Radius !== undefined && circle2CenterX !== undefined) {
+          requestBody.circle2Radius = circle2Radius / 1000;
+          requestBody.circle2CenterX = circle2CenterX / 1000;
+          requestBody.circle2CenterY = circle2CenterY !== undefined ? circle2CenterY / 1000 : 0;
+          requestBody.circle2CenterZ = circle2CenterZ !== undefined ? circle2CenterZ / 1000 : 0;
+        }
+        
         const response = await fetch('/api/field-visualization', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -161,7 +203,7 @@ export function FieldVisualization({
         clearTimeout(debounceTimerRef.current);
       }
     };
-  }, [magnetType, dimensions, magnetization, magnetizationType, magnetizationAngle, calcX, calcZ, numFluxLines, maxColorScale, lineStartX, lineStartY, lineStartZ, lineEndX, lineEndY, lineEndZ, circleRadius, circleCenterX, circleCenterY, circleCenterZ]);
+  }, [magnetType, dimensions, magnetization, magnetizationType, magnetizationAngle, calcX, calcY, calcZ, numFluxLines, maxColorScale, lineStartX, lineStartY, lineStartZ, lineEndX, lineEndY, lineEndZ, circleRadius, circleCenterX, circleCenterY, circleCenterZ, enableLine2, line2StartX, line2StartY, line2StartZ, line2EndX, line2EndY, line2EndZ, enableCircle2, circle2Radius, circle2CenterX, circle2CenterY, circle2CenterZ]);
 
   const getViewDescription = () => {
     if (((magnetType === 'ring' || magnetType === 'ring_segment' || magnetType === 'cylindrical') && 

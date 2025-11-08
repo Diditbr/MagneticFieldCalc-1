@@ -551,7 +551,10 @@ export default function Calculator() {
                               id="line2-start-x"
                               type="number"
                               value={line2Start.x}
-                              onChange={(e) => setLine2Start(prev => ({ ...prev, x: parseFloat(e.target.value) || 0 }))}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setLine2Start(prev => ({ ...prev, x: val === '' ? 0 : parseFloat(val) }));
+                              }}
                               step="0.1"
                               className="h-8 text-sm"
                               data-testid="input-line2-start-x"
@@ -563,7 +566,10 @@ export default function Calculator() {
                               id="line2-start-y"
                               type="number"
                               value={line2Start.y}
-                              onChange={(e) => setLine2Start(prev => ({ ...prev, y: parseFloat(e.target.value) || 0 }))}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setLine2Start(prev => ({ ...prev, y: val === '' ? 0 : parseFloat(val) }));
+                              }}
                               step="0.1"
                               className="h-8 text-sm"
                               data-testid="input-line2-start-y"
@@ -575,7 +581,10 @@ export default function Calculator() {
                               id="line2-start-z"
                               type="number"
                               value={line2Start.z}
-                              onChange={(e) => setLine2Start(prev => ({ ...prev, z: parseFloat(e.target.value) || 0 }))}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setLine2Start(prev => ({ ...prev, z: val === '' ? 0 : parseFloat(val) }));
+                              }}
                               step="0.1"
                               className="h-8 text-sm"
                               data-testid="input-line2-start-z"
@@ -593,7 +602,10 @@ export default function Calculator() {
                               id="line2-end-x"
                               type="number"
                               value={line2End.x}
-                              onChange={(e) => setLine2End(prev => ({ ...prev, x: parseFloat(e.target.value) || 0 }))}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setLine2End(prev => ({ ...prev, x: val === '' ? 0 : parseFloat(val) }));
+                              }}
                               step="0.1"
                               className="h-8 text-sm"
                               data-testid="input-line2-end-x"
@@ -605,7 +617,10 @@ export default function Calculator() {
                               id="line2-end-y"
                               type="number"
                               value={line2End.y}
-                              onChange={(e) => setLine2End(prev => ({ ...prev, y: parseFloat(e.target.value) || 0 }))}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setLine2End(prev => ({ ...prev, y: val === '' ? 0 : parseFloat(val) }));
+                              }}
                               step="0.1"
                               className="h-8 text-sm"
                               data-testid="input-line2-end-y"
@@ -617,7 +632,10 @@ export default function Calculator() {
                               id="line2-end-z"
                               type="number"
                               value={line2End.z}
-                              onChange={(e) => setLine2End(prev => ({ ...prev, z: parseFloat(e.target.value) || 0 }))}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setLine2End(prev => ({ ...prev, z: val === '' ? 0 : parseFloat(val) }));
+                              }}
                               step="0.1"
                               className="h-8 text-sm"
                               data-testid="input-line2-end-z"
@@ -792,6 +810,18 @@ export default function Calculator() {
                     circleCenterX={circleCenter.x}
                     circleCenterY={circleCenter.y}
                     circleCenterZ={circleCenter.z}
+                    enableLine2={enableLine2}
+                    line2StartX={line2Start.x}
+                    line2StartY={line2Start.y}
+                    line2StartZ={line2Start.z}
+                    line2EndX={line2End.x}
+                    line2EndY={line2End.y}
+                    line2EndZ={line2End.z}
+                    enableCircle2={enableCircle2}
+                    circle2Radius={circle2Radius}
+                    circle2CenterX={circle2Center.x}
+                    circle2CenterY={circle2Center.y}
+                    circle2CenterZ={circle2Center.z}
                   />
                 </>
               )}
