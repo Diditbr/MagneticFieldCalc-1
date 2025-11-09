@@ -55,7 +55,7 @@ try:
     else:
         scope = PlotlyScope()
         
-    def to_image_safe(fig, format='png', width=800, height=400):
+    def to_image_safe(fig, format='png', width=600, height=300):
         """Safely convert Plotly figure to image."""
         try:
             # Use the configured scope
@@ -440,7 +440,7 @@ def generate_line_section(line_data_list, length_unit, field_unit):
         
         # Export chart to PNG
         fig = go.Figure(plotly_data)
-        img_bytes = to_image_safe(fig, format='png', width=800, height=400)
+        img_bytes = to_image_safe(fig, format='png', width=600, height=300)
         img_base64 = base64.b64encode(img_bytes).decode('utf-8')
         
         line_num = i + 1
@@ -479,7 +479,7 @@ def generate_circle_section(circle_data_list, length_unit, field_unit):
         
         # Export chart to PNG
         fig = go.Figure(plotly_data)
-        img_bytes = to_image_safe(fig, format='png', width=800, height=400)
+        img_bytes = to_image_safe(fig, format='png', width=600, height=300)
         img_base64 = base64.b64encode(img_bytes).decode('utf-8')
         
         circle_num = i + 1
