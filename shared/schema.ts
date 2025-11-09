@@ -307,9 +307,28 @@ export const circleCalculationRequestSchema = z.object({
 
 export type CircleCalculationRequest = z.infer<typeof circleCalculationRequestSchema>;
 
+// Zero crossing data for multi-segment rings
+export const zeroCrossingSchema = z.object({
+  poleIndex: z.number().int(),
+  expectedAngle: z.number(),
+  measuredAngle: z.number().nullable(),
+  deviationDegrees: z.number().nullable(),
+});
+
+export type ZeroCrossing = z.infer<typeof zeroCrossingSchema>;
+
+export const zeroCrossingsDataSchema = z.object({
+  component: z.string(), // e.g., "Bz"
+  poles: z.number().int(),
+  crossings: z.array(zeroCrossingSchema),
+});
+
+export type ZeroCrossingsData = z.infer<typeof zeroCrossingsDataSchema>;
+
 // Circle calculation response - Plotly JSON chart showing Br, Bt, Bz vs angle
 export const circleCalculationResponseSchema = z.object({
   plotlyJson: z.string(), // Plotly JSON format
+  zeroCrossings: zeroCrossingsDataSchema.optional(), // Optional zero crossing analysis for multi-segment rings
 });
 
 export type CircleCalculationResponse = z.infer<typeof circleCalculationResponseSchema>;
