@@ -205,13 +205,87 @@ export default function Calculator() {
     },
   });
 
-  // Build report payload
+  // Build field calculation request from current state
+  const buildFieldRequest = (): FieldCalculationRequest => {
+    const toMeters = (val: number | undefined) => {
+      if (typeof val !== 'number' || isNaN(val) || val <= 0) {
+        return 0.01;
+      }
+      return convertLength(val, lengthUnit, "m");
+    };
+
+    const request: FieldCalculationRequest = {
+      type: magnetType,
+      magnetization,
+      magnetizationType,
+      magnetizationAngle: magnetizationType === "radial" ? magnetizationAngle : undefined,
+      axisTiltAngle: dimensions.axisTiltAngle || 0,
+      length: toMeters(dimensions.length),
+      width: toMeters(dimensions.width),
+      height: toMeters(dimensions.height),
+      diameter: toMeters(dimensions.diameter),
+      innerDiameter: toMeters(dimensions.innerDiameter),
+      thickness: toMeters(dimensions.thickness),
+      phi1: dimensions.phi1,
+      phi2: dimensions.phi2,
+      numPoles: dimensions.numPoles,
+      x: convertLength(calcPoint.x, lengthUnit, "m"),
+      y: convertLength(calcPoint.y, lengthUnit, "m"),
+      z: convertLength(calcPoint.z, lengthUnit, "m"),
+    };
+    return request;
+  };
+
+  // Build report payload with all available data
   const buildReportPayload = (sections: ReportSection[]): ReportRequest => {
+    const inputs: any = {};
+
+    // Point calculation data
+    if (sections.includes("point_calculation") && results) {
+      inputs.point = {
+        request: buildFieldRequest(),
+        result: results,
+      };
+    }
+
+    // Field visualization data
+    if (sections.includes("field_visualization")) {
+      inputs.visualization = buildFieldRequest();
+    }
+
+    // Line measurement data
+    if (sections.includes("line_measurement") && lineChartPlotlyData) {
+      inputs.line = [{
+        request: buildLineRequest(),
+        plotlyJson: JSON.stringify(lineChartPlotlyData),
+      }];
+    }
+
+    // Circle measurement data
+    if (sections.includes("circle_measurement") && circleChartPlotlyData) {
+      inputs.circle = [{
+        request: buildCircleRequest(),
+        plotlyJson: JSON.stringify(circleChartPlotlyData),
+        zeroCrossings: circleZeroCrossings || undefined,
+      }];
+    }
+
+    // Zero crossings data (uses circle data)
+    if (sections.includes("zero_crossings") && circleZeroCrossings) {
+      if (!inputs.circle) {
+        inputs.circle = [{
+          request: buildCircleRequest(),
+          plotlyJson: circleChartPlotlyData ? JSON.stringify(circleChartPlotlyData) : undefined,
+          zeroCrossings: circleZeroCrossings,
+        }];
+      }
+    }
+
     return {
       sections,
       lengthUnit,
       fieldUnit,
-      inputs: {}, // MVP: Only documentation section, no inputs needed
+      inputs,
     };
   };
 
@@ -222,13 +296,43 @@ export default function Calculator() {
     reportMutation.mutate(payload);
   };
 
-  // Available report sections (MVP: only documentation)
+  // Available report sections - dynamically based on available data
   const availableSections = [
     {
       section: "documentation" as ReportSection,
       label: "Technische Dokumentation",
       description: "Allgemeine Informationen zu Berechnungsmethoden und Koordinatensystem",
       enabled: true,
+    },
+    {
+      section: "point_calculation" as ReportSection,
+      label: "Punktberechnung",
+      description: `Feldstärke am Punkt (${calcPoint.x}, ${calcPoint.y}, ${calcPoint.z}) ${lengthUnit}`,
+      enabled: !!results,
+    },
+    {
+      section: "field_visualization" as ReportSection,
+      label: "Feldvisualisierung",
+      description: "2D Vektorfeld-Darstellung in der XZ-Ebene",
+      enabled: !!results,
+    },
+    {
+      section: "line_measurement" as ReportSection,
+      label: "Linienmessung",
+      description: "Feldstärke entlang einer Linie (Bx, By, Bz)",
+      enabled: !!lineChartPlotlyData,
+    },
+    {
+      section: "circle_measurement" as ReportSection,
+      label: "Kreismessung",
+      description: "Feldstärke auf Kreisbahn (Br, Bt, Bz)",
+      enabled: !!circleChartPlotlyData,
+    },
+    {
+      section: "zero_crossings" as ReportSection,
+      label: "Nulldurchgänge",
+      description: "Nulldurchgangs-Analyse für Multi-Segment-Ringe",
+      enabled: !!circleZeroCrossings,
     },
   ];
 
