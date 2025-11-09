@@ -19,6 +19,7 @@ import { FormulaDisplay } from "@/components/FormulaDisplay";
 import { LineInputs } from "@/components/LineInputs";
 import { LineFieldChart } from "@/components/LineFieldChart";
 import { CircleFieldChart } from "@/components/CircleFieldChart";
+import { ReportDialog } from "@/components/ReportDialog";
 import { convertLength, convertField } from "@/lib/units";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -35,6 +36,9 @@ import type {
   CircleCalculationRequest,
   CircleCalculationResponse,
   ZeroCrossingsData,
+  ReportSection,
+  ReportRequest,
+  ReportResponse,
 } from "@shared/schema";
 
 export default function Calculator() {
@@ -85,6 +89,9 @@ export default function Calculator() {
   
   const [showVisualization, setShowVisualization] = useState(false);
   const [visualizationLoading, setVisualizationLoading] = useState(false);
+
+  // Report generation state
+  const [reportGenerating, setReportGenerating] = useState(false);
 
   const calculateMutation = useMutation({
     mutationFn: async (request: FieldCalculationRequest) => {
@@ -151,6 +158,79 @@ export default function Calculator() {
       setCircleZeroCrossings(null);
     },
   });
+
+  // Report generation mutation
+  const reportMutation = useMutation({
+    mutationFn: async (request: ReportRequest) => {
+      const response = await apiRequest(
+        "POST",
+        "/api/report",
+        request
+      );
+      const data = await response.json() as ReportResponse;
+      return data;
+    },
+    onSuccess: (data) => {
+      // Convert base64 PDF to Blob and trigger download
+      const byteCharacters = atob(data.pdfBase64);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: 'application/pdf' });
+      
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = data.filename || 'magnetfeld_bericht.pdf';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      setReportGenerating(false);
+      toast({
+        title: "Bericht erstellt",
+        description: "PDF wurde erfolgreich heruntergeladen.",
+      });
+    },
+    onError: (error) => {
+      setReportGenerating(false);
+      toast({
+        title: "Fehler bei der Berichterstellung",
+        description: error.message || "Ein unerwarteter Fehler ist aufgetreten.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Build report payload
+  const buildReportPayload = (sections: ReportSection[]): ReportRequest => {
+    return {
+      sections,
+      lengthUnit,
+      fieldUnit,
+      inputs: {}, // MVP: Only documentation section, no inputs needed
+    };
+  };
+
+  // Handle report generation
+  const handleGenerateReport = async (sections: ReportSection[]) => {
+    setReportGenerating(true);
+    const payload = buildReportPayload(sections);
+    reportMutation.mutate(payload);
+  };
+
+  // Available report sections (MVP: only documentation)
+  const availableSections = [
+    {
+      section: "documentation" as ReportSection,
+      label: "Technische Dokumentation",
+      description: "Allgemeine Informationen zu Berechnungsmethoden und Koordinatensystem",
+      enabled: true,
+    },
+  ];
 
   const handleDimensionChange = (key: string, value: number) => {
     setDimensions((prev) => ({ ...prev, [key]: value }));
@@ -466,6 +546,17 @@ export default function Calculator() {
 
         {results && (
           <>
+            <Card className="p-4 sm:p-6">
+              <div className="flex items-center justify-between">
+                <h3 className="text-base sm:text-lg font-semibold">Berichte</h3>
+                <ReportDialog
+                  onGenerateReport={handleGenerateReport}
+                  availableSections={availableSections}
+                  isGenerating={reportGenerating}
+                />
+              </div>
+            </Card>
+
             <FieldResults
               Bx={convertField(Number(results.Bx) || 0, "T", fieldUnit)}
               By={convertField(Number(results.By) || 0, "T", fieldUnit)}
