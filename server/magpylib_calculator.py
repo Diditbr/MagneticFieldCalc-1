@@ -572,9 +572,9 @@ def generate_field_visualization(input_data):
         # Add vector field arrows - controlled by numFluxLines parameter
         num_flux_lines = input_data.get('numFluxLines', 8)
         # Calculate skip to get approximately the requested number of arrows
-        # Scale up: multiply by 6 to get more arrows per flux line setting
-        # Limit to 3600 arrows (60x60) to prevent timeout - Plotly annotations are slow!
-        target_arrows = max(16, min((num_flux_lines * 6) ** 2, 3600))  # Between 16 and 3600 arrows (60x60)
+        # Scale up: multiply by 4 to get more arrows per flux line setting
+        # Limit to 1600 arrows (40x40) to prevent timeout - Plotly annotations are slow!
+        target_arrows = max(16, min((num_flux_lines * 4) ** 2, 1600))  # Between 16 and 1600 arrows (40x40)
         skip = max(1, int(grid_size / np.sqrt(target_arrows)))
         
         # Uniform arrow length - shorter for better visibility
