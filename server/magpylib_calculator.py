@@ -577,7 +577,7 @@ def generate_field_visualization(input_data):
         skip = max(1, int(grid_size / np.sqrt(target_arrows)))
         
         # Uniform arrow length - shorter for better visibility
-        arrow_length_mm = max(mag_length_mm, mag_width_mm) * 0.15  # 15% of larger dimension
+        arrow_length_mm = max(mag_length_mm, mag_width_mm) * 0.075  # 7.5% of larger dimension
         
         for i in range(0, grid_size, skip):
             for j in range(0, grid_size, skip):
