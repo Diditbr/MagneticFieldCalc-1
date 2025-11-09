@@ -359,3 +359,61 @@ export function generateEqualSegments(numPoles: number): RingSegment[] {
     magnetizationMultiplier: i % 2 === 0 ? 1 : -1, // Alternate N/S
   }));
 }
+
+// Report generation schemas
+// Report section types - defines which content can appear in the report
+export const reportSections = [
+  "point_calculation",      // Point calculation (Bx, By, Bz at a point)
+  "field_visualization",    // 2D field visualization with arrows
+  "line_measurement",       // Line measurement (Bx/By/Bz along line(s))
+  "circle_measurement",     // Circle measurement (Br/Bt/Bz on circle(s))
+  "zero_crossings",         // Zero crossing analysis (multi-segment rings only)
+  "documentation"           // Technical documentation (formulas, flowcharts)
+] as const;
+
+export type ReportSection = typeof reportSections[number];
+
+// Report inputs - stores request parameters for each section
+// Backend will recalculate based on these inputs
+export const reportInputsSchema = z.object({
+  point: fieldCalculationRequestSchema.optional(),
+  visualization: fieldCalculationRequestSchema.optional(),
+  line: z.array(lineCalculationRequestSchema).max(2).optional(), // up to 2 lines
+  circle: z.array(circleCalculationRequestSchema).max(2).optional(), // up to 2 circles
+});
+
+export type ReportInputs = z.infer<typeof reportInputsSchema>;
+
+// Report request schema
+export const reportRequestSchema = z.object({
+  sections: z.array(z.enum(reportSections)).min(1),
+  inputs: reportInputsSchema,
+  lengthUnit: z.enum(lengthUnits),
+  fieldUnit: z.enum(fieldUnits),
+}).refine(
+  (data) => {
+    // Validate that each section has corresponding input data
+    for (const section of data.sections) {
+      if (section === "point_calculation" && !data.inputs.point) return false;
+      if (section === "field_visualization" && !data.inputs.visualization) return false;
+      if (section === "line_measurement" && (!data.inputs.line || data.inputs.line.length === 0)) return false;
+      if (section === "circle_measurement" && (!data.inputs.circle || data.inputs.circle.length === 0)) return false;
+      if (section === "zero_crossings" && (!data.inputs.circle || data.inputs.circle.length === 0)) return false;
+      // documentation doesn't need input data
+    }
+    return true;
+  },
+  {
+    message: "Each selected section must have corresponding input data",
+  }
+);
+
+export type ReportRequest = z.infer<typeof reportRequestSchema>;
+
+// Report response - PDF as base64 encoded string
+export const reportResponseSchema = z.object({
+  pdfBase64: z.string(),
+  filename: z.string(), // Suggested filename for download
+});
+
+export type ReportResponse = z.infer<typeof reportResponseSchema>;
