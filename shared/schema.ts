@@ -373,13 +373,29 @@ export const reportSections = [
 
 export type ReportSection = typeof reportSections[number];
 
-// Report inputs - stores request parameters for each section
-// Backend will recalculate based on these inputs
+// Report inputs - stores request parameters and precomputed results for each section
 export const reportInputsSchema = z.object({
-  point: fieldCalculationRequestSchema.optional(),
+  // Point calculation: request + optional result
+  point: z.object({
+    request: fieldCalculationRequestSchema,
+    result: fieldCalculationResponseSchema.optional()
+  }).optional(),
+  
+  // Visualization: just the request (charts generated separately)
   visualization: fieldCalculationRequestSchema.optional(),
-  line: z.array(lineCalculationRequestSchema).max(2).optional(), // up to 2 lines
-  circle: z.array(circleCalculationRequestSchema).max(2).optional(), // up to 2 circles
+  
+  // Line measurement: requests + optional plotly charts (up to 2 lines)
+  line: z.array(z.object({
+    request: lineCalculationRequestSchema,
+    plotlyJson: z.string().optional()
+  })).max(2).optional(),
+  
+  // Circle measurement: requests + optional plotly charts + zero crossings (up to 2 circles)
+  circle: z.array(z.object({
+    request: circleCalculationRequestSchema,
+    plotlyJson: z.string().optional(),
+    zeroCrossings: zeroCrossingsDataSchema.optional()
+  })).max(2).optional(),
 });
 
 export type ReportInputs = z.infer<typeof reportInputsSchema>;
@@ -393,11 +409,17 @@ export const reportRequestSchema = z.object({
 }).refine(
   (data) => {
     // Validate that each section has corresponding input data
+    // Note: validation is relaxed - sections check if data is available during generation
     for (const section of data.sections) {
-      if (section === "point_calculation" && !data.inputs.point) return false;
+      // Point calculation needs point.request
+      if (section === "point_calculation" && !data.inputs.point?.request) return false;
+      // Field visualization needs visualization request
       if (section === "field_visualization" && !data.inputs.visualization) return false;
+      // Line measurement needs at least one line
       if (section === "line_measurement" && (!data.inputs.line || data.inputs.line.length === 0)) return false;
+      // Circle measurement needs at least one circle
       if (section === "circle_measurement" && (!data.inputs.circle || data.inputs.circle.length === 0)) return false;
+      // Zero crossings needs at least one circle
       if (section === "zero_crossings" && (!data.inputs.circle || data.inputs.circle.length === 0)) return false;
       // documentation doesn't need input data
     }

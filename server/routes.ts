@@ -15,6 +15,8 @@ import {
   type LineCalculationResponse,
   circleCalculationRequestSchema,
   type CircleCalculationResponse,
+  reportRequestSchema,
+  type ReportResponse,
 } from "@shared/schema";
 import { calculateFieldEnhanced } from "./calculations";
 
@@ -317,6 +319,98 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Unexpected error:', error);
       res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // Report generation endpoint
+  app.post("/api/report", async (req, res) => {
+    try {
+      // Validate request body
+      const validatedData = reportRequestSchema.parse(req.body);
+      
+      // Find Python script
+      const possiblePaths = [
+        join(__dirname, 'report_generator.py'),
+        join(__dirname, '..', 'server', 'report_generator.py'),
+        join(process.cwd(), 'server', 'report_generator.py'),
+      ];
+      
+      let pythonScript = '';
+      for (const path of possiblePaths) {
+        if (existsSync(path)) {
+          pythonScript = path;
+          break;
+        }
+      }
+      
+      if (!pythonScript) {
+        res.status(500).json({ error: `Report generator not found. Tried: ${possiblePaths.join(', ')}` });
+        return;
+      }
+      
+      const python = spawn('python3', [pythonScript]);
+      
+      let stdout = '';
+      let stderr = '';
+      let timedOut = false;
+      
+      // Set timeout to 120 seconds for report generation (PDF can be slow)
+      const timeout = setTimeout(() => {
+        timedOut = true;
+        python.kill();
+      }, 120000);
+      
+      python.stdout.on('data', (data) => {
+        stdout += data.toString();
+      });
+      
+      python.stderr.on('data', (data) => {
+        stderr += data.toString();
+      });
+      
+      python.on('close', (code) => {
+        clearTimeout(timeout);
+        
+        if (timedOut) {
+          res.status(504).json({ error: 'Report generation timed out after 120 seconds' });
+          return;
+        }
+        
+        if (code !== 0) {
+          console.error('Report generation failed:', stderr);
+          res.status(500).json({ error: `Report generation failed: ${stderr || 'Unknown error'}` });
+        } else {
+          try {
+            const result = JSON.parse(stdout);
+            if (result.error) {
+              res.status(500).json({ error: result.error });
+            } else {
+              res.json(result as ReportResponse);
+            }
+          } catch (e) {
+            console.error('Failed to parse report output:', e);
+            res.status(500).json({ error: 'Failed to parse report output' });
+          }
+        }
+      });
+      
+      python.on('error', (err) => {
+        clearTimeout(timeout);
+        console.error('Failed to start report generator:', err);
+        res.status(500).json({ error: `Failed to start report generator: ${err.message}` });
+      });
+      
+      // Send input data to Python script via stdin
+      python.stdin.write(JSON.stringify(validatedData));
+      python.stdin.end();
+      
+    } catch (error) {
+      if (error instanceof ZodError) {
+        res.status(400).json({ error: 'Invalid request data', details: error.errors });
+      } else {
+        console.error('Unexpected error:', error);
+        res.status(500).json({ error: 'Internal server error' });
+      }
     }
   });
 
