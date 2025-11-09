@@ -408,7 +408,7 @@ def generate_field_visualization(input_data):
     #   - axial magnetization on multi-segment rings (segments change in Z-direction)
     # X-Z plane (side view) for axial magnetization and rectangular magnets
     use_xy_plane = (
-        (magnet_type in ['ring', 'ring_segment', 'cylindrical'] and magnetization_type in ['radial', 'diametral']) or
+        (magnet_type in ['ring', 'ring_segment', 'cylindrical', 'ring_multi_segment'] and magnetization_type in ['radial', 'diametral']) or
         (magnet_type == 'ring_multi_segment' and magnetization_type == 'axial')
     )
     
