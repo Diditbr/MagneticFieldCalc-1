@@ -249,6 +249,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Documentation endpoint - returns flowcharts and LaTeX formulas for magnet calculations
+  app.get("/api/documentation/:magnetType", async (req, res) => {
+    try {
+      const magnetType = req.params.magnetType;
+      
+      // Validate magnet type
+      const validTypes = ['rectangular', 'cylindrical', 'ring', 'ring_segment', 'ring_multi_segment'];
+      if (!validTypes.includes(magnetType)) {
+        res.status(400).json({ error: `Invalid magnet type. Must be one of: ${validTypes.join(', ')}` });
+        return;
+      }
+      
+      // Find Python script
+      const possiblePaths = [
+        join(__dirname, 'documentation_generator.py'),
+        join(__dirname, '..', 'server', 'documentation_generator.py'),
+        join(process.cwd(), 'server', 'documentation_generator.py'),
+      ];
+      
+      let pythonScript = '';
+      for (const path of possiblePaths) {
+        if (existsSync(path)) {
+          pythonScript = path;
+          break;
+        }
+      }
+      
+      if (!pythonScript) {
+        res.status(500).json({ error: 'Documentation generator not found' });
+        return;
+      }
+      
+      // Call Python documentation generator
+      const python = spawn('python3', [pythonScript, magnetType]);
+      
+      let stdout = '';
+      let stderr = '';
+      
+      python.stdout.on('data', (data) => {
+        stdout += data.toString();
+      });
+      
+      python.stderr.on('data', (data) => {
+        stderr += data.toString();
+      });
+      
+      python.on('close', (code) => {
+        if (code !== 0) {
+          console.error('Documentation generation failed:', stderr);
+          res.status(500).json({ error: 'Documentation generation failed' });
+        } else {
+          try {
+            const result = JSON.parse(stdout);
+            res.json(result);
+          } catch (e) {
+            console.error('Failed to parse documentation output:', e);
+            res.status(500).json({ error: 'Failed to parse documentation' });
+          }
+        }
+      });
+      
+      python.on('error', (err) => {
+        console.error('Failed to start documentation generator:', err);
+        res.status(500).json({ error: 'Failed to generate documentation' });
+      });
+    } catch (error) {
+      console.error('Unexpected error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

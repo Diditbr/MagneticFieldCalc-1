@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Calculator as CalcIcon, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Navigation } from "@/components/Navigation";
 import { MagnetTypeSelector } from "@/components/MagnetTypeSelector";
 import { MaterialSelector } from "@/components/MaterialSelector";
 import { DimensionInputs } from "@/components/DimensionInputs";
@@ -392,14 +393,7 @@ export default function Calculator() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b bg-card">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-3 sm:py-4">
-          <h1 className="text-xl sm:text-2xl font-bold">Magnetic Field Calculator</h1>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-            Calculate magnetic fields from permanent magnets
-          </p>
-        </div>
-      </header>
+      <Navigation />
 
       <main className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6">
         <Card className="p-4 sm:p-6">
