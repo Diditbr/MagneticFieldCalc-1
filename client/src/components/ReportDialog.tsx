@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -32,6 +32,16 @@ export function ReportDialog({
 }: ReportDialogProps) {
   const [open, setOpen] = useState(false);
   const [selectedSections, setSelectedSections] = useState<ReportSection[]>([]);
+
+  // Reset and pre-select all enabled sections when dialog opens
+  useEffect(() => {
+    if (open) {
+      const enabledSections = availableSections
+        .filter(s => s.enabled)
+        .map(s => s.section);
+      setSelectedSections(enabledSections);
+    }
+  }, [open, availableSections]);
 
   const handleCheckboxChange = (section: ReportSection, checked: boolean) => {
     if (checked) {
