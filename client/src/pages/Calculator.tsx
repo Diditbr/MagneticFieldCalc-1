@@ -35,13 +35,11 @@ import type {
   CircleCalculationRequest,
   CircleCalculationResponse,
 } from "@shared/schema";
-import { materialPresets } from "@shared/schema";
 
 export default function Calculator() {
   const { toast } = useToast();
   const [magnetType, setMagnetType] = useState<MagnetType>("rectangular");
-  const [selectedMaterial, setSelectedMaterial] = useState<MaterialPreset>("NdFeB N42");
-  const [customMagnetization, setCustomMagnetization] = useState(1.0);
+  const [magnetization, setMagnetization] = useState(0.22);
   const [lengthUnit, setLengthUnit] = useState<LengthUnit>("mm");
   const [fieldUnit, setFieldUnit] = useState<FieldUnit>("mT");
   const [magnetizationType, setMagnetizationType] = useState<MagnetizationType>("axial");
@@ -163,10 +161,7 @@ export default function Calculator() {
   };
 
   const buildLineRequest = (): LineCalculationRequest => {
-    const magnetizationValue =
-      selectedMaterial === "Custom"
-        ? customMagnetization
-        : materialPresets[selectedMaterial];
+    const magnetizationValue = magnetization;
 
     const toMeters = (val: number | undefined) => {
       if (typeof val !== 'number' || isNaN(val) || val <= 0) {
@@ -227,10 +222,7 @@ export default function Calculator() {
   };
 
   const buildCircleRequest = (): CircleCalculationRequest => {
-    const magnetizationValue =
-      selectedMaterial === "Custom"
-        ? customMagnetization
-        : materialPresets[selectedMaterial];
+    const magnetizationValue = magnetization;
 
     const toMeters = (val: number | undefined) => {
       if (typeof val !== 'number' || isNaN(val) || val <= 0) {
@@ -310,10 +302,7 @@ export default function Calculator() {
       }
     }
 
-    const magnetizationValue =
-      selectedMaterial === "Custom"
-        ? customMagnetization
-        : materialPresets[selectedMaterial];
+    const magnetizationValue = magnetization;
 
     const toMeters = (val: number | undefined) => {
       if (typeof val !== 'number' || isNaN(val) || val <= 0) {
@@ -403,10 +392,8 @@ export default function Calculator() {
 
               <div className="border-t pt-4 sm:pt-6">
                 <MaterialSelector
-                  selectedMaterial={selectedMaterial}
-                  customMagnetization={customMagnetization}
-                  onMaterialChange={setSelectedMaterial}
-                  onCustomMagnetizationChange={setCustomMagnetization}
+                  magnetization={magnetization}
+                  onMagnetizationChange={setMagnetization}
                 />
               </div>
 
@@ -779,11 +766,7 @@ export default function Calculator() {
                   <FieldVisualization
                     magnetType={magnetType}
                     dimensions={dimensions}
-                    magnetization={
-                      selectedMaterial === "Custom"
-                        ? customMagnetization
-                        : materialPresets[selectedMaterial]
-                    }
+                    magnetization={magnetization}
                     magnetizationType={magnetizationType}
                     magnetizationAngle={magnetizationAngle}
                     calcX={calcPoint.x}

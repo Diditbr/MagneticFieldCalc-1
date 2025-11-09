@@ -1,107 +1,47 @@
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { materialPresets, type MaterialPreset } from "@shared/schema";
-import { Info } from "lucide-react";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 
 interface MaterialSelectorProps {
-  selectedMaterial: MaterialPreset;
-  customMagnetization: number;
-  onMaterialChange: (material: MaterialPreset) => void;
-  onCustomMagnetizationChange: (value: number) => void;
+  magnetization: number;
+  onMagnetizationChange: (value: number) => void;
 }
 
 export function MaterialSelector({
-  selectedMaterial,
-  customMagnetization,
-  onMaterialChange,
-  onCustomMagnetizationChange,
+  magnetization,
+  onMagnetizationChange,
 }: MaterialSelectorProps) {
-  const isCustom = selectedMaterial === "Custom";
-  const displayMagnetization = isCustom 
-    ? customMagnetization 
-    : materialPresets[selectedMaterial];
-
   return (
     <div className="space-y-4">
       <div className="space-y-2">
-        <div className="flex items-center gap-2">
-          <Label htmlFor="material" className="text-sm font-semibold">
-            Material Preset
-          </Label>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
-            </TooltipTrigger>
-            <TooltipContent>
-              <p className="max-w-xs text-xs">
-                Select a common magnet material or choose Custom to enter your own magnetization value
-              </p>
-            </TooltipContent>
-          </Tooltip>
-        </div>
-        <Select value={selectedMaterial} onValueChange={(v) => onMaterialChange(v as MaterialPreset)}>
-          <SelectTrigger id="material" data-testid="select-material">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {Object.keys(materialPresets).map((material) => (
-              <SelectItem key={material} value={material} data-testid={`option-material-${material}`}>
-                {material}
-                {material !== "Custom" && (
-                  <span className="ml-2 text-xs text-muted-foreground font-mono">
-                    ({materialPresets[material as MaterialPreset]} T)
-                  </span>
-                )}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <Label htmlFor="remanence" className="text-sm font-semibold">
+          Remanenz (mT)
+        </Label>
+        <Input
+          key={`remanence-${magnetization}`}
+          id="remanence"
+          type="number"
+          step="10"
+          min="1"
+          defaultValue={(magnetization * 1000).toFixed(0)}
+          onBlur={(e) => {
+            const valueInMT = parseFloat(e.target.value);
+            if (!isNaN(valueInMT) && valueInMT > 0) {
+              onMagnetizationChange(valueInMT / 1000);
+            } else {
+              e.target.value = String((magnetization * 1000).toFixed(0));
+            }
+          }}
+          className="font-mono"
+          data-testid="input-remanence"
+        />
       </div>
-
-      {isCustom && (
-        <div className="space-y-2">
-          <Label htmlFor="custom-magnetization" className="text-sm font-medium">
-            Custom Magnetization (T)
-          </Label>
-          <Input
-            key={`custom-mag-${customMagnetization}`}
-            id="custom-magnetization"
-            type="number"
-            step="0.01"
-            min="0.01"
-            defaultValue={customMagnetization}
-            onBlur={(e) => {
-              const value = parseFloat(e.target.value);
-              if (!isNaN(value) && value > 0) {
-                onCustomMagnetizationChange(value);
-              } else {
-                e.target.value = String(customMagnetization);
-              }
-            }}
-            className="font-mono"
-            data-testid="input-custom-magnetization"
-          />
-        </div>
-      )}
 
       <div className="p-3 rounded-md bg-muted/50">
         <div className="text-xs font-medium text-muted-foreground mb-1">
-          Magnetization Strength
+          Magnetisierung
         </div>
         <div className="text-lg font-mono font-semibold" data-testid="text-magnetization-value">
-          {displayMagnetization.toFixed(2)} T
+          {magnetization.toFixed(3)} T = {(magnetization * 1000).toFixed(0)} mT
         </div>
       </div>
     </div>
