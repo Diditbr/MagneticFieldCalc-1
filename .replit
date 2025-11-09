@@ -4,7 +4,7 @@ hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
 
 [nix]
 channel = "stable-24_05"
-packages = ["fontconfig", "ghostscript", "glib", "graphviz", "harfbuzz", "pango"]
+packages = ["fontconfig", "ghostscript", "glib", "graphviz", "harfbuzz", "pango", "chromium"]
 
 [deployment]
 deploymentTarget = "autoscale"
@@ -16,16 +16,16 @@ localPort = 5000
 externalPort = 80
 
 [[ports]]
+localPort = 33757
+externalPort = 8080
+
+[[ports]]
 localPort = 34891
 externalPort = 3002
 
 [[ports]]
 localPort = 35143
 externalPort = 6000
-
-[[ports]]
-localPort = 36023
-externalPort = 8008
 
 [[ports]]
 localPort = 37733

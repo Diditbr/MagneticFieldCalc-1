@@ -8,10 +8,66 @@ import json
 import sys
 import base64
 import io
+import os
+import subprocess
 from datetime import datetime
 from weasyprint import HTML, CSS
 import plotly.graph_objects as go
-from plotly.io import to_image
+
+# Configure Chromium path for Kaleido (required on Nix/Replit)
+def find_chromium_path():
+    """Find Chromium executable path."""
+    # Try to find chromium binary
+    try:
+        result = subprocess.run(['which', 'chromium-browser'], 
+                              capture_output=True, text=True, timeout=5)
+        if result.returncode == 0 and result.stdout.strip():
+            return result.stdout.strip()
+    except:
+        pass
+    
+    try:
+        result = subprocess.run(['which', 'chromium'], 
+                              capture_output=True, text=True, timeout=5)
+        if result.returncode == 0 and result.stdout.strip():
+            return result.stdout.strip()
+    except:
+        pass
+    
+    return None
+
+# Set Chromium path for Kaleido
+chromium_path = find_chromium_path()
+if chromium_path:
+    # Try multiple environment variables that Kaleido might check
+    os.environ['PLOTLY_KALEIDO_CHROMIUM_PATH'] = chromium_path
+    os.environ['CHROME_PATH'] = chromium_path
+    os.environ['CHROMIUM_EXECUTABLE'] = chromium_path
+
+# Import kaleido and configure chromium path directly
+try:
+    import kaleido
+    from kaleido.scopes.plotly import PlotlyScope
+    
+    # Create a custom scope with chromium path
+    if chromium_path:
+        scope = PlotlyScope(chromium_path=chromium_path)
+    else:
+        scope = PlotlyScope()
+        
+    def to_image_safe(fig, format='png', width=800, height=400):
+        """Safely convert Plotly figure to image."""
+        try:
+            # Use the configured scope
+            return scope.transform(fig, format=format, width=width, height=height)
+        except Exception as e:
+            # Fallback: try default method
+            from plotly.io import to_image as plotly_to_image
+            return plotly_to_image(fig, format=format, width=width, height=height)
+            
+except ImportError:
+    # Fallback if kaleido not available
+    from plotly.io import to_image as to_image_safe
 
 
 def generate_html_template(report_data):
@@ -384,7 +440,7 @@ def generate_line_section(line_data_list, length_unit, field_unit):
         
         # Export chart to PNG
         fig = go.Figure(plotly_data)
-        img_bytes = to_image(fig, format='png', width=800, height=400)
+        img_bytes = to_image_safe(fig, format='png', width=800, height=400)
         img_base64 = base64.b64encode(img_bytes).decode('utf-8')
         
         line_num = i + 1
@@ -423,7 +479,7 @@ def generate_circle_section(circle_data_list, length_unit, field_unit):
         
         # Export chart to PNG
         fig = go.Figure(plotly_data)
-        img_bytes = to_image(fig, format='png', width=800, height=400)
+        img_bytes = to_image_safe(fig, format='png', width=800, height=400)
         img_base64 = base64.b64encode(img_bytes).decode('utf-8')
         
         circle_num = i + 1
