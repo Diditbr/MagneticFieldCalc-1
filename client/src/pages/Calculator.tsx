@@ -92,6 +92,11 @@ export default function Calculator() {
 
   // Report generation state
   const [reportGenerating, setReportGenerating] = useState(false);
+  
+  // Cache the actual requests that produced the current results
+  const [lastPointRequest, setLastPointRequest] = useState<FieldCalculationRequest | null>(null);
+  const [lastLineRequest, setLastLineRequest] = useState<LineCalculationRequest | null>(null);
+  const [lastCircleRequest, setLastCircleRequest] = useState<CircleCalculationRequest | null>(null);
 
   const calculateMutation = useMutation({
     mutationFn: async (request: FieldCalculationRequest) => {
@@ -103,8 +108,9 @@ export default function Calculator() {
       const data = await response.json() as FieldCalculationResponse;
       return data;
     },
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
       setResults(data);
+      setLastPointRequest(variables); // Cache the request that produced this result
       setShowVisualization(false);
       setLineChartPlotlyData(null);
       setCircleChartPlotlyData(null);
@@ -121,14 +127,16 @@ export default function Calculator() {
       const data = await response.json() as LineCalculationResponse;
       return data;
     },
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
       if (data.plotlyJson) {
         setLineChartPlotlyData(JSON.parse(data.plotlyJson));
+        setLastLineRequest(variables); // Cache the request that produced this chart
       }
     },
     onError: (error) => {
       console.error('Line calculation error:', error);
       setLineChartPlotlyData(null);
+      setLastLineRequest(null);
     },
   });
 
@@ -142,9 +150,10 @@ export default function Calculator() {
       const data = await response.json() as CircleCalculationResponse;
       return data;
     },
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
       if (data.plotlyJson) {
         setCircleChartPlotlyData(JSON.parse(data.plotlyJson));
+        setLastCircleRequest(variables); // Cache the request that produced this chart
       }
       if (data.zeroCrossings) {
         setCircleZeroCrossings(data.zeroCrossings);
@@ -156,6 +165,7 @@ export default function Calculator() {
       console.error('Circle calculation error:', error);
       setCircleChartPlotlyData(null);
       setCircleZeroCrossings(null);
+      setLastCircleRequest(null);
     },
   });
 
@@ -236,45 +246,45 @@ export default function Calculator() {
     return request;
   };
 
-  // Build report payload with all available data
+  // Build report payload with all available data using cached requests
   const buildReportPayload = (sections: ReportSection[]): ReportRequest => {
     const inputs: any = {};
 
-    // Point calculation data
-    if (sections.includes("point_calculation") && results) {
+    // Point calculation data - use cached request that produced the result
+    if (sections.includes("point_calculation") && results && lastPointRequest) {
       inputs.point = {
-        request: buildFieldRequest(),
+        request: lastPointRequest,
         result: results,
       };
     }
 
-    // Field visualization data
-    if (sections.includes("field_visualization")) {
-      inputs.visualization = buildFieldRequest();
+    // Field visualization data - use cached point request
+    if (sections.includes("field_visualization") && lastPointRequest) {
+      inputs.visualization = lastPointRequest;
     }
 
-    // Line measurement data
-    if (sections.includes("line_measurement") && lineChartPlotlyData) {
+    // Line measurement data - use cached request that produced the chart
+    if (sections.includes("line_measurement") && lineChartPlotlyData && lastLineRequest) {
       inputs.line = [{
-        request: buildLineRequest(),
+        request: lastLineRequest,
         plotlyJson: JSON.stringify(lineChartPlotlyData),
       }];
     }
 
-    // Circle measurement data
-    if (sections.includes("circle_measurement") && circleChartPlotlyData) {
+    // Circle measurement data - use cached request that produced the chart
+    if (sections.includes("circle_measurement") && circleChartPlotlyData && lastCircleRequest) {
       inputs.circle = [{
-        request: buildCircleRequest(),
+        request: lastCircleRequest,
         plotlyJson: JSON.stringify(circleChartPlotlyData),
         zeroCrossings: circleZeroCrossings || undefined,
       }];
     }
 
-    // Zero crossings data (uses circle data)
-    if (sections.includes("zero_crossings") && circleZeroCrossings) {
+    // Zero crossings data (uses circle data) - use cached request
+    if (sections.includes("zero_crossings") && circleZeroCrossings && lastCircleRequest) {
       if (!inputs.circle) {
         inputs.circle = [{
-          request: buildCircleRequest(),
+          request: lastCircleRequest,
           plotlyJson: circleChartPlotlyData ? JSON.stringify(circleChartPlotlyData) : undefined,
           zeroCrossings: circleZeroCrossings,
         }];
