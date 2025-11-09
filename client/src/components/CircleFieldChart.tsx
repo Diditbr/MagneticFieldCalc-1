@@ -338,7 +338,7 @@ export function CircleFieldChart({
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="text-xs">Pol-Nr.</TableHead>
+                    <TableHead className="text-xs">Nulldurchgang Nr.</TableHead>
                     <TableHead className="text-xs">Sollwinkel (°)</TableHead>
                     <TableHead className="text-xs">Ist-Winkel (°)</TableHead>
                     <TableHead className="text-xs">Abweichung (°)</TableHead>
