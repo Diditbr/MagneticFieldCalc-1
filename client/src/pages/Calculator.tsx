@@ -82,6 +82,7 @@ export default function Calculator() {
   const [circleNumSamples, setCircleNumSamples] = useState(360);
   const [circleChartPlotlyData, setCircleChartPlotlyData] = useState<any | null>(null);
   const [circleZeroCrossings, setCircleZeroCrossings] = useState<ZeroCrossingsData | null>(null);
+  const [circleZeroCrossings2, setCircleZeroCrossings2] = useState<ZeroCrossingsData | null>(null);
   
   const [enableCircle2, setEnableCircle2] = useState(false);
   const [circle2Radius, setCircle2Radius] = useState(15);
@@ -160,11 +161,17 @@ export default function Calculator() {
       } else {
         setCircleZeroCrossings(null);
       }
+      if (data.zeroCrossings2) {
+        setCircleZeroCrossings2(data.zeroCrossings2);
+      } else {
+        setCircleZeroCrossings2(null);
+      }
     },
     onError: (error) => {
       console.error('Circle calculation error:', error);
       setCircleChartPlotlyData(null);
       setCircleZeroCrossings(null);
+      setCircleZeroCrossings2(null);
       setLastCircleRequest(null);
     },
   });
@@ -277,16 +284,18 @@ export default function Calculator() {
         request: lastCircleRequest,
         plotlyJson: JSON.stringify(circleChartPlotlyData),
         zeroCrossings: circleZeroCrossings || undefined,
+        zeroCrossings2: circleZeroCrossings2 || undefined,
       }];
     }
 
     // Zero crossings data (uses circle data) - use cached request
-    if (sections.includes("zero_crossings") && circleZeroCrossings && lastCircleRequest) {
+    if (sections.includes("zero_crossings") && (circleZeroCrossings || circleZeroCrossings2) && lastCircleRequest) {
       if (!inputs.circle) {
         inputs.circle = [{
           request: lastCircleRequest,
           plotlyJson: circleChartPlotlyData ? JSON.stringify(circleChartPlotlyData) : undefined,
-          zeroCrossings: circleZeroCrossings,
+          zeroCrossings: circleZeroCrossings || undefined,
+          zeroCrossings2: circleZeroCrossings2 || undefined,
         }];
       }
     }
@@ -342,7 +351,7 @@ export default function Calculator() {
       section: "zero_crossings" as ReportSection,
       label: "Nulldurchgänge",
       description: "Nulldurchgangs-Analyse für Multi-Segment-Ringe",
-      enabled: !!circleZeroCrossings,
+      enabled: !!circleZeroCrossings || !!circleZeroCrossings2,
     },
   ];
 
@@ -895,6 +904,7 @@ export default function Calculator() {
                   onCircle2CenterYChange={(v) => setCircle2Center(prev => ({ ...prev, y: v }))}
                   onCircle2CenterZChange={(v) => setCircle2Center(prev => ({ ...prev, z: v }))}
                   zeroCrossings={circleZeroCrossings}
+                  zeroCrossings2={circleZeroCrossings2}
                   magnetType={magnetType}
                 />
               </Card>

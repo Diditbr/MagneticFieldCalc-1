@@ -1537,8 +1537,9 @@ def calculate_circle_field(magnet_config):
     # Generate angles
     angles_deg = np.linspace(0, 360, num_samples, endpoint=False)
     
-    # Store first circle Bz values for zero crossing analysis
+    # Store circle Bz values for zero crossing analysis
     first_circle_bz_values = None
+    second_circle_bz_values = None
     
     # Process each circle
     for circle_idx, circle_cfg in enumerate(circles_config):
@@ -1587,9 +1588,11 @@ def calculate_circle_field(magnet_config):
             Bt_values.append(Bt * 1000)
             Bz_values.append(Bz * 1000)
         
-        # Store first circle Bz values for zero crossing analysis
+        # Store Bz values for zero crossing analysis
         if circle_idx == 0:
             first_circle_bz_values = Bz_values.copy()
+        elif circle_idx == 1:
+            second_circle_bz_values = Bz_values.copy()
         
         # Use different colors/styles for second circle
         if circle_cfg['name']:  # Second circle
@@ -1652,15 +1655,26 @@ def calculate_circle_field(magnet_config):
     # Perform zero crossing analysis for multi-segment rings
     result = {'plotlyJson': fig.to_json()}
     
-    if magnet_type == 'ring_multi_segment' and first_circle_bz_values is not None:
+    if magnet_type == 'ring_multi_segment':
         num_poles = magnet_config.get('numPoles')
         if num_poles:
-            zero_crossings_data = analyze_zero_crossings(
-                np.array(angles_deg),
-                np.array(first_circle_bz_values),
-                num_poles
-            )
-            result['zeroCrossings'] = zero_crossings_data
+            # Analyze zero crossings for first circle
+            if first_circle_bz_values is not None:
+                zero_crossings_data = analyze_zero_crossings(
+                    np.array(angles_deg),
+                    np.array(first_circle_bz_values),
+                    num_poles
+                )
+                result['zeroCrossings'] = zero_crossings_data
+            
+            # Analyze zero crossings for second circle (if available)
+            if second_circle_bz_values is not None:
+                zero_crossings_data_2 = analyze_zero_crossings(
+                    np.array(angles_deg),
+                    np.array(second_circle_bz_values),
+                    num_poles
+                )
+                result['zeroCrossings2'] = zero_crossings_data_2
     
     return result
 

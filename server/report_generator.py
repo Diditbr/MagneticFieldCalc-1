@@ -514,24 +514,28 @@ def generate_zero_crossings_section(circle_data_list):
     html = ""
     
     for i, circle_data in enumerate(circle_data_list):
-        zero_crossings = circle_data.get('zeroCrossings')
+        # Process both zeroCrossings and zeroCrossings2
+        zero_crossings_data = [
+            (1, circle_data.get('zeroCrossings')),
+            (2, circle_data.get('zeroCrossings2'))
+        ]
         
-        if not zero_crossings:
-            continue
-        
-        circle_num = i + 1
-        component = zero_crossings.get('component', 'Bz')
-        poles = zero_crossings.get('poles', 0)
-        crossings = zero_crossings.get('crossings', [])
-        
-        if html == "":
-            html = """
+        for circle_label, zero_crossings in zero_crossings_data:
+            if not zero_crossings:
+                continue
+            
+            component = zero_crossings.get('component', 'Bz')
+            poles = zero_crossings.get('poles', 0)
+            crossings = zero_crossings.get('crossings', [])
+            
+            if html == "":
+                html = """
     <div class="section">
         <h2>Nulldurchgangs-Analyse</h2>
 """
-        
-        html += f"""
-        <h3>Kreis {circle_num} - {poles}-polige Magnetisierung ({component})</h3>
+            
+            html += f"""
+        <h3>Kreis {circle_label} - {poles}-polige Magnetisierung ({component})</h3>
         <p>Abweichungen der gemessenen Nulldurchgänge von den theoretischen Sollwinkeln.</p>
         <table>
             <tr>
@@ -541,17 +545,17 @@ def generate_zero_crossings_section(circle_data_list):
                 <th>Abweichung (°)</th>
             </tr>
 """
-        
-        for crossing in crossings:
-            pole_index = crossing.get('poleIndex', 0)
-            expected = crossing.get('expectedAngle', 0)
-            measured = crossing.get('measuredAngle')
-            deviation = crossing.get('deviationDegrees')
             
-            measured_str = f"{measured:.2f}" if measured is not None else "—"
-            deviation_str = f"{deviation:.3f}" if deviation is not None else "—"
-            
-            html += f"""
+            for crossing in crossings:
+                pole_index = crossing.get('poleIndex', 0)
+                expected = crossing.get('expectedAngle', 0)
+                measured = crossing.get('measuredAngle')
+                deviation = crossing.get('deviationDegrees')
+                
+                measured_str = f"{measured:.2f}" if measured is not None else "—"
+                deviation_str = f"{deviation:.3f}" if deviation is not None else "—"
+                
+                html += f"""
             <tr>
                 <td class="mono">{pole_index}</td>
                 <td class="mono">{expected:.2f}</td>
@@ -559,8 +563,8 @@ def generate_zero_crossings_section(circle_data_list):
                 <td class="mono">{deviation_str}</td>
             </tr>
 """
-        
-        html += """
+            
+            html += """
         </table>
 """
     

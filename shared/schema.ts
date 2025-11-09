@@ -328,7 +328,8 @@ export type ZeroCrossingsData = z.infer<typeof zeroCrossingsDataSchema>;
 // Circle calculation response - Plotly JSON chart showing Br, Bt, Bz vs angle
 export const circleCalculationResponseSchema = z.object({
   plotlyJson: z.string(), // Plotly JSON format
-  zeroCrossings: zeroCrossingsDataSchema.optional(), // Optional zero crossing analysis for multi-segment rings
+  zeroCrossings: zeroCrossingsDataSchema.optional(), // Optional zero crossing analysis for circle 1
+  zeroCrossings2: zeroCrossingsDataSchema.optional(), // Optional zero crossing analysis for circle 2
 });
 
 export type CircleCalculationResponse = z.infer<typeof circleCalculationResponseSchema>;

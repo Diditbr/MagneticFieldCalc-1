@@ -33,6 +33,7 @@ interface CircleFieldChartProps {
   onCircle2CenterYChange?: (value: number) => void;
   onCircle2CenterZChange?: (value: number) => void;
   zeroCrossings?: ZeroCrossingsData | null;
+  zeroCrossings2?: ZeroCrossingsData | null;
   magnetType?: MagnetType;
 }
 
@@ -61,6 +62,7 @@ export function CircleFieldChart({
   onCircle2CenterYChange,
   onCircle2CenterZChange,
   zeroCrossings,
+  zeroCrossings2,
   magnetType
 }: CircleFieldChartProps) {
   const [showBr, setShowBr] = useState(true);
@@ -329,7 +331,7 @@ export function CircleFieldChart({
         {!isLoading && !error && zeroCrossings && magnetType === 'ring_multi_segment' && (
           <Card className="mt-4">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold">Nulldurchgangs-Analyse ({zeroCrossings.component})</CardTitle>
+              <CardTitle className="text-sm font-semibold">Nulldurchgangs-Analyse Kreis 1 ({zeroCrossings.component})</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-xs text-muted-foreground mb-3">
@@ -346,13 +348,54 @@ export function CircleFieldChart({
                 </TableHeader>
                 <TableBody>
                   {zeroCrossings.crossings.map((crossing) => (
-                    <TableRow key={crossing.poleIndex} data-testid={`row-zero-crossing-${crossing.poleIndex}`}>
+                    <TableRow key={crossing.poleIndex} data-testid={`row-zero-crossing-1-${crossing.poleIndex}`}>
                       <TableCell className="font-mono text-xs">{crossing.poleIndex}</TableCell>
                       <TableCell className="font-mono text-xs">{crossing.expectedAngle.toFixed(2)}</TableCell>
                       <TableCell className="font-mono text-xs">
                         {crossing.measuredAngle !== null ? crossing.measuredAngle.toFixed(2) : '—'}
                       </TableCell>
-                      <TableCell className="font-mono text-xs" data-testid={`text-deviation-${crossing.poleIndex}`}>
+                      <TableCell className="font-mono text-xs" data-testid={`text-deviation-1-${crossing.poleIndex}`}>
+                        {crossing.deviationDegrees !== null ? (
+                          <span className={crossing.deviationDegrees > 0 ? 'text-red-600 dark:text-red-400' : crossing.deviationDegrees < 0 ? 'text-blue-600 dark:text-blue-400' : ''}>
+                            {crossing.deviationDegrees > 0 ? '+' : ''}{crossing.deviationDegrees.toFixed(3)}
+                          </span>
+                        ) : '—'}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        )}
+        
+        {!isLoading && !error && zeroCrossings2 && magnetType === 'ring_multi_segment' && (
+          <Card className="mt-4">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold">Nulldurchgangs-Analyse Kreis 2 ({zeroCrossings2.component})</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-xs text-muted-foreground mb-3">
+                Abweichungen der gemessenen Nulldurchgänge von den theoretischen Sollwinkeln bei {zeroCrossings2.poles}-poliger Magnetisierung.
+              </div>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-xs">Nulldurchgang Nr.</TableHead>
+                    <TableHead className="text-xs">Sollwinkel (°)</TableHead>
+                    <TableHead className="text-xs">Ist-Winkel (°)</TableHead>
+                    <TableHead className="text-xs">Abweichung (°)</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {zeroCrossings2.crossings.map((crossing) => (
+                    <TableRow key={crossing.poleIndex} data-testid={`row-zero-crossing-2-${crossing.poleIndex}`}>
+                      <TableCell className="font-mono text-xs">{crossing.poleIndex}</TableCell>
+                      <TableCell className="font-mono text-xs">{crossing.expectedAngle.toFixed(2)}</TableCell>
+                      <TableCell className="font-mono text-xs">
+                        {crossing.measuredAngle !== null ? crossing.measuredAngle.toFixed(2) : '—'}
+                      </TableCell>
+                      <TableCell className="font-mono text-xs" data-testid={`text-deviation-2-${crossing.poleIndex}`}>
                         {crossing.deviationDegrees !== null ? (
                           <span className={crossing.deviationDegrees > 0 ? 'text-red-600 dark:text-red-400' : crossing.deviationDegrees < 0 ? 'text-blue-600 dark:text-blue-400' : ''}>
                             {crossing.deviationDegrees > 0 ? '+' : ''}{crossing.deviationDegrees.toFixed(3)}
