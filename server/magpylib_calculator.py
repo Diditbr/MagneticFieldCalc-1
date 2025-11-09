@@ -1277,6 +1277,110 @@ def calculate_line_field(magnet_config):
     }
 
 
+def analyze_zero_crossings(angles_deg, bz_values, num_poles):
+    """
+    Analyze zero crossings in Bz data for multi-segment rings.
+    
+    Args:
+        angles_deg: Array of angles in degrees
+        bz_values: Array of Bz values (in mT)
+        num_poles: Number of poles in the multi-segment ring
+    
+    Returns:
+        Dict with zero crossing analysis data or None if no crossings found
+    """
+    # Calculate expected zero crossing angles
+    expected_angles = [(i * 360.0 / num_poles) for i in range(num_poles)]
+    
+    # Find zero crossings by detecting sign changes
+    zero_crossings = []
+    for i in range(len(bz_values) - 1):
+        # Check for sign change
+        if bz_values[i] * bz_values[i + 1] < 0:
+            # Linear interpolation to find exact crossing angle
+            angle1 = angles_deg[i]
+            angle2 = angles_deg[i + 1]
+            bz1 = bz_values[i]
+            bz2 = bz_values[i + 1]
+            
+            # Interpolate: angle where Bz = 0
+            if abs(bz2 - bz1) > 1e-10:
+                crossing_angle = angle1 + (0 - bz1) * (angle2 - angle1) / (bz2 - bz1)
+            else:
+                crossing_angle = (angle1 + angle2) / 2
+            
+            zero_crossings.append(crossing_angle)
+    
+    # Handle wraparound: check crossing between last and first point
+    if bz_values[-1] * bz_values[0] < 0:
+        angle1 = angles_deg[-1]
+        angle2 = angles_deg[0] + 360
+        bz1 = bz_values[-1]
+        bz2 = bz_values[0]
+        
+        if abs(bz2 - bz1) > 1e-10:
+            crossing_angle = angle1 + (0 - bz1) * (angle2 - angle1) / (bz2 - bz1)
+            if crossing_angle >= 360:
+                crossing_angle -= 360
+        else:
+            crossing_angle = (angle1 + 360 + angle2) / 2
+            if crossing_angle >= 360:
+                crossing_angle -= 360
+        
+        zero_crossings.append(crossing_angle)
+    
+    # Sort crossings
+    zero_crossings = sorted(zero_crossings)
+    
+    # Match found crossings to expected angles
+    crossings_data = []
+    
+    for pole_idx, expected_angle in enumerate(expected_angles):
+        # Find nearest crossing to this expected angle
+        min_distance = float('inf')
+        nearest_crossing = None
+        
+        for crossing in zero_crossings:
+            # Calculate circular distance
+            diff = abs(crossing - expected_angle)
+            if diff > 180:
+                diff = 360 - diff
+            
+            if diff < min_distance:
+                min_distance = diff
+                nearest_crossing = crossing
+        
+        # Only assign if within reasonable tolerance (< 45 degrees)
+        if nearest_crossing is not None and min_distance < 45:
+            # Calculate deviation (considering circular nature)
+            deviation = nearest_crossing - expected_angle
+            if deviation > 180:
+                deviation -= 360
+            elif deviation < -180:
+                deviation += 360
+            
+            crossings_data.append({
+                'poleIndex': pole_idx,
+                'expectedAngle': round(expected_angle, 2),
+                'measuredAngle': round(nearest_crossing, 2),
+                'deviationDegrees': round(deviation, 3)
+            })
+        else:
+            # No crossing found for this pole
+            crossings_data.append({
+                'poleIndex': pole_idx,
+                'expectedAngle': round(expected_angle, 2),
+                'measuredAngle': None,
+                'deviationDegrees': None
+            })
+    
+    return {
+        'component': 'Bz',
+        'poles': num_poles,
+        'crossings': crossings_data
+    }
+
+
 def calculate_circle_field(magnet_config):
     """
     Calculate magnetic field along a circular path and decompose into cylindrical coordinates.
@@ -1290,7 +1394,7 @@ def calculate_circle_field(magnet_config):
             - numSamples: Number of angle samples (default: 360)
     
     Returns:
-        Dict with Plotly JSON
+        Dict with Plotly JSON and optional zero crossing analysis
     """
     magnet_type = magnet_config['type']
     magnetization = magnet_config['magnetization']
@@ -1433,8 +1537,11 @@ def calculate_circle_field(magnet_config):
     # Generate angles
     angles_deg = np.linspace(0, 360, num_samples, endpoint=False)
     
+    # Store first circle Bz values for zero crossing analysis
+    first_circle_bz_values = None
+    
     # Process each circle
-    for circle_cfg in circles_config:
+    for circle_idx, circle_cfg in enumerate(circles_config):
         Br_values = []
         Bt_values = []
         Bz_values = []
@@ -1479,6 +1586,10 @@ def calculate_circle_field(magnet_config):
             Br_values.append(Br * 1000)  # Convert to mT
             Bt_values.append(Bt * 1000)
             Bz_values.append(Bz * 1000)
+        
+        # Store first circle Bz values for zero crossing analysis
+        if circle_idx == 0:
+            first_circle_bz_values = Bz_values.copy()
         
         # Use different colors/styles for second circle
         if circle_cfg['name']:  # Second circle
@@ -1538,7 +1649,20 @@ def calculate_circle_field(magnet_config):
     fig.update_xaxes(showgrid=True, gridcolor='rgba(0, 0, 0, 0.1)', range=[0, 360])
     fig.update_yaxes(showgrid=True, gridcolor='rgba(0, 0, 0, 0.1)')
     
-    return {'plotlyJson': fig.to_json()}
+    # Perform zero crossing analysis for multi-segment rings
+    result = {'plotlyJson': fig.to_json()}
+    
+    if magnet_type == 'ring_multi_segment' and first_circle_bz_values is not None:
+        num_poles = magnet_config.get('numPoles')
+        if num_poles:
+            zero_crossings_data = analyze_zero_crossings(
+                np.array(angles_deg),
+                np.array(first_circle_bz_values),
+                num_poles
+            )
+            result['zeroCrossings'] = zero_crossings_data
+    
+    return result
 
 
 def main():
