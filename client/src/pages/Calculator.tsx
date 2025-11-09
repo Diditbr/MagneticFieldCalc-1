@@ -34,6 +34,7 @@ import type {
   LineCalculationResponse,
   CircleCalculationRequest,
   CircleCalculationResponse,
+  ZeroCrossingsData,
 } from "@shared/schema";
 
 export default function Calculator() {
@@ -76,6 +77,7 @@ export default function Calculator() {
   const [circleCenter, setCircleCenter] = useState({ x: 0, y: 0, z: 0 });
   const [circleNumSamples, setCircleNumSamples] = useState(360);
   const [circleChartPlotlyData, setCircleChartPlotlyData] = useState<any | null>(null);
+  const [circleZeroCrossings, setCircleZeroCrossings] = useState<ZeroCrossingsData | null>(null);
   
   const [enableCircle2, setEnableCircle2] = useState(false);
   const [circle2Radius, setCircle2Radius] = useState(15);
@@ -137,10 +139,16 @@ export default function Calculator() {
       if (data.plotlyJson) {
         setCircleChartPlotlyData(JSON.parse(data.plotlyJson));
       }
+      if (data.zeroCrossings) {
+        setCircleZeroCrossings(data.zeroCrossings);
+      } else {
+        setCircleZeroCrossings(null);
+      }
     },
     onError: (error) => {
       console.error('Circle calculation error:', error);
       setCircleChartPlotlyData(null);
+      setCircleZeroCrossings(null);
     },
   });
 
@@ -681,6 +689,8 @@ export default function Calculator() {
                   onCircle2CenterXChange={(v) => setCircle2Center(prev => ({ ...prev, x: v }))}
                   onCircle2CenterYChange={(v) => setCircle2Center(prev => ({ ...prev, y: v }))}
                   onCircle2CenterZChange={(v) => setCircle2Center(prev => ({ ...prev, z: v }))}
+                  zeroCrossings={circleZeroCrossings}
+                  magnetType={magnetType}
                 />
               </Card>
             )}

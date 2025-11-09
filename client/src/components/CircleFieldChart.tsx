@@ -5,6 +5,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ZeroCrossingsData, MagnetType } from "@shared/schema";
 
 interface CircleFieldChartProps {
   plotlyData: any | null;
@@ -30,6 +32,8 @@ interface CircleFieldChartProps {
   onCircle2CenterXChange?: (value: number) => void;
   onCircle2CenterYChange?: (value: number) => void;
   onCircle2CenterZChange?: (value: number) => void;
+  zeroCrossings?: ZeroCrossingsData | null;
+  magnetType?: MagnetType;
 }
 
 export function CircleFieldChart({ 
@@ -55,7 +59,9 @@ export function CircleFieldChart({
   onCircle2RadiusChange,
   onCircle2CenterXChange,
   onCircle2CenterYChange,
-  onCircle2CenterZChange
+  onCircle2CenterZChange,
+  zeroCrossings,
+  magnetType
 }: CircleFieldChartProps) {
   const [showBr, setShowBr] = useState(true);
   const [showBt, setShowBt] = useState(true);
@@ -318,6 +324,47 @@ export function CircleFieldChart({
               Legen Sie Radius und Zentrum fest, um die Feldkomponenten auf einem konzentrischen Kreis zu berechnen.
             </p>
           </div>
+        )}
+        
+        {!isLoading && !error && zeroCrossings && magnetType === 'ring_multi_segment' && (
+          <Card className="mt-4">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold">Nulldurchgangs-Analyse ({zeroCrossings.component})</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-xs text-muted-foreground mb-3">
+                Abweichungen der gemessenen Nulldurchgänge von den theoretischen Sollwinkeln bei {zeroCrossings.poles}-poliger Magnetisierung.
+              </div>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-xs">Pol-Nr.</TableHead>
+                    <TableHead className="text-xs">Sollwinkel (°)</TableHead>
+                    <TableHead className="text-xs">Ist-Winkel (°)</TableHead>
+                    <TableHead className="text-xs">Abweichung (°)</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {zeroCrossings.crossings.map((crossing) => (
+                    <TableRow key={crossing.poleIndex} data-testid={`row-zero-crossing-${crossing.poleIndex}`}>
+                      <TableCell className="font-mono text-xs">{crossing.poleIndex}</TableCell>
+                      <TableCell className="font-mono text-xs">{crossing.expectedAngle.toFixed(2)}</TableCell>
+                      <TableCell className="font-mono text-xs">
+                        {crossing.measuredAngle !== null ? crossing.measuredAngle.toFixed(2) : '—'}
+                      </TableCell>
+                      <TableCell className="font-mono text-xs" data-testid={`text-deviation-${crossing.poleIndex}`}>
+                        {crossing.deviationDegrees !== null ? (
+                          <span className={crossing.deviationDegrees > 0 ? 'text-red-600 dark:text-red-400' : crossing.deviationDegrees < 0 ? 'text-blue-600 dark:text-blue-400' : ''}>
+                            {crossing.deviationDegrees > 0 ? '+' : ''}{crossing.deviationDegrees.toFixed(3)}
+                          </span>
+                        ) : '—'}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
         )}
       </CardContent>
     </>
