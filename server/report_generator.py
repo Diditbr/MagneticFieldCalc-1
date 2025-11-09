@@ -239,9 +239,17 @@ def generate_html_template(report_data):
 def generate_input_section(inputs, length_unit, field_unit):
     """Generate HTML for input parameters section."""
     # Extract input data from first available request
-    point_input = inputs.get('point')
+    point_data = inputs.get('point')
     viz_input = inputs.get('visualization')
-    input_data = point_input or viz_input
+    
+    # point_data has structure: { request: {...}, result: {...} }
+    # We need the 'request' part which contains the magnet parameters
+    if point_data and isinstance(point_data, dict):
+        input_data = point_data.get('request')
+    elif viz_input:
+        input_data = viz_input
+    else:
+        input_data = None
     
     if not input_data:
         return ""
