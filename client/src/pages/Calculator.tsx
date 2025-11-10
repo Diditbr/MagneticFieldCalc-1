@@ -36,6 +36,7 @@ import type {
   CircleCalculationRequest,
   CircleCalculationResponse,
   ZeroCrossingsData,
+  PoleCenterFieldsData,
   ReportSection,
   ReportRequest,
   ReportResponse,
@@ -83,6 +84,8 @@ export default function Calculator() {
   const [circleChartPlotlyData, setCircleChartPlotlyData] = useState<any | null>(null);
   const [circleZeroCrossings, setCircleZeroCrossings] = useState<ZeroCrossingsData | null>(null);
   const [circleZeroCrossings2, setCircleZeroCrossings2] = useState<ZeroCrossingsData | null>(null);
+  const [circlePoleCenterFields, setCirclePoleCenterFields] = useState<PoleCenterFieldsData | null>(null);
+  const [circlePoleCenterFields2, setCirclePoleCenterFields2] = useState<PoleCenterFieldsData | null>(null);
   
   const [enableCircle2, setEnableCircle2] = useState(false);
   const [circle2Radius, setCircle2Radius] = useState(12);
@@ -172,6 +175,16 @@ export default function Calculator() {
         setCircleZeroCrossings2(data.zeroCrossings2);
       } else {
         setCircleZeroCrossings2(null);
+      }
+      if (data.poleCenterFields) {
+        setCirclePoleCenterFields(data.poleCenterFields);
+      } else {
+        setCirclePoleCenterFields(null);
+      }
+      if (data.poleCenterFields2) {
+        setCirclePoleCenterFields2(data.poleCenterFields2);
+      } else {
+        setCirclePoleCenterFields2(null);
       }
     },
     onError: (error) => {
@@ -912,6 +925,8 @@ export default function Calculator() {
                   onCircle2CenterZChange={(v) => setCircle2Center(prev => ({ ...prev, z: v }))}
                   zeroCrossings={circleZeroCrossings}
                   zeroCrossings2={circleZeroCrossings2}
+                  poleCenterFields={circlePoleCenterFields}
+                  poleCenterFields2={circlePoleCenterFields2}
                   magnetType={magnetType}
                 />
               </Card>

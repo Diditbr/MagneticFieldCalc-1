@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ZeroCrossingsData, MagnetType } from "@shared/schema";
+import { ZeroCrossingsData, PoleCenterFieldsData, MagnetType } from "@shared/schema";
 
 interface CircleFieldChartProps {
   plotlyData: any | null;
@@ -34,6 +34,8 @@ interface CircleFieldChartProps {
   onCircle2CenterZChange?: (value: number) => void;
   zeroCrossings?: ZeroCrossingsData | null;
   zeroCrossings2?: ZeroCrossingsData | null;
+  poleCenterFields?: PoleCenterFieldsData | null;
+  poleCenterFields2?: PoleCenterFieldsData | null;
   magnetType?: MagnetType;
 }
 
@@ -63,6 +65,8 @@ export function CircleFieldChart({
   onCircle2CenterZChange,
   zeroCrossings,
   zeroCrossings2,
+  poleCenterFields,
+  poleCenterFields2,
   magnetType
 }: CircleFieldChartProps) {
   const [showBr, setShowBr] = useState(true);
@@ -402,6 +406,76 @@ export function CircleFieldChart({
                           </span>
                         ) : '—'}
                       </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        )}
+
+        {!isLoading && !error && poleCenterFields && magnetType === 'ring_multi_segment' && (
+          <Card className="mt-4">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold">Polmitten-Flussdichten Kreis 1</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-xs text-muted-foreground mb-3">
+                Magnetische Flussdichte an den theoretischen Polmitten bei {poleCenterFields.poles}-poliger Magnetisierung.
+              </div>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-xs">Pol Nr.</TableHead>
+                    <TableHead className="text-xs">Winkel (°)</TableHead>
+                    <TableHead className="text-xs">Br (mT)</TableHead>
+                    <TableHead className="text-xs">Bt (mT)</TableHead>
+                    <TableHead className="text-xs">Bz (mT)</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {poleCenterFields.fields.map((field, idx) => (
+                    <TableRow key={idx} data-testid={`row-pole-field-1-${idx}`}>
+                      <TableCell className="font-mono text-xs">{idx + 1}</TableCell>
+                      <TableCell className="font-mono text-xs">{field.angle.toFixed(2)}</TableCell>
+                      <TableCell className="font-mono text-xs" data-testid={`text-br-1-${idx}`}>{field.Br.toFixed(4)}</TableCell>
+                      <TableCell className="font-mono text-xs" data-testid={`text-bt-1-${idx}`}>{field.Bt.toFixed(4)}</TableCell>
+                      <TableCell className="font-mono text-xs" data-testid={`text-bz-1-${idx}`}>{field.Bz.toFixed(4)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        )}
+
+        {!isLoading && !error && poleCenterFields2 && magnetType === 'ring_multi_segment' && (
+          <Card className="mt-4">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold">Polmitten-Flussdichten Kreis 2</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-xs text-muted-foreground mb-3">
+                Magnetische Flussdichte an den theoretischen Polmitten bei {poleCenterFields2.poles}-poliger Magnetisierung.
+              </div>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-xs">Pol Nr.</TableHead>
+                    <TableHead className="text-xs">Winkel (°)</TableHead>
+                    <TableHead className="text-xs">Br (mT)</TableHead>
+                    <TableHead className="text-xs">Bt (mT)</TableHead>
+                    <TableHead className="text-xs">Bz (mT)</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {poleCenterFields2.fields.map((field, idx) => (
+                    <TableRow key={idx} data-testid={`row-pole-field-2-${idx}`}>
+                      <TableCell className="font-mono text-xs">{idx + 1}</TableCell>
+                      <TableCell className="font-mono text-xs">{field.angle.toFixed(2)}</TableCell>
+                      <TableCell className="font-mono text-xs" data-testid={`text-br-2-${idx}`}>{field.Br.toFixed(4)}</TableCell>
+                      <TableCell className="font-mono text-xs" data-testid={`text-bt-2-${idx}`}>{field.Bt.toFixed(4)}</TableCell>
+                      <TableCell className="font-mono text-xs" data-testid={`text-bz-2-${idx}`}>{field.Bz.toFixed(4)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
