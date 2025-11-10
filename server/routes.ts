@@ -39,15 +39,19 @@ async function calculateWithMagpylib(request: any): Promise<FieldCalculationResp
     for (const path of possiblePaths) {
       if (existsSync(path)) {
         pythonScript = path;
+        console.log(`[Magpylib] Found Python script at: ${path}`);
         break;
       }
     }
     
     if (!pythonScript) {
-      reject(new Error(`Python script not found. Tried: ${possiblePaths.join(', ')}`));
+      const errorMsg = `Python script not found. Tried: ${possiblePaths.join(', ')}`;
+      console.error(`[Magpylib] ${errorMsg}`);
+      reject(new Error(errorMsg));
       return;
     }
     
+    console.log(`[Magpylib] Starting Python calculation with mode: ${request.mode || 'point'}`);
     const python = spawn('python3', [pythonScript]);
     
     let stdout = '';
@@ -77,16 +81,31 @@ async function calculateWithMagpylib(request: any): Promise<FieldCalculationResp
       }
       
       if (code !== 0) {
+        console.error(`[Magpylib] Python process exited with code ${code}`);
+        console.error(`[Magpylib] stderr: ${stderr}`);
         reject(new Error(`Python calculation failed: ${stderr || 'Unknown error'}`));
       } else {
         try {
+          console.log(`[Magpylib] Python stdout length: ${stdout.length} bytes`);
+          if (stdout.length === 0) {
+            console.error(`[Magpylib] Python returned empty output`);
+            console.error(`[Magpylib] stderr: ${stderr}`);
+            reject(new Error('Python returned empty output'));
+            return;
+          }
+          
           const result = JSON.parse(stdout);
+          console.log(`[Magpylib] Parsed result keys: ${Object.keys(result).join(', ')}`);
+          
           if (result.error) {
+            console.error(`[Magpylib] Python returned error: ${result.error}`);
             reject(new Error(result.error));
           } else {
             resolve(result as FieldCalculationResponse);
           }
         } catch (e) {
+          console.error(`[Magpylib] Failed to parse Python output: ${e}`);
+          console.error(`[Magpylib] stdout: ${stdout.substring(0, 200)}...`);
           reject(new Error(`Failed to parse Python output: ${e}`));
         }
       }
@@ -207,10 +226,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       try {
         const result = await calculateWithMagpylib(lineRequest) as unknown as LineCalculationResponse;
+        
+        // Validate that we actually got plotly data
+        if (!result || !result.plotlyJson) {
+          console.error('Line calculation returned empty or invalid data:', result);
+          res.status(500).json({ error: 'Berechnung fehlgeschlagen - keine Daten erhalten' });
+          return;
+        }
+        
         res.json(result);
       } catch (error) {
         console.error('Line calculation failed:', error);
-        res.status(500).json({ error: 'Line calculation failed' });
+        const errorMessage = error instanceof Error ? error.message : 'Line calculation failed';
+        res.status(500).json({ error: errorMessage });
       }
     } catch (error) {
       if (error instanceof ZodError) {
@@ -236,10 +264,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       try {
         const result = await calculateWithMagpylib(circleRequest) as unknown as CircleCalculationResponse;
+        
+        // Validate that we actually got plotly data
+        if (!result || !result.plotlyJson) {
+          console.error('Circle calculation returned empty or invalid data:', result);
+          res.status(500).json({ error: 'Berechnung fehlgeschlagen - keine Daten erhalten' });
+          return;
+        }
+        
         res.json(result);
       } catch (error) {
         console.error('Circle calculation failed:', error);
-        res.status(500).json({ error: 'Circle calculation failed' });
+        const errorMessage = error instanceof Error ? error.message : 'Circle calculation failed';
+        res.status(500).json({ error: errorMessage });
       }
     } catch (error) {
       if (error instanceof ZodError) {
