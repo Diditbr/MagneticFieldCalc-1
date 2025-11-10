@@ -388,6 +388,7 @@ export const reportSections = [
   "line_measurement",       // Line measurement (Bx/By/Bz along line(s))
   "circle_measurement",     // Circle measurement (Br/Bt/Bz on circle(s))
   "zero_crossings",         // Zero crossing analysis (multi-segment rings only)
+  "pole_center_fields",     // Pole center field values (multi-segment rings only)
   "documentation"           // Technical documentation (formulas, flowcharts)
 ] as const;
 
@@ -410,12 +411,14 @@ export const reportInputsSchema = z.object({
     plotlyJson: z.string().optional()
   })).max(2).optional(),
   
-  // Circle measurement: requests + optional plotly charts + zero crossings (up to 2 circles)
+  // Circle measurement: requests + optional plotly charts + zero crossings + pole center fields (up to 2 circles)
   circle: z.array(z.object({
     request: circleCalculationRequestSchema,
     plotlyJson: z.string().optional(),
     zeroCrossings: zeroCrossingsDataSchema.optional(),
-    zeroCrossings2: zeroCrossingsDataSchema.optional()
+    zeroCrossings2: zeroCrossingsDataSchema.optional(),
+    poleCenterFields: poleCenterFieldsDataSchema.optional(),
+    poleCenterFields2: poleCenterFieldsDataSchema.optional()
   })).max(2).optional(),
 });
 

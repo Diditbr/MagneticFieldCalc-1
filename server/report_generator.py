@@ -222,6 +222,9 @@ def generate_html_template(report_data):
     if 'zero_crossings' in sections:
         html += generate_zero_crossings_section(inputs.get('circle', []))
     
+    if 'pole_center_fields' in sections:
+        html += generate_pole_center_fields_section(inputs.get('circle', []))
+    
     if 'field_visualization' in sections:
         html += generate_visualization_section(inputs.get('visualization'))
     
@@ -561,6 +564,75 @@ def generate_zero_crossings_section(circle_data_list):
                 <td class="mono">{expected:.2f}</td>
                 <td class="mono">{measured_str}</td>
                 <td class="mono">{deviation_str}</td>
+            </tr>
+"""
+            
+            html += """
+        </table>
+"""
+    
+    if html != "":
+        html += """
+    </div>
+"""
+    
+    return html
+
+
+def generate_pole_center_fields_section(circle_data_list):
+    """Generate HTML for pole center fields analysis."""
+    if not circle_data_list or len(circle_data_list) == 0:
+        return ""
+    
+    html = ""
+    
+    for i, circle_data in enumerate(circle_data_list):
+        # Process both poleCenterFields and poleCenterFields2
+        pole_center_fields_data = [
+            (1, circle_data.get('poleCenterFields')),
+            (2, circle_data.get('poleCenterFields2'))
+        ]
+        
+        for circle_label, pole_center_fields in pole_center_fields_data:
+            if not pole_center_fields:
+                continue
+            
+            poles = pole_center_fields.get('poles', 0)
+            fields = pole_center_fields.get('fields', [])
+            
+            if html == "":
+                html = """
+    <div class="section">
+        <h2>Polmitten-Flussdichten</h2>
+"""
+            
+            html += f"""
+        <h3>Kreis {circle_label} - {poles}-polige Magnetisierung</h3>
+        <p>Magnetische Flussdichte an den theoretischen Polmitten.</p>
+        <table>
+            <tr>
+                <th>Pol Nr.</th>
+                <th>Winkel (°)</th>
+                <th>Br (mT)</th>
+                <th>Bt (mT)</th>
+                <th>Bz (mT)</th>
+            </tr>
+"""
+            
+            for idx, field in enumerate(fields):
+                pole_num = idx + 1
+                angle = field.get('angle', 0)
+                br = field.get('Br', 0)
+                bt = field.get('Bt', 0)
+                bz = field.get('Bz', 0)
+                
+                html += f"""
+            <tr>
+                <td class="mono">{pole_num}</td>
+                <td class="mono">{angle:.2f}</td>
+                <td class="mono">{br:.4f}</td>
+                <td class="mono">{bt:.4f}</td>
+                <td class="mono">{bz:.4f}</td>
             </tr>
 """
             
