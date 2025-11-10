@@ -192,6 +192,8 @@ export default function Calculator() {
       setCircleChartPlotlyData(null);
       setCircleZeroCrossings(null);
       setCircleZeroCrossings2(null);
+      setCirclePoleCenterFields(null);
+      setCirclePoleCenterFields2(null);
       setLastCircleRequest(null);
     },
   });
