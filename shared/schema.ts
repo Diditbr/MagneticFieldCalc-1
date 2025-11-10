@@ -395,7 +395,8 @@ export const reportInputsSchema = z.object({
   circle: z.array(z.object({
     request: circleCalculationRequestSchema,
     plotlyJson: z.string().optional(),
-    zeroCrossings: zeroCrossingsDataSchema.optional()
+    zeroCrossings: zeroCrossingsDataSchema.optional(),
+    zeroCrossings2: zeroCrossingsDataSchema.optional()
   })).max(2).optional(),
 });
 
