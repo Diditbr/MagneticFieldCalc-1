@@ -136,12 +136,24 @@ export default function Calculator() {
         request
       );
       const data = await response.json() as LineCalculationResponse;
+      if (!data || !data.plotlyJson) {
+        throw new Error("Ungültige Antwort vom Server - keine Plotly-Daten erhalten");
+      }
       return data;
     },
     onSuccess: (data, variables) => {
       if (data.plotlyJson) {
-        setLineChartPlotlyData(JSON.parse(data.plotlyJson));
-        setLastLineRequest(variables); // Cache the request that produced this chart
+        try {
+          setLineChartPlotlyData(JSON.parse(data.plotlyJson));
+          setLastLineRequest(variables); // Cache the request that produced this chart
+        } catch (parseError) {
+          console.error('Failed to parse plotly JSON:', parseError);
+          toast({
+            title: "Fehler bei der Datenverarbeitung",
+            description: "Die empfangenen Daten konnten nicht verarbeitet werden",
+            variant: "destructive",
+          });
+        }
       }
     },
     onError: (error) => {
@@ -164,12 +176,24 @@ export default function Calculator() {
         request
       );
       const data = await response.json() as CircleCalculationResponse;
+      if (!data || !data.plotlyJson) {
+        throw new Error("Ungültige Antwort vom Server - keine Plotly-Daten erhalten");
+      }
       return data;
     },
     onSuccess: (data, variables) => {
       if (data.plotlyJson) {
-        setCircleChartPlotlyData(JSON.parse(data.plotlyJson));
-        setLastCircleRequest(variables); // Cache the request that produced this chart
+        try {
+          setCircleChartPlotlyData(JSON.parse(data.plotlyJson));
+          setLastCircleRequest(variables); // Cache the request that produced this chart
+        } catch (parseError) {
+          console.error('Failed to parse plotly JSON:', parseError);
+          toast({
+            title: "Fehler bei der Datenverarbeitung",
+            description: "Die empfangenen Daten konnten nicht verarbeitet werden",
+            variant: "destructive",
+          });
+        }
       }
       if (data.zeroCrossings) {
         setCircleZeroCrossings(data.zeroCrossings);
