@@ -33,11 +33,11 @@ export function ReportDialog({
   const [open, setOpen] = useState(false);
   const [selectedSections, setSelectedSections] = useState<ReportSection[]>([]);
 
-  // Reset and pre-select all enabled sections when dialog opens
+  // Reset and pre-select enabled sections when dialog opens (excluding field_visualization and documentation)
   useEffect(() => {
     if (open) {
       const enabledSections = availableSections
-        .filter(s => s.enabled)
+        .filter(s => s.enabled && s.section !== 'field_visualization' && s.section !== 'documentation')
         .map(s => s.section);
       setSelectedSections(enabledSections);
     }

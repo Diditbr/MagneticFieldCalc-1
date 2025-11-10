@@ -70,7 +70,7 @@ export default function Calculator() {
   const [results, setResults] = useState<FieldCalculationResponse | null>(null);
 
   const [lineStart, setLineStart] = useState({ x: 0, y: 0, z: 0 });
-  const [lineEnd, setLineEnd] = useState({ x: 0, y: 0, z: 5 });
+  const [lineEnd, setLineEnd] = useState({ x: 0.2, y: 0, z: 5 });
   const [lineChartPlotlyData, setLineChartPlotlyData] = useState<any | null>(null);
   
   const [enableLine2, setEnableLine2] = useState(false);
@@ -85,7 +85,7 @@ export default function Calculator() {
   const [circleZeroCrossings2, setCircleZeroCrossings2] = useState<ZeroCrossingsData | null>(null);
   
   const [enableCircle2, setEnableCircle2] = useState(false);
-  const [circle2Radius, setCircle2Radius] = useState(15);
+  const [circle2Radius, setCircle2Radius] = useState(12);
   const [circle2Center, setCircle2Center] = useState({ x: 0, y: 0, z: 0 });
   
   const [showVisualization, setShowVisualization] = useState(false);
@@ -98,6 +98,13 @@ export default function Calculator() {
   const [lastPointRequest, setLastPointRequest] = useState<FieldCalculationRequest | null>(null);
   const [lastLineRequest, setLastLineRequest] = useState<LineCalculationRequest | null>(null);
   const [lastCircleRequest, setLastCircleRequest] = useState<CircleCalculationRequest | null>(null);
+
+  // Set magnetization type to radial when multi-segment ring is selected
+  useEffect(() => {
+    if (magnetType === 'ring_multi_segment') {
+      setMagnetizationType('radial');
+    }
+  }, [magnetType]);
 
   const calculateMutation = useMutation({
     mutationFn: async (request: FieldCalculationRequest) => {
