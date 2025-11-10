@@ -28,11 +28,11 @@ const __dirname = dirname(__filename);
  */
 async function calculateWithMagpylib(request: any): Promise<FieldCalculationResponse> {
   return new Promise((resolve, reject) => {
-    // Find Python script - try multiple locations
+    // Find Python script - ALWAYS prefer the source file over dist/ copy
     const possiblePaths = [
-      join(__dirname, 'magpylib_calculator.py'),           // Development: server/
-      join(__dirname, '..', 'server', 'magpylib_calculator.py'),  // Production: dist/ -> server/
-      join(process.cwd(), 'server', 'magpylib_calculator.py'),    // Fallback: from project root
+      join(process.cwd(), 'server', 'magpylib_calculator.py'),    // Always use source from project root (works in dev and production)
+      join(__dirname, '..', 'server', 'magpylib_calculator.py'),  // Production: dist/ -> ../server/
+      join(__dirname, 'magpylib_calculator.py'),           // Fallback: Development or dist/ copy
     ];
     
     let pythonScript = '';
