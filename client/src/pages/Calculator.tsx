@@ -307,6 +307,8 @@ export default function Calculator() {
         plotlyJson: JSON.stringify(circleChartPlotlyData),
         zeroCrossings: circleZeroCrossings || undefined,
         zeroCrossings2: circleZeroCrossings2 || undefined,
+        poleCenterFields: circlePoleCenterFields || undefined,
+        poleCenterFields2: circlePoleCenterFields2 || undefined,
       }];
     }
 
@@ -318,6 +320,22 @@ export default function Calculator() {
           plotlyJson: circleChartPlotlyData ? JSON.stringify(circleChartPlotlyData) : undefined,
           zeroCrossings: circleZeroCrossings || undefined,
           zeroCrossings2: circleZeroCrossings2 || undefined,
+          poleCenterFields: circlePoleCenterFields || undefined,
+          poleCenterFields2: circlePoleCenterFields2 || undefined,
+        }];
+      }
+    }
+
+    // Pole center fields data (uses circle data) - use cached request
+    if (sections.includes("pole_center_fields") && (circlePoleCenterFields || circlePoleCenterFields2) && lastCircleRequest) {
+      if (!inputs.circle) {
+        inputs.circle = [{
+          request: lastCircleRequest,
+          plotlyJson: circleChartPlotlyData ? JSON.stringify(circleChartPlotlyData) : undefined,
+          zeroCrossings: circleZeroCrossings || undefined,
+          zeroCrossings2: circleZeroCrossings2 || undefined,
+          poleCenterFields: circlePoleCenterFields || undefined,
+          poleCenterFields2: circlePoleCenterFields2 || undefined,
         }];
       }
     }
@@ -374,6 +392,12 @@ export default function Calculator() {
       label: "Nulldurchgänge",
       description: "Nulldurchgangs-Analyse für Multi-Segment-Ringe",
       enabled: !!circleZeroCrossings || !!circleZeroCrossings2,
+    },
+    {
+      section: "pole_center_fields" as ReportSection,
+      label: "Polmitten-Flussdichten",
+      description: "Magnetische Flussdichten an den theoretischen Polmitten",
+      enabled: !!circlePoleCenterFields || !!circlePoleCenterFields2,
     },
   ];
 
