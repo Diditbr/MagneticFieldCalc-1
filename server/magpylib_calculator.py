@@ -1784,12 +1784,14 @@ def main():
         sys.exit(0)
         
     except Exception as e:
-        # Output error as JSON
+        # Output error as JSON to stdout (not stderr) so Node.js can parse it
+        import traceback
         error_result = {
             'error': str(e),
-            'type': type(e).__name__
+            'type': type(e).__name__,
+            'traceback': traceback.format_exc()
         }
-        print(json.dumps(error_result), file=sys.stderr)
+        print(json.dumps(error_result))
         sys.exit(1)
 
 
