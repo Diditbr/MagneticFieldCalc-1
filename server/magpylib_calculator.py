@@ -1277,6 +1277,57 @@ def calculate_line_field(magnet_config):
     }
 
 
+def extract_pole_center_fields(angles_deg, br_values, bt_values, bz_values, num_poles):
+    """
+    Extract magnetic field values at theoretical pole centers for multi-segment rings.
+    Pole centers are located at the midpoint of each pole.
+    
+    Args:
+        angles_deg: Array of angles in degrees
+        br_values: Array of Br values (in mT)
+        bt_values: Array of Bt values (in mT)
+        bz_values: Array of Bz values (in mT)
+        num_poles: Number of poles in the multi-segment ring
+    
+    Returns:
+        Dict with pole center field data
+    """
+    # Calculate theoretical pole center angles
+    # For N poles, pole centers are at: (360/N/2) + i*(360/N) for i=0 to N-1
+    pole_width = 360.0 / num_poles
+    pole_center_angles = [(pole_width / 2) + i * pole_width for i in range(num_poles)]
+    
+    fields_data = []
+    
+    for pole_center_angle in pole_center_angles:
+        # Find the closest angle in the data
+        min_distance = float('inf')
+        closest_idx = 0
+        
+        for i, angle in enumerate(angles_deg):
+            # Calculate circular distance
+            diff = abs(angle - pole_center_angle)
+            if diff > 180:
+                diff = 360 - diff
+            
+            if diff < min_distance:
+                min_distance = diff
+                closest_idx = i
+        
+        # Extract field values at this angle
+        fields_data.append({
+            'angle': round(pole_center_angle, 2),
+            'Br': round(br_values[closest_idx], 4),
+            'Bt': round(bt_values[closest_idx], 4),
+            'Bz': round(bz_values[closest_idx], 4)
+        })
+    
+    return {
+        'poles': num_poles,
+        'fields': fields_data
+    }
+
+
 def analyze_zero_crossings(angles_deg, bz_values, num_poles):
     """
     Analyze zero crossings in Bz data for multi-segment rings.
@@ -1537,8 +1588,12 @@ def calculate_circle_field(magnet_config):
     # Generate angles
     angles_deg = np.linspace(0, 360, num_samples, endpoint=False)
     
-    # Store circle Bz values for zero crossing analysis
+    # Store circle field values for zero crossing analysis and pole center fields
+    first_circle_br_values = None
+    first_circle_bt_values = None
     first_circle_bz_values = None
+    second_circle_br_values = None
+    second_circle_bt_values = None
     second_circle_bz_values = None
     
     # Process each circle
@@ -1588,10 +1643,14 @@ def calculate_circle_field(magnet_config):
             Bt_values.append(Bt * 1000)
             Bz_values.append(Bz * 1000)
         
-        # Store Bz values for zero crossing analysis
+        # Store field values for zero crossing analysis and pole center fields
         if circle_idx == 0:
+            first_circle_br_values = Br_values.copy()
+            first_circle_bt_values = Bt_values.copy()
             first_circle_bz_values = Bz_values.copy()
         elif circle_idx == 1:
+            second_circle_br_values = Br_values.copy()
+            second_circle_bt_values = Bt_values.copy()
             second_circle_bz_values = Bz_values.copy()
         
         # Use different colors/styles for second circle
@@ -1675,6 +1734,28 @@ def calculate_circle_field(magnet_config):
                     num_poles
                 )
                 result['zeroCrossings2'] = zero_crossings_data_2
+            
+            # Extract pole center fields for first circle
+            if first_circle_br_values is not None and first_circle_bt_values is not None and first_circle_bz_values is not None:
+                pole_center_fields = extract_pole_center_fields(
+                    np.array(angles_deg),
+                    np.array(first_circle_br_values),
+                    np.array(first_circle_bt_values),
+                    np.array(first_circle_bz_values),
+                    num_poles
+                )
+                result['poleCenterFields'] = pole_center_fields
+            
+            # Extract pole center fields for second circle (if available)
+            if second_circle_br_values is not None and second_circle_bt_values is not None and second_circle_bz_values is not None:
+                pole_center_fields_2 = extract_pole_center_fields(
+                    np.array(angles_deg),
+                    np.array(second_circle_br_values),
+                    np.array(second_circle_bt_values),
+                    np.array(second_circle_bz_values),
+                    num_poles
+                )
+                result['poleCenterFields2'] = pole_center_fields_2
     
     return result
 
