@@ -148,6 +148,11 @@ export default function Calculator() {
       console.error('Line calculation error:', error);
       setLineChartPlotlyData(null);
       setLastLineRequest(null);
+      toast({
+        title: "Fehler bei der Linienberechnung",
+        description: error instanceof Error ? error.message : "Ein unbekannter Fehler ist aufgetreten",
+        variant: "destructive",
+      });
     },
   });
 
@@ -195,6 +200,11 @@ export default function Calculator() {
       setCirclePoleCenterFields(null);
       setCirclePoleCenterFields2(null);
       setLastCircleRequest(null);
+      toast({
+        title: "Fehler bei der Kreisberechnung",
+        description: error instanceof Error ? error.message : "Ein unbekannter Fehler ist aufgetreten",
+        variant: "destructive",
+      });
     },
   });
 
