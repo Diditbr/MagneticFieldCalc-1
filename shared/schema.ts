@@ -325,11 +325,30 @@ export const zeroCrossingsDataSchema = z.object({
 
 export type ZeroCrossingsData = z.infer<typeof zeroCrossingsDataSchema>;
 
+// Pole center field data for multi-segment rings - field at theoretical pole centers
+export const poleCenterFieldSchema = z.object({
+  angle: z.number(), // Angle in degrees
+  Br: z.number(), // Radial component in Tesla
+  Bt: z.number(), // Tangential component in Tesla
+  Bz: z.number(), // Axial component in Tesla
+});
+
+export type PoleCenterField = z.infer<typeof poleCenterFieldSchema>;
+
+export const poleCenterFieldsDataSchema = z.object({
+  poles: z.number().int(),
+  fields: z.array(poleCenterFieldSchema),
+});
+
+export type PoleCenterFieldsData = z.infer<typeof poleCenterFieldsDataSchema>;
+
 // Circle calculation response - Plotly JSON chart showing Br, Bt, Bz vs angle
 export const circleCalculationResponseSchema = z.object({
   plotlyJson: z.string(), // Plotly JSON format
   zeroCrossings: zeroCrossingsDataSchema.optional(), // Optional zero crossing analysis for circle 1
   zeroCrossings2: zeroCrossingsDataSchema.optional(), // Optional zero crossing analysis for circle 2
+  poleCenterFields: poleCenterFieldsDataSchema.optional(), // Optional pole center fields for circle 1
+  poleCenterFields2: poleCenterFieldsDataSchema.optional(), // Optional pole center fields for circle 2
 });
 
 export type CircleCalculationResponse = z.infer<typeof circleCalculationResponseSchema>;
