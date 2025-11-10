@@ -328,16 +328,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Validate request body
       const validatedData = reportRequestSchema.parse(req.body);
       
-      // Debug: Log circle data to check if zeroCrossings2 is present
-      if (validatedData.inputs?.circle && validatedData.inputs.circle.length > 0) {
-        console.log('[DEBUG] Report circle data:', JSON.stringify({
-          hasZeroCrossings: !!validatedData.inputs.circle[0].zeroCrossings,
-          hasZeroCrossings2: !!validatedData.inputs.circle[0].zeroCrossings2,
-          zeroCrossings2Sample: validatedData.inputs.circle[0].zeroCrossings2 ? 
-            { component: validatedData.inputs.circle[0].zeroCrossings2.component, poles: validatedData.inputs.circle[0].zeroCrossings2.poles } : null
-        }));
-      }
-      
       // Find Python script
       const possiblePaths = [
         join(__dirname, 'report_generator.py'),
