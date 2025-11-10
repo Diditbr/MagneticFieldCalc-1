@@ -2,6 +2,7 @@
 """
 Magnetic field calculator using Magpylib for accurate near-field calculations.
 Accepts JSON input via stdin and returns JSON output.
+Version: 2.0 - Updated with Plotly JSON support for line and circle calculations
 """
 
 import json
