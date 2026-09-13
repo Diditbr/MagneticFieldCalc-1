@@ -1,0 +1,4 @@
+streamlit>=1.57.0
+magpylib>=5.2.1
+numpy>=2.3.4
+plotly>=6.3.1
