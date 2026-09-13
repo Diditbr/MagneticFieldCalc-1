@@ -8,6 +8,7 @@ Version: 2.0 - Updated with Plotly JSON support for line and circle calculations
 import json
 import sys
 import math
+from contextlib import redirect_stdout
 import magpylib as magpy
 import numpy as np
 import plotly.graph_objects as go
@@ -2097,18 +2098,19 @@ def main():
         # Read input from stdin
         input_data = json.loads(sys.stdin.read())
         
-        # Check mode
-        mode = input_data.get('mode')
-        if mode == 'grid':
-            result = calculate_field_grid(input_data)
-        elif mode == 'visualization':
-            result = generate_field_visualization(input_data)
-        elif mode == 'line':
-            result = calculate_line_field(input_data)
-        elif mode == 'circle':
-            result = calculate_circle_field(input_data)
-        else:
-            result = calculate_field(input_data)
+        # Keep diagnostic output off stdout so Node can parse the JSON response.
+        with redirect_stdout(sys.stderr):
+            mode = input_data.get('mode')
+            if mode == 'grid':
+                result = calculate_field_grid(input_data)
+            elif mode == 'visualization':
+                result = generate_field_visualization(input_data)
+            elif mode == 'line':
+                result = calculate_line_field(input_data)
+            elif mode == 'circle':
+                result = calculate_circle_field(input_data)
+            else:
+                result = calculate_field(input_data)
         
         # Output result as JSON
         print(json.dumps(result))
