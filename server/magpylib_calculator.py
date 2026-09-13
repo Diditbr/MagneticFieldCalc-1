@@ -1010,272 +1010,435 @@ def generate_field_visualization(input_data):
 
 
 
-def calculate_line_field(magnet_config):
+def calculate_circle_field(magnet_config):
     """
-    Calculate magnetic field along a line in 3D space and generate a chart.
+    Calculate magnetic field along a circular path and decompose into cylindrical coordinates.
+    Returns Plotly JSON showing Br (radial), Bt (tangential), Bz (axial) vs angle.
     
     Args:
         magnet_config: Dict with keys:
             - type, magnetization, dimensions (as in calculate_field)
-            - startX, startY, startZ: line start point in meters (UI coordinates: z=0 at surface)
-            - endX, endY, endZ: line end point in meters (UI coordinates: z=0 at surface)
-            - numPoints: number of points along the line (default: 100)
+            - radius: Circle radius in meters
+            - centerX, centerY, centerZ: Circle center offset in meters
+            - numSamples: Number of angle samples (default: 360)
     
     Returns:
-        Dict with base64-encoded PNG image of the chart
+        Dict with Plotly JSON and optional zero crossing analysis
     """
-    magnet_type = magnet_config['type']
-    magnetization = magnet_config['magnetization']
-    magnetization_type = magnet_config.get('magnetizationType', 'axial')
-    magnetization_angle = magnet_config.get('magnetizationAngle', 0)
-    axis_tilt_angle = magnet_config.get('axisTiltAngle', 0)
+    import traceback
     
-    # Determine magnet height for coordinate transformation
-    if magnet_type == 'rectangular':
-        magnet_height = magnet_config.get('height', 0.01)
-    elif magnet_type == 'cylindrical':
-        magnet_height = magnet_config.get('length', 0.01)
-    elif magnet_type in ['ring', 'ring_segment', 'ring_multi_segment']:
-        magnet_height = magnet_config.get('thickness', 0.01)
-    else:
-        magnet_height = 0.01
-    
-    # Line parameters (in UI coordinates)
-    start_ui = np.array([
-        magnet_config['startX'],
-        magnet_config['startY'],
-        magnet_config['startZ']
-    ])
-    end_ui = np.array([
-        magnet_config['endX'],
-        magnet_config['endY'],
-        magnet_config['endZ']
-    ])
-    
-    # Transform z coordinates: UI has z=0 at surface, Magpylib has z=0 at center
-    start_magpylib = start_ui.copy()
-    start_magpylib[2] += magnet_height / 2
-    end_magpylib = end_ui.copy()
-    end_magpylib[2] += magnet_height / 2
-    
-    num_points = magnet_config.get('numPoints', 100)
-    
-    # Create magnet based on type (same as calculate_field)
-    if magnet_type == 'rectangular':
-        length = magnet_config.get('length', 0.01)
-        width = magnet_config.get('width', 0.01)
-        height = magnet_config.get('height', 0.01)
-        magnet = magpy.magnet.Cuboid(
-            polarization=(0, 0, magnetization),  # Always axial for cuboids
-            dimension=(length, width, height)
-        )
-    elif magnet_type == 'cylindrical':
-        diameter = magnet_config.get('diameter', 0.01)
-        length = magnet_config.get('length', 0.01)
-        polarization = get_polarization_vector(magnetization, magnetization_type, magnetization_angle)
-        magnet = magpy.magnet.Cylinder(
-            polarization=polarization,
-            dimension=(diameter, length)
-        )
-    elif magnet_type == 'ring':
-        outer_diameter = magnet_config.get('diameter', 0.01)
-        inner_diameter = magnet_config.get('innerDiameter', 0.005)
-        thickness = magnet_config.get('thickness', 0.01)
-        polarization = get_polarization_vector(magnetization, magnetization_type, magnetization_angle)
-        if magnetization_type == 'axial':
-            polarization = (polarization[0], polarization[1], -polarization[2])
-        # CylinderSegment expects RADII not DIAMETERS!
-        magnet = magpy.magnet.CylinderSegment(
-            polarization=polarization,
-            dimension=(inner_diameter/2, outer_diameter/2, thickness, 0, 360)
-        )
-    elif magnet_type == 'ring_segment':
-        outer_diameter = magnet_config.get('diameter', 0.01)
-        inner_diameter = magnet_config.get('innerDiameter', 0.005)
-        thickness = magnet_config.get('thickness', 0.01)
-        phi1 = magnet_config.get('phi1', 0)
-        phi2 = magnet_config.get('phi2', 90)
+    try:
+        print(f"[Circle Calc] Starting calculation for magnet type: {magnet_config.get('type')}", flush=True)
         
-        if magnetization_type == 'radial':
-            # Radial magnetization: discretize segment into sub-segments
-            angle_span = phi2 - phi1
-            num_segments = max(4, int(angle_span / 15))
-            segment_angle = angle_span / num_segments
-            
-            # Calculate magnetization direction based on overall segment center
-            segment_center_angle = (phi1 + phi2) / 2
-            segment_center_rad = math.radians(segment_center_angle)
-            px = magnetization * math.cos(segment_center_rad)
-            py = magnetization * math.sin(segment_center_rad)
-            
-            magnets = []
-            for i in range(num_segments):
-                sub_phi1 = phi1 + i * segment_angle
-                sub_phi2 = phi1 + (i + 1) * segment_angle
-                
-                # All subsegments use the same polarization direction (segment center)
-                # CylinderSegment expects RADII not DIAMETERS!
-                sub_magnet = magpy.magnet.CylinderSegment(
-                    polarization=(px, py, 0),
-                    dimension=(inner_diameter/2, outer_diameter/2, thickness, sub_phi1, sub_phi2)
-                )
-                magnets.append(sub_magnet)
-            
-            magnet = magpy.Collection(*magnets)
+        # Validate required fields
+        required_fields = ['type', 'magnetization', 'radius', 'centerX', 'centerY', 'centerZ']
+        missing_fields = [f for f in required_fields if f not in magnet_config]
+        if missing_fields:
+            raise ValueError(f"Missing required fields: {missing_fields}")
+        
+        magnet_type = magnet_config['type']
+        magnetization = magnet_config['magnetization']
+        magnetization_type = magnet_config.get('magnetizationType', 'axial')
+        magnetization_angle = magnet_config.get('magnetizationAngle', 0)
+        axis_tilt_angle = magnet_config.get('axisTiltAngle', 0)
+        
+        # Circle parameters
+        radius = magnet_config['radius']
+        center_x = magnet_config.get('centerX', 0)
+        center_y = magnet_config.get('centerY', 0)
+        center_z_ui = magnet_config.get('centerZ', 0)
+        num_samples = magnet_config.get('numSamples', 360)
+        
+        print(f"[Circle Calc] Circle: r={radius}m, center=({center_x}, {center_y}, {center_z_ui}), samples={num_samples}", flush=True)
+        
+        # Determine magnet height for coordinate transformation
+        if magnet_type == 'rectangular':
+            magnet_height = magnet_config.get('height', 0.01)
+        elif magnet_type == 'cylindrical':
+            magnet_height = magnet_config.get('length', 0.01)
+        elif magnet_type in ['ring', 'ring_segment', 'ring_multi_segment']:
+            magnet_height = magnet_config.get('thickness', 0.01)
         else:
-            polarization = get_polarization_vector(magnetization, magnetization_type, magnetization_angle)
-            if magnetization_type == 'axial':
-                polarization = (polarization[0], polarization[1], -polarization[2])
-            # CylinderSegment expects RADII not DIAMETERS!
-            magnet = magpy.magnet.CylinderSegment(
-                polarization=polarization,
-                dimension=(inner_diameter/2, outer_diameter/2, thickness, phi1, phi2)
-            )
-    elif magnet_type == 'ring_multi_segment':
-        # Create multi-segment ring with alternating magnetization
-        magnet = create_multi_segment_ring(magnet_config)
-    else:
-        raise ValueError(f"Unknown magnet type: {magnet_type}")
-    
-    # Apply axis tilt rotation if specified (for cylindrical, ring, ring_segment)
-    if axis_tilt_angle != 0 and magnet_type in ['cylindrical', 'ring', 'ring_segment']:
-        magnet = magnet.rotate_from_angax(angle=axis_tilt_angle, axis='y', anchor=(0, 0, 0))
-    
-    # Check if second line is provided
-    has_line2 = all([
-        magnet_config.get('line2StartX') is not None,
-        magnet_config.get('line2StartY') is not None,
-        magnet_config.get('line2StartZ') is not None,
-        magnet_config.get('line2EndX') is not None,
-        magnet_config.get('line2EndY') is not None,
-        magnet_config.get('line2EndZ') is not None
-    ])
-    
-    # Collect line configurations
-    lines_config = [
-        {
-            'name': '',
-            'start_ui': start_ui,
-            'end_ui': end_ui,
-            'start_magpylib': start_magpylib,
-            'end_magpylib': end_magpylib
-        }
-    ]
-    
-    if has_line2:
-        line2_start_ui = np.array([
-            magnet_config['line2StartX'],
-            magnet_config['line2StartY'],
-            magnet_config['line2StartZ']
+            magnet_height = 0.01
+        
+        # Transform Z coordinate: UI has z=0 at surface, Magpylib has z=0 at center
+        center_z_magpylib = center_z_ui + magnet_height / 2
+        
+        print(f"[Circle Calc] Magnet height: {magnet_height}m, Z offset: {magnet_height/2}m", flush=True)
+        
+        # Create magnet (reuse logic from calculate_field)
+        print(f"[Circle Calc] Creating magnet...", flush=True)
+        
+        magnet = None
+        
+        try:
+            if magnet_type == 'rectangular':
+                length = magnet_config.get('length', 0.01)
+                width = magnet_config.get('width', 0.01)
+                height = magnet_config.get('height', 0.01)
+                magnet = magpy.magnet.Cuboid(
+                    polarization=(0, 0, magnetization),
+                    dimension=(length, width, height)
+                )
+                print(f"[Circle Calc] Created Cuboid: {length}x{width}x{height}m", flush=True)
+                
+            elif magnet_type == 'cylindrical':
+                diameter = magnet_config.get('diameter', 0.01)
+                length = magnet_config.get('length', 0.01)
+                polarization = get_polarization_vector(magnetization, magnetization_type, magnetization_angle)
+                magnet = magpy.magnet.Cylinder(
+                    polarization=polarization,
+                    dimension=(diameter, length)
+                )
+                print(f"[Circle Calc] Created Cylinder: d={diameter}m, l={length}m", flush=True)
+                
+            elif magnet_type == 'ring':
+                outer_diameter = magnet_config.get('diameter', 0.01)
+                inner_diameter = magnet_config.get('innerDiameter', 0.005)
+                thickness = magnet_config.get('thickness', 0.01)
+                polarization = get_polarization_vector(magnetization, magnetization_type, magnetization_angle)
+                if magnetization_type == 'axial':
+                    polarization = (polarization[0], polarization[1], -polarization[2])
+                magnet = magpy.magnet.CylinderSegment(
+                    polarization=polarization,
+                    dimension=(inner_diameter/2, outer_diameter/2, thickness, 0, 360)
+                )
+                print(f"[Circle Calc] Created Ring", flush=True)
+                
+            elif magnet_type == 'ring_segment':
+                outer_diameter = magnet_config.get('diameter', 0.01)
+                inner_diameter = magnet_config.get('innerDiameter', 0.005)
+                thickness = magnet_config.get('thickness', 0.01)
+                phi1 = magnet_config.get('phi1', 0)
+                phi2 = magnet_config.get('phi2', 90)
+                
+                if magnetization_type == 'radial':
+                    angle_span = phi2 - phi1
+                    num_segments = max(4, int(angle_span / 15))
+                    segment_angle = angle_span / num_segments
+                    
+                    segment_center_angle = (phi1 + phi2) / 2
+                    segment_center_rad = math.radians(segment_center_angle)
+                    px = magnetization * math.cos(segment_center_rad)
+                    py = magnetization * math.sin(segment_center_rad)
+                    
+                    magnets = []
+                    for i in range(num_segments):
+                        sub_phi1 = phi1 + i * segment_angle
+                        sub_phi2 = phi1 + (i + 1) * segment_angle
+                        
+                        sub_magnet = magpy.magnet.CylinderSegment(
+                            polarization=(px, py, 0),
+                            dimension=(inner_diameter/2, outer_diameter/2, thickness, sub_phi1, sub_phi2)
+                        )
+                        magnets.append(sub_magnet)
+                    
+                    magnet = magpy.Collection(*magnets)
+                    print(f"[Circle Calc] Created RingSegment (radial)", flush=True)
+                else:
+                    polarization = get_polarization_vector(magnetization, magnetization_type, magnetization_angle)
+                    if magnetization_type == 'axial':
+                        polarization = (polarization[0], polarization[1], -polarization[2])
+                    magnet = magpy.magnet.CylinderSegment(
+                        polarization=polarization,
+                        dimension=(inner_diameter/2, outer_diameter/2, thickness, phi1, phi2)
+                    )
+                    print(f"[Circle Calc] Created RingSegment", flush=True)
+                    
+            elif magnet_type == 'ring_multi_segment':
+                magnet = create_multi_segment_ring(magnet_config)
+                print(f"[Circle Calc] Created multi-segment ring", flush=True)
+            else:
+                raise ValueError(f"Unknown magnet type: {magnet_type}")
+            
+            if magnet is None:
+                raise ValueError("Failed to create magnet: magnet is None")
+                
+        except Exception as e:
+            print(f"[Circle Calc] ERROR creating magnet: {e}", flush=True)
+            print(f"[Circle Calc] Traceback: {traceback.format_exc()}", flush=True)
+            raise
+        
+        # Apply axis tilt rotation if specified
+        if axis_tilt_angle != 0 and magnet_type in ['cylindrical', 'ring', 'ring_segment']:
+            magnet = magnet.rotate_from_angax(angle=axis_tilt_angle, axis='y', anchor=(0, 0, 0))
+            print(f"[Circle Calc] Applied axis tilt: {axis_tilt_angle}°", flush=True)
+        
+        # Check if second circle is provided
+        has_circle2 = all([
+            magnet_config.get('radius2') is not None,
+            magnet_config.get('centerX2') is not None,
+            magnet_config.get('centerY2') is not None,
+            magnet_config.get('centerZ2') is not None
         ])
-        line2_end_ui = np.array([
-            magnet_config['line2EndX'],
-            magnet_config['line2EndY'],
-            magnet_config['line2EndZ']
-        ])
-        line2_start_magpylib = line2_start_ui.copy()
-        line2_start_magpylib[2] += magnet_height / 2
-        line2_end_magpylib = line2_end_ui.copy()
-        line2_end_magpylib[2] += magnet_height / 2
         
-        lines_config.append({
-            'name': ' (Linie 2)',
-            'start_ui': line2_start_ui,
-            'end_ui': line2_end_ui,
-            'start_magpylib': line2_start_magpylib,
-            'end_magpylib': line2_end_magpylib
-        })
-    
-    # Create Plotly chart
-    fig = go.Figure()
-    
-    # Process each line
-    for line_cfg in lines_config:
-        # Generate points along the line (in Magpylib coordinates)
-        line_points_magpylib = np.linspace(line_cfg['start_magpylib'], line_cfg['end_magpylib'], num_points)
-        line_points_ui = np.linspace(line_cfg['start_ui'], line_cfg['end_ui'], num_points)
+        print(f"[Circle Calc] Has second circle: {has_circle2}", flush=True)
         
-        # Calculate B field at each point
-        Bx_values = []
-        By_values = []
-        Bz_values = []
-        distances = []
+        # Create Plotly chart
+        print(f"[Circle Calc] Creating Plotly figure...", flush=True)
+        fig = go.Figure()
         
-        for i, point_magpylib in enumerate(line_points_magpylib):
-            B = magpy.getB(magnet, point_magpylib)
-            Bx_values.append(float(B[0]))
-            By_values.append(float(B[1]))
-            Bz_values.append(float(B[2]))
-            point_ui = line_points_ui[i]
-            distances.append(float(np.linalg.norm(point_ui - line_cfg['start_ui']) * 1000))
+        # Process first circle
+        try:
+            print(f"[Circle Calc] Processing circle 1...", flush=True)
+            
+            angles_deg = np.linspace(0, 360, num_samples)
+            first_circle_br_values = []
+            first_circle_bt_values = []
+            first_circle_bz_values = []
+            
+            for angle_deg in angles_deg:
+                try:
+                    angle_rad = math.radians(angle_deg)
+                    x = center_x + radius * math.cos(angle_rad)
+                    y = center_y + radius * math.sin(angle_rad)
+                    z = center_z_magpylib
+                    
+                    observer = np.array([x, y, z])
+                    B_cart = magpy.getB(magnet, observer)
+                    
+                    if B_cart is None:
+                        print(f"[Circle Calc] WARNING: B is None at angle {angle_deg}°", flush=True)
+                        B_cart = np.array([0, 0, 0])
+                    
+                    B_cart = np.array(B_cart)
+                    
+                    if np.any(np.isnan(B_cart)) or np.any(np.isinf(B_cart)):
+                        print(f"[Circle Calc] WARNING: Invalid B at angle {angle_deg}°: {B_cart}", flush=True)
+                        B_cart = np.array([0, 0, 0])
+                    
+                    # Transform Cartesian to cylindrical coordinates
+                    # Br: radial component (from center)
+                    # Bt: tangential component (perpendicular to radial, in XY plane)
+                    # Bz: axial component (along Z)
+                    
+                    cos_a = math.cos(angle_rad)
+                    sin_a = math.sin(angle_rad)
+                    
+                    Br = B_cart[0] * cos_a + B_cart[1] * sin_a
+                    Bt = -B_cart[0] * sin_a + B_cart[1] * cos_a
+                    Bz = B_cart[2]
+                    
+                    first_circle_br_values.append(Br * 1000)  # Convert to mT
+                    first_circle_bt_values.append(Bt * 1000)
+                    first_circle_bz_values.append(Bz * 1000)
+                    
+                except Exception as e:
+                    print(f"[Circle Calc] ERROR at angle {angle_deg}°: {e}", flush=True)
+                    first_circle_br_values.append(0.0)
+                    first_circle_bt_values.append(0.0)
+                    first_circle_bz_values.append(0.0)
+            
+            print(f"[Circle Calc] Calculated {len(first_circle_br_values)} points for circle 1", flush=True)
+            
+        except Exception as e:
+            print(f"[Circle Calc] ERROR processing circle 1: {e}", flush=True)
+            print(f"[Circle Calc] Traceback: {traceback.format_exc()}", flush=True)
+            raise
         
-        # Convert to mT for display
-        Bx_mT = [b * 1000 for b in Bx_values]
-        By_mT = [b * 1000 for b in By_values]
-        Bz_mT = [b * 1000 for b in Bz_values]
+        # Process second circle if provided
+        second_circle_br_values = None
+        second_circle_bt_values = None
+        second_circle_bz_values = None
         
-        # Use different colors/styles for second line
-        if line_cfg['name']:  # Second line
-            bx_color = 'rgb(251, 113, 133)'  # lighter red
-            by_color = 'rgb(134, 239, 172)'  # lighter green
-            bz_color = 'rgb(147, 197, 253)'  # lighter blue
-            dash = 'dash'
-        else:  # First line
-            bx_color = 'rgb(239, 68, 68)'
-            by_color = 'rgb(34, 197, 94)'
-            bz_color = 'rgb(59, 130, 246)'
-            dash = 'solid'
+        if has_circle2:
+            try:
+                print(f"[Circle Calc] Processing circle 2...", flush=True)
+                
+                radius2 = magnet_config.get('radius2', 0.01)
+                center_x2 = magnet_config.get('centerX2', 0)
+                center_y2 = magnet_config.get('centerY2', 0)
+                center_z2_ui = magnet_config.get('centerZ2', 0)
+                center_z2_magpylib = center_z2_ui + magnet_height / 2
+                
+                second_circle_br_values = []
+                second_circle_bt_values = []
+                second_circle_bz_values = []
+                
+                for angle_deg in angles_deg:
+                    try:
+                        angle_rad = math.radians(angle_deg)
+                        x = center_x2 + radius2 * math.cos(angle_rad)
+                        y = center_y2 + radius2 * math.sin(angle_rad)
+                        z = center_z2_magpylib
+                        
+                        observer = np.array([x, y, z])
+                        B_cart = magpy.getB(magnet, observer)
+                        
+                        if B_cart is None:
+                            B_cart = np.array([0, 0, 0])
+                        
+                        B_cart = np.array(B_cart)
+                        
+                        if np.any(np.isnan(B_cart)) or np.any(np.isinf(B_cart)):
+                            B_cart = np.array([0, 0, 0])
+                        
+                        cos_a = math.cos(angle_rad)
+                        sin_a = math.sin(angle_rad)
+                        
+                        Br = B_cart[0] * cos_a + B_cart[1] * sin_a
+                        Bt = -B_cart[0] * sin_a + B_cart[1] * cos_a
+                        Bz = B_cart[2]
+                        
+                        second_circle_br_values.append(Br * 1000)
+                        second_circle_bt_values.append(Bt * 1000)
+                        second_circle_bz_values.append(Bz * 1000)
+                        
+                    except Exception as e:
+                        print(f"[Circle Calc] ERROR at angle {angle_deg}° (circle 2): {e}", flush=True)
+                        second_circle_br_values.append(0.0)
+                        second_circle_bt_values.append(0.0)
+                        second_circle_bz_values.append(0.0)
+                
+                print(f"[Circle Calc] Calculated {len(second_circle_br_values)} points for circle 2", flush=True)
+                
+            except Exception as e:
+                print(f"[Circle Calc] ERROR processing circle 2: {e}", flush=True)
+                print(f"[Circle Calc] Traceback: {traceback.format_exc()}", flush=True)
+                # Continue without second circle
+                has_circle2 = False
         
-        # Add traces for Bx, By, Bz
-        fig.add_trace(go.Scatter(
-            x=distances,
-            y=Bx_mT,
-            mode='lines',
-            name=f'Bx{line_cfg["name"]}',
-            line=dict(color=bx_color, width=2, dash=dash),
-            hovertemplate=f'Distance: %{{x:.2f}} mm<br>Bx: %{{y:.4f}} mT<extra></extra>'
-        ))
+        # Add traces to figure
+        try:
+            # First circle
+            fig.add_trace(go.Scatter(
+                x=list(angles_deg),
+                y=first_circle_br_values,
+                mode='lines',
+                name='Br (Kreis 1)',
+                line=dict(color='rgb(239, 68, 68)', width=2),
+                hovertemplate='Winkel: %{x:.1f}°<br>Br: %{y:.4f} mT<extra></extra>'
+            ))
+            
+            fig.add_trace(go.Scatter(
+                x=list(angles_deg),
+                y=first_circle_bt_values,
+                mode='lines',
+                name='Bt (Kreis 1)',
+                line=dict(color='rgb(34, 197, 94)', width=2),
+                hovertemplate='Winkel: %{x:.1f}°<br>Bt: %{y:.4f}} mT<extra></extra>'
+            ))
+            
+            fig.add_trace(go.Scatter(
+                x=list(angles_deg),
+                y=first_circle_bz_values,
+                mode='lines',
+                name='Bz (Kreis 1)',
+                line=dict(color='rgb(59, 130, 246)', width=2),
+                hovertemplate='Winkel: %{x:.1f}°<br>Bz: %{y:.4f} mT<extra></extra>'
+            ))
+            
+            # Second circle if provided
+            if has_circle2 and second_circle_br_values is not None:
+                fig.add_trace(go.Scatter(
+                    x=list(angles_deg),
+                    y=second_circle_br_values,
+                    mode='lines',
+                    name='Br (Kreis 2)',
+                    line=dict(color='rgb(251, 113, 133)', width=2, dash='dash'),
+                    hovertemplate='Winkel: %{x:.1f}°<br>Br: %{y:.4f} mT<extra></extra>'
+                ))
+                
+                fig.add_trace(go.Scatter(
+                    x=list(angles_deg),
+                    y=second_circle_bt_values,
+                    mode='lines',
+                    name='Bt (Kreis 2)',
+                    line=dict(color='rgb(134, 239, 172)', width=2, dash='dash'),
+                    hovertemplate='Winkel: %{x:.1f}°<br>Bt: %{y:.4f} mT<extra></extra>'
+                ))
+                
+                fig.add_trace(go.Scatter(
+                    x=list(angles_deg),
+                    y=second_circle_bz_values,
+                    mode='lines',
+                    name='Bz (Kreis 2)',
+                    line=dict(color='rgb(147, 197, 253)', width=2, dash='dash'),
+                    hovertemplate='Winkel: %{x:.1f}°<br>Bz: %{y:.4f} mT<extra></extra>'
+                ))
+            
+            print(f"[Circle Calc] Added traces to figure", flush=True)
+            
+        except Exception as e:
+            print(f"[Circle Calc] ERROR adding traces: {e}", flush=True)
+            print(f"[Circle Calc] Traceback: {traceback.format_exc()}", flush=True)
+            raise
         
-        fig.add_trace(go.Scatter(
-            x=distances,
-            y=By_mT,
-            mode='lines',
-            name=f'By{line_cfg["name"]}',
-            line=dict(color=by_color, width=2, dash=dash),
-            hovertemplate=f'Distance: %{{x:.2f}} mm<br>By: %{{y:.4f}} mT<extra></extra>'
-        ))
+        # Add zero line
+        fig.add_hline(y=0, line_dash="dash", line_color="rgba(0, 0, 0, 0.3)", line_width=1)
         
-        fig.add_trace(go.Scatter(
-            x=distances,
-            y=Bz_mT,
-            mode='lines',
-            name=f'Bz{line_cfg["name"]}',
-            line=dict(color=bz_color, width=2, dash=dash),
-            hovertemplate=f'Distance: %{{x:.2f}} mm<br>Bz: %{{y:.4f}} mT<extra></extra>'
-        ))
-    
-    # Add zero line
-    fig.add_hline(y=0, line_dash="dash", line_color="rgba(0, 0, 0, 0.3)", line_width=1)
-    
-    # Update layout
-    fig.update_layout(
-        title='Feldkomponenten entlang der Linie',
-        xaxis_title='Distanz entlang Linie (mm)',
-        yaxis_title='Magnetische Flussdichte (mT)',
-        width=800,
-        height=500,
-        template='plotly_white',
-        hovermode='x unified',
-        showlegend=True,
-        legend=dict(x=1.02, y=1, xanchor='left', yanchor='top')
-    )
-    
-    fig.update_xaxes(showgrid=True, gridcolor='rgba(0, 0, 0, 0.1)')
-    fig.update_yaxes(showgrid=True, gridcolor='rgba(0, 0, 0, 0.1)')
-    
-    return {
-        'plotlyJson': fig.to_json()
-    }
+        # Update layout
+        fig.update_layout(
+            title='Feldkomponenten auf konzentrischem Kreis',
+            xaxis_title='Winkel (Grad)',
+            yaxis_title='Magnetische Flussdichte (mT)',
+            width=800,
+            height=500,
+            template='plotly_white',
+            hovermode='x unified',
+            showlegend=True,
+            legend=dict(x=1.02, y=1, xanchor='left', yanchor='top')
+        )
+        
+        fig.update_xaxes(showgrid=True, gridcolor='rgba(0, 0, 0, 0.1)', range=[0, 360])
+        fig.update_yaxes(showgrid=True, gridcolor='rgba(0, 0, 0, 0.1)')
+        
+        # Perform zero crossing analysis for multi-segment rings
+        print(f"[Circle Calc] Converting to JSON...", flush=True)
+        plotly_json = fig.to_json()
+        
+        result = {'plotlyJson': plotly_json}
+        
+        if magnet_type == 'ring_multi_segment':
+            num_poles = magnet_config.get('numPoles')
+            if num_poles:
+                # Analyze zero crossings for first circle
+                if first_circle_bz_values is not None:
+                    zero_crossings_data = analyze_zero_crossings(
+                        np.array(angles_deg),
+                        np.array(first_circle_bz_values),
+                        num_poles
+                    )
+                    result['zeroCrossings'] = zero_crossings_data
+                
+                # Analyze zero crossings for second circle (if available)
+                if second_circle_bz_values is not None:
+                    zero_crossings_data_2 = analyze_zero_crossings(
+                        np.array(angles_deg),
+                        np.array(second_circle_bz_values),
+                        num_poles
+                    )
+                    result['zeroCrossings2'] = zero_crossings_data_2
+                
+                # Extract pole center fields for first circle
+                if first_circle_br_values is not None and first_circle_bt_values is not None and first_circle_bz_values is not None:
+                    pole_center_fields = extract_pole_center_fields(
+                        np.array(angles_deg),
+                        np.array(first_circle_br_values),
+                        np.array(first_circle_bt_values),
+                        np.array(first_circle_bz_values),
+                        num_poles
+                    )
+                    result['poleCenterFields'] = pole_center_fields
+                
+                # Extract pole center fields for second circle (if available)
+                if second_circle_br_values is not None and second_circle_bt_values is not None and second_circle_bz_values is not None:
+                    pole_center_fields_2 = extract_pole_center_fields(
+                        np.array(angles_deg),
+                        np.array(second_circle_br_values),
+                        np.array(second_circle_bt_values),
+                        np.array(second_circle_bz_values),
+                        num_poles
+                    )
+                    result['poleCenterFields2'] = pole_center_fields_2
+        
+        print(f"[Circle Calc] SUCCESS! Generated JSON size: {len(plotly_json)} bytes", flush=True)
+        return result
+        
+    except Exception as e:
+        print(f"[Circle Calc] FATAL ERROR: {e}", flush=True)
+        print(f"[Circle Calc] Traceback:\n{traceback.format_exc()}", flush=True)
+        raise
 
 
 def extract_pole_center_fields(angles_deg, br_values, bt_values, bz_values, num_poles):
@@ -1448,318 +1611,420 @@ def calculate_circle_field(magnet_config):
     Returns:
         Dict with Plotly JSON and optional zero crossing analysis
     """
-    magnet_type = magnet_config['type']
-    magnetization = magnet_config['magnetization']
-    magnetization_type = magnet_config.get('magnetizationType', 'axial')
-    magnetization_angle = magnet_config.get('magnetizationAngle', 0)
-    axis_tilt_angle = magnet_config.get('axisTiltAngle', 0)
+    import traceback
     
-    # Circle parameters
-    radius = magnet_config['radius']
-    center_x = magnet_config.get('centerX', 0)
-    center_y = magnet_config.get('centerY', 0)
-    center_z_ui = magnet_config.get('centerZ', 0)
-    num_samples = magnet_config.get('numSamples', 360)
-    
-    # Determine magnet height for coordinate transformation
-    if magnet_type == 'rectangular':
-        magnet_height = magnet_config.get('height', 0.01)
-    elif magnet_type == 'cylindrical':
-        magnet_height = magnet_config.get('length', 0.01)
-    elif magnet_type in ['ring', 'ring_segment', 'ring_multi_segment']:
-        magnet_height = magnet_config.get('thickness', 0.01)
-    else:
-        magnet_height = 0.01
-    
-    # Transform Z coordinate: UI has z=0 at surface, Magpylib has z=0 at center
-    center_z_magpylib = center_z_ui + magnet_height / 2
-    
-    # Create magnet (reuse logic from calculate_field)
-    if magnet_type == 'rectangular':
-        length = magnet_config.get('length', 0.01)
-        width = magnet_config.get('width', 0.01)
-        height = magnet_config.get('height', 0.01)
-        magnet = magpy.magnet.Cuboid(
-            polarization=(0, 0, magnetization),
-            dimension=(length, width, height)
-        )
-    elif magnet_type == 'cylindrical':
-        diameter = magnet_config.get('diameter', 0.01)
-        length = magnet_config.get('length', 0.01)
-        polarization = get_polarization_vector(magnetization, magnetization_type, magnetization_angle)
-        magnet = magpy.magnet.Cylinder(
-            polarization=polarization,
-            dimension=(diameter, length)
-        )
-    elif magnet_type == 'ring':
-        outer_diameter = magnet_config.get('diameter', 0.01)
-        inner_diameter = magnet_config.get('innerDiameter', 0.005)
-        thickness = magnet_config.get('thickness', 0.01)
-        polarization = get_polarization_vector(magnetization, magnetization_type, magnetization_angle)
-        if magnetization_type == 'axial':
-            polarization = (polarization[0], polarization[1], -polarization[2])
-        magnet = magpy.magnet.CylinderSegment(
-            polarization=polarization,
-            dimension=(inner_diameter/2, outer_diameter/2, thickness, 0, 360)
-        )
-    elif magnet_type == 'ring_segment':
-        outer_diameter = magnet_config.get('diameter', 0.01)
-        inner_diameter = magnet_config.get('innerDiameter', 0.005)
-        thickness = magnet_config.get('thickness', 0.01)
-        phi1 = magnet_config.get('phi1', 0)
-        phi2 = magnet_config.get('phi2', 90)
+    try:
+        print(f"[Circle Calc] Starting calculation for magnet type: {magnet_config.get('type')}", flush=True)
         
-        if magnetization_type == 'radial':
-            angle_span = phi2 - phi1
-            num_segments = max(4, int(angle_span / 15))
-            segment_angle = angle_span / num_segments
-            
-            # Calculate magnetization direction based on overall segment center
-            segment_center_angle = (phi1 + phi2) / 2
-            segment_center_rad = math.radians(segment_center_angle)
-            px = magnetization * math.cos(segment_center_rad)
-            py = magnetization * math.sin(segment_center_rad)
-            
-            magnets = []
-            for i in range(num_segments):
-                sub_phi1 = phi1 + i * segment_angle
-                sub_phi2 = phi1 + (i + 1) * segment_angle
-                
-                # All subsegments use the same polarization direction (segment center)
-                sub_magnet = magpy.magnet.CylinderSegment(
-                    polarization=(px, py, 0),
-                    dimension=(inner_diameter/2, outer_diameter/2, thickness, sub_phi1, sub_phi2)
-                )
-                magnets.append(sub_magnet)
-            magnet = magpy.Collection(*magnets)
+        # Validate required fields
+        required_fields = ['type', 'magnetization', 'radius', 'centerX', 'centerY', 'centerZ']
+        missing_fields = [f for f in required_fields if f not in magnet_config]
+        if missing_fields:
+            raise ValueError(f"Missing required fields: {missing_fields}")
+        
+        magnet_type = magnet_config['type']
+        magnetization = magnet_config['magnetization']
+        magnetization_type = magnet_config.get('magnetizationType', 'axial')
+        magnetization_angle = magnet_config.get('magnetizationAngle', 0)
+        axis_tilt_angle = magnet_config.get('axisTiltAngle', 0)
+        
+        # Circle parameters
+        radius = magnet_config['radius']
+        center_x = magnet_config.get('centerX', 0)
+        center_y = magnet_config.get('centerY', 0)
+        center_z_ui = magnet_config.get('centerZ', 0)
+        num_samples = magnet_config.get('numSamples', 360)
+        
+        print(f"[Circle Calc] Circle: r={radius}m, center=({center_x}, {center_y}, {center_z_ui}), samples={num_samples}", flush=True)
+        
+        # Determine magnet height for coordinate transformation
+        if magnet_type == 'rectangular':
+            magnet_height = magnet_config.get('height', 0.01)
+        elif magnet_type == 'cylindrical':
+            magnet_height = magnet_config.get('length', 0.01)
+        elif magnet_type in ['ring', 'ring_segment', 'ring_multi_segment']:
+            magnet_height = magnet_config.get('thickness', 0.01)
         else:
-            polarization = get_polarization_vector(magnetization, magnetization_type, magnetization_angle)
-            if magnetization_type == 'axial':
-                polarization = (polarization[0], polarization[1], -polarization[2])
-            magnet = magpy.magnet.CylinderSegment(
-                polarization=polarization,
-                dimension=(inner_diameter/2, outer_diameter/2, thickness, phi1, phi2)
-            )
-    elif magnet_type == 'ring_multi_segment':
-        magnet = create_multi_segment_ring(magnet_config)
-    else:
-        raise ValueError(f"Unknown magnet type: {magnet_type}")
-    
-    # Apply axis tilt rotation if specified (for cylindrical, ring, ring_segment)
-    if axis_tilt_angle != 0 and magnet_type in ['cylindrical', 'ring', 'ring_segment']:
-        magnet = magnet.rotate_from_angax(angle=axis_tilt_angle, axis='y', anchor=(0, 0, 0))
-    
-    # Check if second circle is provided
-    has_circle2 = all([
-        magnet_config.get('circle2Radius') is not None,
-        magnet_config.get('circle2CenterX') is not None,
-        magnet_config.get('circle2CenterY') is not None,
-        magnet_config.get('circle2CenterZ') is not None
-    ])
-    
-    # Collect circle configurations
-    circles_config = [
-        {
-            'name': '',
-            'radius': radius,
-            'center_x': center_x,
-            'center_y': center_y,
-            'center_z_magpylib': center_z_magpylib
-        }
-    ]
-    
-    if has_circle2:
-        circle2_radius = magnet_config['circle2Radius']
-        circle2_center_x = magnet_config.get('circle2CenterX', 0)
-        circle2_center_y = magnet_config.get('circle2CenterY', 0)
-        circle2_center_z_ui = magnet_config.get('circle2CenterZ', 0)
-        circle2_center_z_magpylib = circle2_center_z_ui + magnet_height / 2
+            magnet_height = 0.01
         
-        circles_config.append({
-            'name': ' (Kreis 2)',
-            'radius': circle2_radius,
-            'center_x': circle2_center_x,
-            'center_y': circle2_center_y,
-            'center_z_magpylib': circle2_center_z_magpylib
-        })
-    
-    # Create Plotly chart
-    fig = go.Figure()
-    
-    # Generate angles
-    angles_deg = np.linspace(0, 360, num_samples, endpoint=False)
-    
-    # Store circle field values for zero crossing analysis and pole center fields
-    first_circle_br_values = None
-    first_circle_bt_values = None
-    first_circle_bz_values = None
-    second_circle_br_values = None
-    second_circle_bt_values = None
-    second_circle_bz_values = None
-    
-    # Process each circle
-    for circle_idx, circle_cfg in enumerate(circles_config):
-        Br_values = []
-        Bt_values = []
-        Bz_values = []
+        # Transform Z coordinate: UI has z=0 at surface, Magpylib has z=0 at center
+        center_z_magpylib = center_z_ui + magnet_height / 2
         
-        for angle_deg in angles_deg:
-            angle_rad = math.radians(angle_deg)
-            
-            # Position on circle (in X-Y plane, offset by center)
-            x = circle_cfg['center_x'] + circle_cfg['radius'] * math.cos(angle_rad)
-            y = circle_cfg['center_y'] + circle_cfg['radius'] * math.sin(angle_rad)
-            z = circle_cfg['center_z_magpylib']
-            
-            # Calculate B field
-            observer = np.array([x, y, z])
-            B = magpy.getB(magnet, observer)
-            Bx, By, Bz_cart = float(B[0]), float(B[1]), float(B[2])
-            
-            # Convert to cylindrical coordinates relative to circle center
-            # Position relative to circle center
-            dx = x - circle_cfg['center_x']
-            dy = y - circle_cfg['center_y']
-            
-            # Radial direction: from circle center to sample point
-            r_mag = math.sqrt(dx**2 + dy**2)
-            if r_mag > 1e-10:  # Avoid division by zero
-                r_hat_x = dx / r_mag
-                r_hat_y = dy / r_mag
+        print(f"[Circle Calc] Magnet height: {magnet_height}m, Z offset: {magnet_height/2}m", flush=True)
+        
+        # Create magnet (reuse logic from calculate_field)
+        print(f"[Circle Calc] Creating magnet...", flush=True)
+        
+        magnet = None
+        
+        try:
+            if magnet_type == 'rectangular':
+                length = magnet_config.get('length', 0.01)
+                width = magnet_config.get('width', 0.01)
+                height = magnet_config.get('height', 0.01)
+                magnet = magpy.magnet.Cuboid(
+                    polarization=(0, 0, magnetization),
+                    dimension=(length, width, height)
+                )
+                print(f"[Circle Calc] Created Cuboid: {length}x{width}x{height}m", flush=True)
+                
+            elif magnet_type == 'cylindrical':
+                diameter = magnet_config.get('diameter', 0.01)
+                length = magnet_config.get('length', 0.01)
+                polarization = get_polarization_vector(magnetization, magnetization_type, magnetization_angle)
+                magnet = magpy.magnet.Cylinder(
+                    polarization=polarization,
+                    dimension=(diameter, length)
+                )
+                print(f"[Circle Calc] Created Cylinder: d={diameter}m, l={length}m", flush=True)
+                
+            elif magnet_type == 'ring':
+                outer_diameter = magnet_config.get('diameter', 0.01)
+                inner_diameter = magnet_config.get('innerDiameter', 0.005)
+                thickness = magnet_config.get('thickness', 0.01)
+                polarization = get_polarization_vector(magnetization, magnetization_type, magnetization_angle)
+                if magnetization_type == 'axial':
+                    polarization = (polarization[0], polarization[1], -polarization[2])
+                magnet = magpy.magnet.CylinderSegment(
+                    polarization=polarization,
+                    dimension=(inner_diameter/2, outer_diameter/2, thickness, 0, 360)
+                )
+                print(f"[Circle Calc] Created Ring", flush=True)
+                
+            elif magnet_type == 'ring_segment':
+                outer_diameter = magnet_config.get('diameter', 0.01)
+                inner_diameter = magnet_config.get('innerDiameter', 0.005)
+                thickness = magnet_config.get('thickness', 0.01)
+                phi1 = magnet_config.get('phi1', 0)
+                phi2 = magnet_config.get('phi2', 90)
+                
+                if magnetization_type == 'radial':
+                    angle_span = phi2 - phi1
+                    num_segments = max(4, int(angle_span / 15))
+                    segment_angle = angle_span / num_segments
+                    
+                    segment_center_angle = (phi1 + phi2) / 2
+                    segment_center_rad = math.radians(segment_center_angle)
+                    px = magnetization * math.cos(segment_center_rad)
+                    py = magnetization * math.sin(segment_center_rad)
+                    
+                    magnets = []
+                    for i in range(num_segments):
+                        sub_phi1 = phi1 + i * segment_angle
+                        sub_phi2 = phi1 + (i + 1) * segment_angle
+                        
+                        sub_magnet = magpy.magnet.CylinderSegment(
+                            polarization=(px, py, 0),
+                            dimension=(inner_diameter/2, outer_diameter/2, thickness, sub_phi1, sub_phi2)
+                        )
+                        magnets.append(sub_magnet)
+                    
+                    magnet = magpy.Collection(*magnets)
+                    print(f"[Circle Calc] Created RingSegment (radial)", flush=True)
+                else:
+                    polarization = get_polarization_vector(magnetization, magnetization_type, magnetization_angle)
+                    if magnetization_type == 'axial':
+                        polarization = (polarization[0], polarization[1], -polarization[2])
+                    magnet = magpy.magnet.CylinderSegment(
+                        polarization=polarization,
+                        dimension=(inner_diameter/2, outer_diameter/2, thickness, phi1, phi2)
+                    )
+                    print(f"[Circle Calc] Created RingSegment", flush=True)
+                    
+            elif magnet_type == 'ring_multi_segment':
+                magnet = create_multi_segment_ring(magnet_config)
+                print(f"[Circle Calc] Created multi-segment ring", flush=True)
             else:
-                # Fallback for center point (shouldn't happen for circle)
-                r_hat_x = math.cos(angle_rad)
-                r_hat_y = math.sin(angle_rad)
+                raise ValueError(f"Unknown magnet type: {magnet_type}")
             
-            # Tangential direction: perpendicular to radial, in X-Y plane (90° counterclockwise)
-            t_hat_x = -r_hat_y
-            t_hat_y = r_hat_x
-            
-            # Project B field onto cylindrical basis
-            Br = Bx * r_hat_x + By * r_hat_y  # Radial component
-            Bt = Bx * t_hat_x + By * t_hat_y  # Tangential component
-            Bz = Bz_cart  # Axial component (unchanged)
-            
-            Br_values.append(Br * 1000)  # Convert to mT
-            Bt_values.append(Bt * 1000)
-            Bz_values.append(Bz * 1000)
+            if magnet is None:
+                raise ValueError("Failed to create magnet: magnet is None")
+                
+        except Exception as e:
+            print(f"[Circle Calc] ERROR creating magnet: {e}", flush=True)
+            print(f"[Circle Calc] Traceback: {traceback.format_exc()}", flush=True)
+            raise
         
-        # Store field values for zero crossing analysis and pole center fields
-        if circle_idx == 0:
-            first_circle_br_values = Br_values.copy()
-            first_circle_bt_values = Bt_values.copy()
-            first_circle_bz_values = Bz_values.copy()
-        elif circle_idx == 1:
-            second_circle_br_values = Br_values.copy()
-            second_circle_bt_values = Bt_values.copy()
-            second_circle_bz_values = Bz_values.copy()
+        # Apply axis tilt rotation if specified
+        if axis_tilt_angle != 0 and magnet_type in ['cylindrical', 'ring', 'ring_segment']:
+            magnet = magnet.rotate_from_angax(angle=axis_tilt_angle, axis='y', anchor=(0, 0, 0))
+            print(f"[Circle Calc] Applied axis tilt: {axis_tilt_angle}°", flush=True)
         
-        # Use different colors/styles for second circle
-        if circle_cfg['name']:  # Second circle
-            br_color = 'rgb(251, 113, 133)'  # lighter red
-            bt_color = 'rgb(134, 239, 172)'  # lighter green
-            bz_color = 'rgb(147, 197, 253)'  # lighter blue
-            dash = 'dash'
-        else:  # First circle
-            br_color = 'rgb(239, 68, 68)'
-            bt_color = 'rgb(34, 197, 94)'
-            bz_color = 'rgb(59, 130, 246)'
-            dash = 'solid'
+        # Check if second circle is provided
+        has_circle2 = all([
+            magnet_config.get('radius2') is not None,
+            magnet_config.get('centerX2') is not None,
+            magnet_config.get('centerY2') is not None,
+            magnet_config.get('centerZ2') is not None
+        ])
         
-        fig.add_trace(go.Scatter(
-            x=angles_deg,
-            y=Br_values,
-            mode='lines',
-            name=f'Br{circle_cfg["name"]}',
-            line=dict(color=br_color, width=2, dash=dash),
-            hovertemplate=f'Winkel: %{{x:.1f}}°<br>Br: %{{y:.4f}} mT<extra></extra>'
-        ))
+        print(f"[Circle Calc] Has second circle: {has_circle2}", flush=True)
         
-        fig.add_trace(go.Scatter(
-            x=angles_deg,
-            y=Bt_values,
-            mode='lines',
-            name=f'Bt{circle_cfg["name"]}',
-            line=dict(color=bt_color, width=2, dash=dash),
-            hovertemplate=f'Winkel: %{{x:.1f}}°<br>Bt: %{{y:.4f}} mT<extra></extra>'
-        ))
+        # Create Plotly chart
+        print(f"[Circle Calc] Creating Plotly figure...", flush=True)
+        fig = go.Figure()
         
-        fig.add_trace(go.Scatter(
-            x=angles_deg,
-            y=Bz_values,
-            mode='lines',
-            name=f'Bz{circle_cfg["name"]}',
-            line=dict(color=bz_color, width=2, dash=dash),
-            hovertemplate=f'Winkel: %{{x:.1f}}°<br>Bz: %{{y:.4f}} mT<extra></extra>'
-        ))
-    
-    # Add zero line
-    fig.add_hline(y=0, line_dash="dash", line_color="rgba(0, 0, 0, 0.3)", line_width=1)
-    
-    # Update layout
-    fig.update_layout(
-        title='Feldkomponenten auf konzentrischem Kreis',
-        xaxis_title='Winkel (Grad)',
-        yaxis_title='Magnetische Flussdichte (mT)',
-        width=800,
-        height=500,
-        template='plotly_white',
-        hovermode='x unified',
-        showlegend=True,
-        legend=dict(x=1.02, y=1, xanchor='left', yanchor='top')
-    )
-    
-    fig.update_xaxes(showgrid=True, gridcolor='rgba(0, 0, 0, 0.1)', range=[0, 360])
-    fig.update_yaxes(showgrid=True, gridcolor='rgba(0, 0, 0, 0.1)')
-    
-    # Perform zero crossing analysis for multi-segment rings
-    result = {'plotlyJson': fig.to_json()}
-    
-    if magnet_type == 'ring_multi_segment':
-        num_poles = magnet_config.get('numPoles')
-        if num_poles:
-            # Analyze zero crossings for first circle
-            if first_circle_bz_values is not None:
-                zero_crossings_data = analyze_zero_crossings(
-                    np.array(angles_deg),
-                    np.array(first_circle_bz_values),
-                    num_poles
-                )
-                result['zeroCrossings'] = zero_crossings_data
+        # Process first circle
+        try:
+            print(f"[Circle Calc] Processing circle 1...", flush=True)
             
-            # Analyze zero crossings for second circle (if available)
-            if second_circle_bz_values is not None:
-                zero_crossings_data_2 = analyze_zero_crossings(
-                    np.array(angles_deg),
-                    np.array(second_circle_bz_values),
-                    num_poles
-                )
-                result['zeroCrossings2'] = zero_crossings_data_2
+            angles_deg = np.linspace(0, 360, num_samples)
+            first_circle_br_values = []
+            first_circle_bt_values = []
+            first_circle_bz_values = []
             
-            # Extract pole center fields for first circle
-            if first_circle_br_values is not None and first_circle_bt_values is not None and first_circle_bz_values is not None:
-                pole_center_fields = extract_pole_center_fields(
-                    np.array(angles_deg),
-                    np.array(first_circle_br_values),
-                    np.array(first_circle_bt_values),
-                    np.array(first_circle_bz_values),
-                    num_poles
-                )
-                result['poleCenterFields'] = pole_center_fields
+            for angle_deg in angles_deg:
+                try:
+                    angle_rad = math.radians(angle_deg)
+                    x = center_x + radius * math.cos(angle_rad)
+                    y = center_y + radius * math.sin(angle_rad)
+                    z = center_z_magpylib
+                    
+                    observer = np.array([x, y, z])
+                    B_cart = magpy.getB(magnet, observer)
+                    
+                    if B_cart is None:
+                        print(f"[Circle Calc] WARNING: B is None at angle {angle_deg}°", flush=True)
+                        B_cart = np.array([0, 0, 0])
+                    
+                    B_cart = np.array(B_cart)
+                    
+                    if np.any(np.isnan(B_cart)) or np.any(np.isinf(B_cart)):
+                        print(f"[Circle Calc] WARNING: Invalid B at angle {angle_deg}°: {B_cart}", flush=True)
+                        B_cart = np.array([0, 0, 0])
+                    
+                    # Transform Cartesian to cylindrical coordinates
+                    # Br: radial component (from center)
+                    # Bt: tangential component (perpendicular to radial, in XY plane)
+                    # Bz: axial component (along Z)
+                    
+                    cos_a = math.cos(angle_rad)
+                    sin_a = math.sin(angle_rad)
+                    
+                    Br = B_cart[0] * cos_a + B_cart[1] * sin_a
+                    Bt = -B_cart[0] * sin_a + B_cart[1] * cos_a
+                    Bz = B_cart[2]
+                    
+                    first_circle_br_values.append(Br * 1000)  # Convert to mT
+                    first_circle_bt_values.append(Bt * 1000)
+                    first_circle_bz_values.append(Bz * 1000)
+                    
+                except Exception as e:
+                    print(f"[Circle Calc] ERROR at angle {angle_deg}°: {e}", flush=True)
+                    first_circle_br_values.append(0.0)
+                    first_circle_bt_values.append(0.0)
+                    first_circle_bz_values.append(0.0)
             
-            # Extract pole center fields for second circle (if available)
-            if second_circle_br_values is not None and second_circle_bt_values is not None and second_circle_bz_values is not None:
-                pole_center_fields_2 = extract_pole_center_fields(
-                    np.array(angles_deg),
-                    np.array(second_circle_br_values),
-                    np.array(second_circle_bt_values),
-                    np.array(second_circle_bz_values),
-                    num_poles
-                )
-                result['poleCenterFields2'] = pole_center_fields_2
-    
-    return result
-
+            print(f"[Circle Calc] Calculated {len(first_circle_br_values)} points for circle 1", flush=True)
+            
+        except Exception as e:
+            print(f"[Circle Calc] ERROR processing circle 1: {e}", flush=True)
+            print(f"[Circle Calc] Traceback: {traceback.format_exc()}", flush=True)
+            raise
+        
+        # Process second circle if provided
+        second_circle_br_values = None
+        second_circle_bt_values = None
+        second_circle_bz_values = None
+        
+        if has_circle2:
+            try:
+                print(f"[Circle Calc] Processing circle 2...", flush=True)
+                
+                radius2 = magnet_config.get('radius2', 0.01)
+                center_x2 = magnet_config.get('centerX2', 0)
+                center_y2 = magnet_config.get('centerY2', 0)
+                center_z2_ui = magnet_config.get('centerZ2', 0)
+                center_z2_magpylib = center_z2_ui + magnet_height / 2
+                
+                second_circle_br_values = []
+                second_circle_bt_values = []
+                second_circle_bz_values = []
+                
+                for angle_deg in angles_deg:
+                    try:
+                        angle_rad = math.radians(angle_deg)
+                        x = center_x2 + radius2 * math.cos(angle_rad)
+                        y = center_y2 + radius2 * math.sin(angle_rad)
+                        z = center_z2_magpylib
+                        
+                        observer = np.array([x, y, z])
+                        B_cart = magpy.getB(magnet, observer)
+                        
+                        if B_cart is None:
+                            B_cart = np.array([0, 0, 0])
+                        
+                        B_cart = np.array(B_cart)
+                        
+                        if np.any(np.isnan(B_cart)) or np.any(np.isinf(B_cart)):
+                            B_cart = np.array([0, 0, 0])
+                        
+                        cos_a = math.cos(angle_rad)
+                        sin_a = math.sin(angle_rad)
+                        
+                        Br = B_cart[0] * cos_a + B_cart[1] * sin_a
+                        Bt = -B_cart[0] * sin_a + B_cart[1] * cos_a
+                        Bz = B_cart[2]
+                        
+                        second_circle_br_values.append(Br * 1000)
+                        second_circle_bt_values.append(Bt * 1000)
+                        second_circle_bz_values.append(Bz * 1000)
+                        
+                    except Exception as e:
+                        print(f"[Circle Calc] ERROR at angle {angle_deg}° (circle 2): {e}", flush=True)
+                        second_circle_br_values.append(0.0)
+                        second_circle_bt_values.append(0.0)
+                        second_circle_bz_values.append(0.0)
+                
+                print(f"[Circle Calc] Calculated {len(second_circle_br_values)} points for circle 2", flush=True)
+                
+            except Exception as e:
+                print(f"[Circle Calc] ERROR processing circle 2: {e}", flush=True)
+                print(f"[Circle Calc] Traceback: {traceback.format_exc()}", flush=True)
+                # Continue without second circle
+                has_circle2 = False
+        
+        # Add traces to figure
+        try:
+            # First circle
+            fig.add_trace(go.Scatter(
+                x=list(angles_deg),
+                y=first_circle_br_values,
+                mode='lines',
+                name='Br (Kreis 1)',
+                line=dict(color='rgb(239, 68, 68)', width=2),
+                hovertemplate='Winkel: %{x:.1f}°<br>Br: %{y:.4f} mT<extra></extra>'
+            ))
+            
+            fig.add_trace(go.Scatter(
+                x=list(angles_deg),
+                y=first_circle_bt_values,
+                mode='lines',
+                name='Bt (Kreis 1)',
+                line=dict(color='rgb(34, 197, 94)', width=2),
+                hovertemplate='Winkel: %{x:.1f}°<br>Bt: %{y:.4f}} mT<extra></extra>'
+            ))
+            
+            fig.add_trace(go.Scatter(
+                x=list(angles_deg),
+                y=first_circle_bz_values,
+                mode='lines',
+                name='Bz (Kreis 1)',
+                line=dict(color='rgb(59, 130, 246)', width=2),
+                hovertemplate='Winkel: %{x:.1f}°<br>Bz: %{y:.4f} mT<extra></extra>'
+            ))
+            
+            # Second circle if provided
+            if has_circle2 and second_circle_br_values is not None:
+                fig.add_trace(go.Scatter(
+                    x=list(angles_deg),
+                    y=second_circle_br_values,
+                    mode='lines',
+                    name='Br (Kreis 2)',
+                    line=dict(color='rgb(251, 113, 133)', width=2, dash='dash'),
+                    hovertemplate='Winkel: %{x:.1f}°<br>Br: %{y:.4f} mT<extra></extra>'
+                ))
+                
+                fig.add_trace(go.Scatter(
+                    x=list(angles_deg),
+                    y=second_circle_bt_values,
+                    mode='lines',
+                    name='Bt (Kreis 2)',
+                    line=dict(color='rgb(134, 239, 172)', width=2, dash='dash'),
+                    hovertemplate='Winkel: %{x:.1f}°<br>Bt: %{y:.4f} mT<extra></extra>'
+                ))
+                
+                fig.add_trace(go.Scatter(
+                    x=list(angles_deg),
+                    y=second_circle_bz_values,
+                    mode='lines',
+                    name='Bz (Kreis 2)',
+                    line=dict(color='rgb(147, 197, 253)', width=2, dash='dash'),
+                    hovertemplate='Winkel: %{x:.1f}°<br>Bz: %{y:.4f} mT<extra></extra>'
+                ))
+            
+            print(f"[Circle Calc] Added traces to figure", flush=True)
+            
+        except Exception as e:
+            print(f"[Circle Calc] ERROR adding traces: {e}", flush=True)
+            print(f"[Circle Calc] Traceback: {traceback.format_exc()}", flush=True)
+            raise
+        
+        # Add zero line
+        fig.add_hline(y=0, line_dash="dash", line_color="rgba(0, 0, 0, 0.3)", line_width=1)
+        
+        # Update layout
+        fig.update_layout(
+            title='Feldkomponenten auf konzentrischem Kreis',
+            xaxis_title='Winkel (Grad)',
+            yaxis_title='Magnetische Flussdichte (mT)',
+            width=800,
+            height=500,
+            template='plotly_white',
+            hovermode='x unified',
+            showlegend=True,
+            legend=dict(x=1.02, y=1, xanchor='left', yanchor='top')
+        )
+        
+        fig.update_xaxes(showgrid=True, gridcolor='rgba(0, 0, 0, 0.1)', range=[0, 360])
+        fig.update_yaxes(showgrid=True, gridcolor='rgba(0, 0, 0, 0.1)')
+        
+        # Perform zero crossing analysis for multi-segment rings
+        print(f"[Circle Calc] Converting to JSON...", flush=True)
+        plotly_json = fig.to_json()
+        
+        result = {'plotlyJson': plotly_json}
+        
+        if magnet_type == 'ring_multi_segment':
+            num_poles = magnet_config.get('numPoles')
+            if num_poles:
+                # Analyze zero crossings for first circle
+                if first_circle_bz_values is not None:
+                    zero_crossings_data = analyze_zero_crossings(
+                        np.array(angles_deg),
+                        np.array(first_circle_bz_values),
+                        num_poles
+                    )
+                    result['zeroCrossings'] = zero_crossings_data
+                
+                # Analyze zero crossings for second circle (if available)
+                if second_circle_bz_values is not None:
+                    zero_crossings_data_2 = analyze_zero_crossings(
+                        np.array(angles_deg),
+                        np.array(second_circle_bz_values),
+                        num_poles
+                    )
+                    result['zeroCrossings2'] = zero_crossings_data_2
+                
+                # Extract pole center fields for first circle
+                if first_circle_br_values is not None and first_circle_bt_values is not None and first_circle_bz_values is not None:
+                    pole_center_fields = extract_pole_center_fields(
+                        np.array(angles_deg),
+                        np.array(first_circle_br_values),
+                        np.array(first_circle_bt_values),
+                        np.array(first_circle_bz_values),
+                        num_poles
+                    )
+                    result['poleCenterFields'] = pole_center_fields
+                
+                # Extract pole center fields for second circle (if available)
+                if second_circle_br_values is not None and second_circle_bt_values is not None and second_circle_bz_values is not None:
+                    pole_center_fields_2 = extract_pole_center_fields(
+                        np.array(angles_deg),
+                        np.array(second_circle_br_values),
+                        np.array(second_circle_bt_values),
+                        np.array(second_circle_bz_values),
+                        num_poles
+                    )
+                    result['poleCenterFields2'] = pole_center_fields_2
+        
+        print(f"[Circle Calc] SUCCESS! Generated JSON size: {len(plotly_json)} bytes", flush=True)
+        return result
+        
+    except Exception as e:
+        print(f"[Circle Calc] FATAL ERROR: {e}", flush=True)
+        print(f"[Circle Calc] Traceback:\n{traceback.format_exc()}", flush=True)
+        raise
 
 def main():
     """Main entry point - read JSON from stdin, calculate, output JSON."""
