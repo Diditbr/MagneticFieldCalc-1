@@ -313,6 +313,71 @@ def calculate_field(magnet_config):
     }
 
 
+def calculate_line_field(magnet_config):
+    """Calculate field components along one or two straight lines."""
+    num_points = magnet_config.get('numPoints', 100)
+
+    def calculate_line(start, end, name_suffix=''):
+        points = np.linspace(start, end, num_points)
+        distances = np.linalg.norm(points - points[0], axis=1) * 1000
+        fields = [
+            calculate_field({
+                **magnet_config,
+                'x': float(point[0]),
+                'y': float(point[1]),
+                'z': float(point[2]),
+            })
+            for point in points
+        ]
+        return [
+            go.Scatter(
+                x=distances.tolist(),
+                y=[field[component] * 1000 for field in fields],
+                mode='lines',
+                name=f'{component}{name_suffix}',
+            )
+            for component in ('Bx', 'By', 'Bz')
+        ]
+
+    start = np.array([
+        magnet_config['startX'],
+        magnet_config['startY'],
+        magnet_config['startZ'],
+    ])
+    end = np.array([
+        magnet_config['endX'],
+        magnet_config['endY'],
+        magnet_config['endZ'],
+    ])
+    traces = calculate_line(start, end)
+
+    second_keys = (
+        'line2StartX', 'line2StartY', 'line2StartZ',
+        'line2EndX', 'line2EndY', 'line2EndZ',
+    )
+    if all(key in magnet_config for key in second_keys):
+        second_start = np.array([
+            magnet_config['line2StartX'],
+            magnet_config['line2StartY'],
+            magnet_config['line2StartZ'],
+        ])
+        second_end = np.array([
+            magnet_config['line2EndX'],
+            magnet_config['line2EndY'],
+            magnet_config['line2EndZ'],
+        ])
+        traces.extend(calculate_line(second_start, second_end, ' (Linie 2)'))
+
+    figure = go.Figure(data=traces)
+    figure.update_layout(
+        title='Feldkomponenten entlang der Linie',
+        xaxis_title='Distanz entlang Linie (mm)',
+        yaxis_title='Magnetische Flussdichte (mT)',
+        hovermode='x unified',
+    )
+    return {'plotlyJson': figure.to_json()}
+
+
 def calculate_field_grid(magnet_config):
     """
     Calculate magnetic field on a 2D grid in the X-Z plane (Y=0 cross-section).

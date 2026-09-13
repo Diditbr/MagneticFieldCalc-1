@@ -23,6 +23,18 @@ import { calculateFieldEnhanced } from "./calculations";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+function getPythonExecutable(): string {
+  if (process.platform !== "win32") {
+    return "python3";
+  }
+
+  if (process.env.VIRTUAL_ENV) {
+    return join(process.env.VIRTUAL_ENV, "Scripts", "python.exe");
+  }
+
+  return "python";
+}
+
 /**
  * Call Python magpylib calculator for accurate magnetic field calculations
  */
@@ -52,7 +64,7 @@ async function calculateWithMagpylib(request: any): Promise<FieldCalculationResp
     }
     
     console.log(`[Magpylib] Starting Python calculation with mode: ${request.mode || 'point'}`);
-    const python = spawn('python3', [pythonScript]);
+    const python = spawn(getPythonExecutable(), [pythonScript]);
     
     let stdout = '';
     let stderr = '';
@@ -83,6 +95,18 @@ async function calculateWithMagpylib(request: any): Promise<FieldCalculationResp
       if (code !== 0) {
         console.error(`[Magpylib] Python process exited with code ${code}`);
         console.error(`[Magpylib] stderr: ${stderr}`);
+        if (stdout.length > 0) {
+          try {
+            const pythonError = JSON.parse(stdout);
+            const details = pythonError.traceback
+              ? `${pythonError.error || 'Unknown error'}\n${pythonError.traceback}`
+              : pythonError.error;
+            reject(new Error(`Python calculation failed: ${details || stdout}`));
+            return;
+          } catch {
+            console.error(`[Magpylib] Python stdout: ${stdout.substring(0, 1000)}`);
+          }
+        }
         reject(new Error(`Python calculation failed: ${stderr || 'Unknown error'}`));
       } else {
         try {
@@ -321,7 +345,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Call Python documentation generator
-      const python = spawn('python3', [pythonScript, magnetType]);
+      const python = spawn(getPythonExecutable(), [pythonScript, magnetType]);
       
       let stdout = '';
       let stderr = '';
@@ -385,7 +409,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return;
       }
       
-      const python = spawn('python3', [pythonScript]);
+      const python = spawn(getPythonExecutable(), [pythonScript]);
       
       let stdout = '';
       let stderr = '';
